@@ -86,8 +86,13 @@ impl ExchangeClient for Binance {
         tokio::spawn(async move {
             while let Some(binance_message) = binance_candle_rx.recv().await {
                 match binance_message {
-                    BinanceMessage::Candle(binance_candle) => {
-                        if candle_tx.send(Candle::from(binance_candle)).is_err() {
+                    BinanceMessage::Kline(binance_kline) => {
+
+                        if binance_kline.data.kline_closed == false {
+                            continue;
+                        }
+
+                        if candle_tx.send(Candle::from(binance_kline)).is_err() {
                             info!("Receiver for Binance Candles has been dropped - closing stream.");
                             return;
                         }
@@ -135,7 +140,7 @@ pub enum BinanceMessage {
     Subscription(BinanceSub),
     SubscriptionResponse(BinanceSubResponse),
     Trade(BinanceTrade),
-    Candle(BinanceCandle),
+    Kline(BinanceKline),
     OrderBook(BinanceOrderBook)
 }
 
@@ -143,8 +148,11 @@ impl StreamIdentifier for BinanceMessage {
     fn get_stream_id(&self) -> Identifier {
         match self {
             BinanceMessage::Trade(trade) => {
-                Identifier::Yes(format!("{}@{}", trade.s.to_lowercase(), trade.e))
+                Identifier::Yes(format!("{}@{}", trade.symbol.to_lowercase(), trade.event_type))
             },
+            BinanceMessage::Kline(kline) => {
+                Identifier::Yes(format!("{}@{}_{}", kline.symbol.to_lowercase(), kline.event_type, kline.data.interval))
+            }
             _ => Identifier::No
         }
     }
@@ -183,123 +191,114 @@ pub struct BinanceSubResponse {
 /// [Binance] specific Trade message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceTrade {
-    /// Event Type
-    e: String,
-    /// Event Time
-    #[serde(rename = "E")]
-    et: u64,
-    /// Symbol
-    s: String,
-    /// Trade Id
-    a: u64,
-    /// Price
-    #[serde(deserialize_with = "de_str_to_f64")]
-    p: f64,
-    /// Quantity
-    #[serde(deserialize_with = "de_str_to_f64")]
-    q: f64,
-    /// Buyer Order Id
-    f: u64,
-    /// Seller Order Id
-    l: u64,
-    /// Trade Time
+    #[serde(rename = "e")]
+    event_type: String,
+    #[serde(rename = "E", skip_deserializing)]
+    event_time: u64,
+    #[serde(rename = "s")]
+    symbol: String,
+    #[serde(rename = "a")]
+    trade_id: u64,
+    #[serde(rename = "p", deserialize_with = "de_str_to_f64")]
+    price: f64,
+    #[serde(rename = "q", deserialize_with = "de_str_to_f64")]
+    quantity: f64,
+    #[serde(rename = "f", skip_deserializing)]
+    buyer_order_id: u64,
+    #[serde(rename = "l", skip_deserializing)]
+    seller_order_id: u64,
     #[serde(rename = "T")]
-    t: u64,
-    /// Buyer Is Market Maker
-    m: bool,
-    /// Deprecated
-    #[serde(rename = "M")]
+    trade_time: u64,
+    #[serde(rename = "m")]
+    buyer_is_market_maker: bool,
+    #[serde(rename = "M", skip_deserializing)]
     deprecated: bool
 }
 
 impl From<BinanceTrade> for Trade {
     fn from(binance_trade: BinanceTrade) -> Self {
-        let buyer = match binance_trade.m {
-            true => BuyerType::Maker,
+        let buyer = match binance_trade.buyer_is_market_maker {
+            true => BuyerType::MarketMaker,
             false => BuyerType::Taker,
         };
 
         Self {
-            trade_id: binance_trade.a.to_string(),
-            timestamp: binance_trade.t.to_string(),
-            ticker: binance_trade.s,
-            price: binance_trade.p,
-            quantity: binance_trade.q,
+            trade_id: binance_trade.trade_id.to_string(),
+            timestamp: binance_trade.trade_time.to_string(),
+            ticker: binance_trade.symbol,
+            price: binance_trade.price,
+            quantity: binance_trade.quantity,
             buyer,
         }
     }
 }
 
+
 /// [Binance] specific Candle message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BinanceCandle {
-    /// Event Type
-    e: String,
-    /// Event Time
-    #[serde(rename = "E")]
-    et: i64,
-    /// Symbol
-    s: String,
-    /// Data
-    k: BinanceCandleData,
+pub struct BinanceKline {
+    #[serde(rename = "e")]
+    event_type: String,
+    #[serde(rename = "E", skip_deserializing)]
+    event_time: i64, // todo
+    #[serde(rename = "s")]
+    symbol: String,
+    #[serde(rename = "k")]
+    data: BinanceKlineData,
 }
 
-/// [Binance] Candle data contained within a [BinanceCandle].
+/// [Binance] candle data contained within a [BinanceCandle].
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BinanceCandleData {
-    /// Kline Start Time
-    t: u64,
-    /// Kline Close Time
+pub struct BinanceKlineData {
+    #[serde(rename = "t", skip_deserializing)]
+    start_time: i64,
     #[serde(rename = "T")]
-    ct: i64,
-    /// Symbol
-    s: String,
-    /// Interval
-    i: String,
-    /// First Trade Id
-    f: u64,
-    /// Last Trade Id
-    #[serde(rename = "L")]
-    lt: u64,
-    /// Open Price
-    o: f64,
-    /// Close Price
-    c: f64,
-    /// High Price
-    h: f64,
-    /// Low Price
-    l: f64,
-    /// Base Asset Volume
-    v: u64,
-    /// Number Of Trades
-    n: u64,
-    /// Is This Kline/Candlestick Closed
-    x: bool,
-    /// Quote Asset Volume
-    q: f64,
-    /// Taker Buy Base Asset Volume
-    #[serde(rename = "V")]
-    tv: u64,
-    /// Taker Buy Quote Asset Volume
-    qv: f64,
-    /// Deprecated
-    #[serde(rename = "B")]
-    b: u64,
+    end_time: i64,
+    #[serde(rename = "s", skip_deserializing)]
+    symbol: String,
+    #[serde(rename = "i")]
+    interval: String,
+    #[serde(rename = "f", skip_deserializing)]
+    first_trade_id: i64,
+    #[serde(rename = "L", skip_deserializing)]
+    last_trade_id: i64,
+    #[serde(rename = "o", deserialize_with = "de_str_to_f64")]
+    open: f64,
+    #[serde(rename = "c", deserialize_with = "de_str_to_f64")]
+    close: f64,
+    #[serde(rename = "h", deserialize_with = "de_str_to_f64")]
+    high: f64,
+    #[serde(rename = "l", deserialize_with = "de_str_to_f64")]
+    low: f64,
+    #[serde(rename = "v", deserialize_with = "de_str_to_f64")]
+    base_asset_volume: f64,
+    #[serde(rename = "n", skip_deserializing)]
+    number_trades: u64,
+    #[serde(rename = "x")]
+    kline_closed: bool,
+    #[serde(rename = "q", deserialize_with = "de_str_to_f64", skip_deserializing)]
+    quote_asset_volume: f64,
+    #[serde(rename = "V", deserialize_with = "de_str_to_f64", skip_deserializing)]
+    taker_buy_base_asset_volume: f64,
+    #[serde(rename = "Q", deserialize_with = "de_str_to_f64", skip_deserializing)]
+    taker_buy_quote_asset_volume: f64,
+    #[serde(rename = "B", skip_deserializing)]
+    deprecated: String,
 }
 
-impl From<BinanceCandle> for Candle {
-    fn from(binance_candle: BinanceCandle) -> Self {
+impl From<BinanceKline> for Candle {
+    fn from(binance_candle: BinanceKline) -> Self {
         let timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_candle.k.ct, 0), Utc
+            NaiveDateTime::from_timestamp(binance_candle.data.end_time, 0), Utc
         );
 
         Self {
             timestamp,
-            open: binance_candle.k.o,
-            high: binance_candle.k.h,
-            low: binance_candle.k.l,
-            close: binance_candle.k.c,
-            volume: binance_candle.k.v as f64,
+            open: binance_candle.data.open,
+            high: binance_candle.data.high,
+            low: binance_candle.data.low,
+            close: binance_candle.data.close,
+            volume: binance_candle.data.base_asset_volume,
         }
     }
 }
