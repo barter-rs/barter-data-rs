@@ -5,8 +5,7 @@ use tokio_tungstenite::tungstenite;
 pub enum ClientError {
     #[error("Failed to establish websocket connection due to failed websocket handshake")]
     WebSocketConnect(#[source] tungstenite::error::Error),
-
-    // Todo: Improve error message for the below error variant
+    
     #[error("Failed to write data via websocket connection")]
     WebSocketWrite(#[source] tungstenite::error::Error),
 
