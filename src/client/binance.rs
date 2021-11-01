@@ -1,11 +1,10 @@
 use crate::client::{ClientConfig, de_str_to_f64};
 use crate::error::ClientError;
 use crate::connection::ConnectionHandler;
-use crate::{BuyerType, Candle, connect, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
+use crate::{BuyerType, connect, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use log::{info, warn, error};
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 
@@ -26,7 +25,7 @@ impl ExchangeClient for Binance {
         // Construct Subscription for the ConnectionHandler to action
         let trades_subscription = BinanceSub::new(
             String::from(Binance::TRADE_STREAM),
-            symbol
+            symbol.clone()
         );
 
         // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
@@ -59,58 +58,11 @@ impl ExchangeClient for Binance {
         // Return normalised Trade stream to consumer
         Ok(UnboundedReceiverStream::new(trade_rx))
     }
-
-    async fn consume_candles(&mut self, symbol: String, interval: &str) -> Result<UnboundedReceiverStream<Candle>, ClientError> {
-        // Construct trades channel that ConnectionHandler will distribute trade stream data on
-        let (binance_candle_tx, mut binance_candle_rx) = mpsc::unbounded_channel();
-
-        // Construct Subscription for the ConnectionHandler to action
-        let candles_subscription = BinanceSub::new(
-            Binance::CANDLE_STREAM.replace("<interval>", interval),
-            symbol
-        );
-
-        // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
-        if let Err(err) = self
-            .subscription_tx
-            .send((candles_subscription, binance_candle_tx))
-            .await {
-            error!("Subscription request receiver has dropped by the ConnectionHandler - closing transmitter: {:?}", err);
-            return Err(ClientError::SendFailure)
-        }
-
-        // Construct channel to distribute normalised Trade data to downstream consumers
-        let (candle_tx, candle_rx) = mpsc::unbounded_channel();
-
-        // Async task to consume from binance_trades_tx and produce normalised Trades via the trades_tx
-        tokio::spawn(async move {
-            while let Some(binance_message) = binance_candle_rx.recv().await {
-                match binance_message {
-                    BinanceMessage::Kline(binance_kline) => {
-
-                        if binance_kline.data.kline_closed == false {
-                            continue;
-                        }
-
-                        if candle_tx.send(Candle::from(binance_kline)).is_err() {
-                            info!("Receiver for Binance Candles has been dropped - closing stream.");
-                            return;
-                        }
-                    },
-                    _ => warn!("consume_candles() received BinanceMessage that was not a Candle")
-                }
-            }
-        });
-
-        // Return normalised Trade stream to consumer
-        Ok(UnboundedReceiverStream::new(candle_rx))
-    }
 }
 
 impl Binance {
     const BASE_URI: &'static str = "wss://stream.binance.com:9443/ws";
     const TRADE_STREAM: &'static str = "@aggTrade";
-    const CANDLE_STREAM: &'static str = "@kline_<interval>";
 
     /// Constructs a new [Binance] [ExchangeClient] instance using the [ClientConfig] provided.
     pub async fn new(cfg: ClientConfig) -> Result<Self, ClientError> {
@@ -133,14 +85,13 @@ impl Binance {
     }
 }
 
-/// [Binance] Message variants that could be received from Binance WebSocket server.
+/// Binance Message variants that could be received from Binance WebSocket server.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BinanceMessage {
     Subscription(BinanceSub),
     SubscriptionResponse(BinanceSubResponse),
     Trade(BinanceTrade),
-    Kline(BinanceKline),
     OrderBook(BinanceOrderBook)
 }
 
@@ -150,15 +101,12 @@ impl StreamIdentifier for BinanceMessage {
             BinanceMessage::Trade(trade) => {
                 Identifier::Yes(format!("{}@{}", trade.symbol.to_lowercase(), trade.event_type))
             },
-            BinanceMessage::Kline(kline) => {
-                Identifier::Yes(format!("{}@{}_{}", kline.symbol.to_lowercase(), kline.event_type, kline.data.interval))
-            }
             _ => Identifier::No
         }
     }
 }
 
-/// [Binance] specific subscription message.
+/// Binance specific subscription message.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct BinanceSub {
     method: String,
@@ -182,43 +130,45 @@ impl StreamIdentifier for BinanceSub {
     }
 }
 
-/// [Binance] specific subscription response message.
+/// Binance specific subscription response message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceSubResponse {
     id: u64,
 }
 
-/// [Binance] specific Trade message.
+/// Binance specific Trade message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceTrade {
     #[serde(rename = "e")]
     event_type: String,
-    #[serde(rename = "E", skip_deserializing)]
+    #[serde(rename = "E")]
     event_time: u64,
     #[serde(rename = "s")]
     symbol: String,
     #[serde(rename = "a")]
     trade_id: u64,
-    #[serde(rename = "p", deserialize_with = "de_str_to_f64")]
+    #[serde(rename = "p")]
+    #[serde(deserialize_with = "de_str_to_f64")]
     price: f64,
-    #[serde(rename = "q", deserialize_with = "de_str_to_f64")]
+    #[serde(rename = "q")]
+    #[serde(deserialize_with = "de_str_to_f64")]
     quantity: f64,
-    #[serde(rename = "f", skip_deserializing)]
+    #[serde(rename = "f")]
     buyer_order_id: u64,
-    #[serde(rename = "l", skip_deserializing)]
+    #[serde(rename = "l")]
     seller_order_id: u64,
     #[serde(rename = "T")]
     trade_time: u64,
     #[serde(rename = "m")]
     buyer_is_market_maker: bool,
-    #[serde(rename = "M", skip_deserializing)]
-    deprecated: bool
+    #[serde(rename = "M")]
+    m: bool
 }
 
 impl From<BinanceTrade> for Trade {
     fn from(binance_trade: BinanceTrade) -> Self {
         let buyer = match binance_trade.buyer_is_market_maker {
-            true => BuyerType::MarketMaker,
+            true => BuyerType::Maker,
             false => BuyerType::Taker,
         };
 
@@ -233,77 +183,7 @@ impl From<BinanceTrade> for Trade {
     }
 }
 
-
-/// [Binance] specific Candle message.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BinanceKline {
-    #[serde(rename = "e")]
-    event_type: String,
-    #[serde(rename = "E", skip_deserializing)]
-    event_time: i64, // todo
-    #[serde(rename = "s")]
-    symbol: String,
-    #[serde(rename = "k")]
-    data: BinanceKlineData,
-}
-
-/// [Binance] candle data contained within a [BinanceCandle].
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct BinanceKlineData {
-    #[serde(rename = "t", skip_deserializing)]
-    start_time: i64,
-    #[serde(rename = "T")]
-    end_time: i64,
-    #[serde(rename = "s", skip_deserializing)]
-    symbol: String,
-    #[serde(rename = "i")]
-    interval: String,
-    #[serde(rename = "f", skip_deserializing)]
-    first_trade_id: i64,
-    #[serde(rename = "L", skip_deserializing)]
-    last_trade_id: i64,
-    #[serde(rename = "o", deserialize_with = "de_str_to_f64")]
-    open: f64,
-    #[serde(rename = "c", deserialize_with = "de_str_to_f64")]
-    close: f64,
-    #[serde(rename = "h", deserialize_with = "de_str_to_f64")]
-    high: f64,
-    #[serde(rename = "l", deserialize_with = "de_str_to_f64")]
-    low: f64,
-    #[serde(rename = "v", deserialize_with = "de_str_to_f64")]
-    base_asset_volume: f64,
-    #[serde(rename = "n", skip_deserializing)]
-    number_trades: u64,
-    #[serde(rename = "x")]
-    kline_closed: bool,
-    #[serde(rename = "q", deserialize_with = "de_str_to_f64", skip_deserializing)]
-    quote_asset_volume: f64,
-    #[serde(rename = "V", deserialize_with = "de_str_to_f64", skip_deserializing)]
-    taker_buy_base_asset_volume: f64,
-    #[serde(rename = "Q", deserialize_with = "de_str_to_f64", skip_deserializing)]
-    taker_buy_quote_asset_volume: f64,
-    #[serde(rename = "B", skip_deserializing)]
-    deprecated: String,
-}
-
-impl From<BinanceKline> for Candle {
-    fn from(binance_candle: BinanceKline) -> Self {
-        let timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_candle.data.end_time, 0), Utc
-        );
-
-        Self {
-            timestamp,
-            open: binance_candle.data.open,
-            high: binance_candle.data.high,
-            low: binance_candle.data.low,
-            close: binance_candle.data.close,
-            volume: binance_candle.data.base_asset_volume,
-        }
-    }
-}
-
-/// [Binance] specific OrderBook snapshot message.
+/// Binance specific OrderBook snapshot message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceOrderBook {
     #[serde(rename = "lastUpdateId")]
@@ -312,7 +192,7 @@ pub struct BinanceOrderBook {
     pub asks: Vec<BinanceLevel>,
 }
 
-/// [Binance] specific Level data structure used to construct a [BinanceOrderBook].
+/// Binance specific Level data structure used to construct a [BinanceOrderBook].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceLevel {
     #[serde(deserialize_with = "de_str_to_f64")]

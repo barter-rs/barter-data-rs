@@ -6,7 +6,6 @@ use crate::error::ClientError;
 use log::info;
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -31,7 +30,6 @@ pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 #[async_trait]
 pub trait ExchangeClient {
     async fn consume_trades(&mut self, symbol: String) -> Result<UnboundedReceiverStream<Trade>, ClientError>;
-    async fn consume_candles(&mut self, symbol: String, interval: &str) -> Result<UnboundedReceiverStream<Candle>, ClientError>;
 }
 
 /// Utilised to subscribe to an exchange's [WebSocketStream] via a ConnectionHandler (eg/ Trade stream).
@@ -78,30 +76,10 @@ pub struct Trade {
 /// Defines if the buyer in a [Trade] is a market maker.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BuyerType {
-    MarketMaker,
+    Maker,
     Taker,
 }
 
-/// Defines the possible intervals that a [Candle] represents.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum Interval {
-    Minute1, Minute3, Minute5, Minute15, Minute30,
-    Hour1, Hour2, Hour4, Hour6, Hour8, Hour12,
-    Day1, Day3,
-    Week1,
-    Month1,
-}
-
-/// Normalised OHLCV data from an [Interval] with the associated [DateTime] UTC timestamp;
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Candle {
-    pub timestamp: DateTime<Utc>,
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: f64,
-}
 
 #[cfg(test)]
 mod tests {
