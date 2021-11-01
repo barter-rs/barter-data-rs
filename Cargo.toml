@@ -1,0 +1,26 @@
+[package]
+name = "barter-data"
+version = "0.1.0"
+authors = ["keirbailey <keirinvestment@gmail.com>"]
+edition = "2018"
+license = "MIT"
+documentation = "https://docs.rs/barter-data/"
+repository = "https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs"
+readme = "README.md"
+description = "High performance & normalised WebSocket intergration for leading cryptocurrency exchanges - batteries included."
+keywords = ["trading", "backtesting", "crypto", "stocks", "investment"]
+categories = ["accessibility", "simulation"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.14"
+env_logger = "0.9.0"
+async-trait = "0.1.51"
+thiserror = "1.0.30"
+tokio = { version = "1.12.0", features = ["full"] }
+tokio-stream = { version = "0.1.7", features = ["sync"] }
+tokio-tungstenite = { version = "0.15.0", features = ["rustls-tls"] }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = "1.0.68"
+futures-util = "0.3.17"
