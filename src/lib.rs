@@ -1,12 +1,13 @@
 pub mod connection;
 pub mod error;
 pub mod client;
+pub mod model;
 
 use crate::error::ClientError;
+use crate::model::{Candle, Trade};
 use log::info;
-use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
@@ -22,6 +23,10 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 //     '-> subscription succeeded even if it didn't, need to confirm first message arrives?
 //     '-> ensure logging is aligned once this has been done
 //  - manage() add in connection fixing, reconnections
+
+// Todo: error.rs / model.rs:
+//  - Do I even want a CandleBuilder? If not then remove the errors. Could provide a new() method
+//    that performs the same validation on the candle
 
 /// Useful type alias for a [WebSocketStream] connection.
 pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
@@ -62,45 +67,6 @@ async fn connect(base_uri: &String) -> Result<WSStream, ClientError> {
         .await
         .and_then(|(ws_stream, _)| Ok(ws_stream))
         .map_err(|err| ClientError::WebSocketConnect(err))
-}
-
-/// Normalised Trade model to be returned from an [ExchangeClient].
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Trade {
-    trade_id: String,
-    timestamp: String,
-    ticker: String,
-    price: f64,
-    quantity: f64,
-    buyer: BuyerType,
-}
-
-/// Defines if the buyer in a [Trade] is a market maker.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum BuyerType {
-    MarketMaker,
-    Taker,
-}
-
-/// Defines the possible intervals that a [Candle] represents.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum Interval {
-    Minute1, Minute3, Minute5, Minute15, Minute30,
-    Hour1, Hour2, Hour4, Hour6, Hour8, Hour12,
-    Day1, Day3,
-    Week1,
-    Month1,
-}
-
-/// Normalised OHLCV data from an [Interval] with the associated [DateTime] UTC timestamp;
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Candle {
-    pub timestamp: DateTime<Utc>,
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: f64,
 }
 
 #[cfg(test)]

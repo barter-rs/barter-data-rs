@@ -1,13 +1,14 @@
 use crate::client::{ClientConfig, de_str_to_f64};
 use crate::error::ClientError;
 use crate::connection::ConnectionHandler;
-use crate::{BuyerType, Candle, connect, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
+use crate::{Candle, connect, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use log::{info, warn, error};
 use serde::{Deserialize, Serialize};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
+use crate::model::BuyerType;
 
 /// [ExchangeClient] implementation for Binance.
 pub struct Binance {
