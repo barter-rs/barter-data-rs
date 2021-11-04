@@ -286,7 +286,7 @@ pub struct BinanceKlineData {
     low: f64,
     #[serde(rename = "v", deserialize_with = "de_str_to_f64")]
     base_asset_volume: f64,
-    #[serde(rename = "n", skip_deserializing)]
+    #[serde(rename = "n")]
     number_trades: u64,
     #[serde(rename = "x")]
     kline_closed: bool,
