@@ -1,12 +1,12 @@
+pub mod client;
 pub mod connection;
 pub mod error;
-pub mod client;
 pub mod model;
 
 use crate::error::ClientError;
 use crate::model::{Candle, Trade};
-use log::info;
 use async_trait::async_trait;
+use log::info;
 use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -35,8 +35,15 @@ pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 /// a stream of normalised data.
 #[async_trait]
 pub trait ExchangeClient {
-    async fn consume_trades(&mut self, symbol: String) -> Result<UnboundedReceiverStream<Trade>, ClientError>;
-    async fn consume_candles(&mut self, symbol: String, interval: &str) -> Result<UnboundedReceiverStream<Candle>, ClientError>;
+    async fn consume_trades(
+        &mut self,
+        symbol: String,
+    ) -> Result<UnboundedReceiverStream<Trade>, ClientError>;
+    async fn consume_candles(
+        &mut self,
+        symbol: String,
+        interval: &str,
+    ) -> Result<UnboundedReceiverStream<Candle>, ClientError>;
 }
 
 /// Utilised to subscribe to an exchange's [WebSocketStream] via a ConnectionHandler (eg/ Trade stream).
@@ -44,7 +51,10 @@ pub trait Subscription {
     /// Constructs a new [Subscription] implementation.
     fn new(stream_name: String, ticker_pair: String) -> Self;
     /// Serializes the [Subscription] in a String data format.
-    fn as_text(&self) -> Result<String, ClientError> where Self: Serialize {
+    fn as_text(&self) -> Result<String, ClientError>
+    where
+        Self: Serialize,
+    {
         Ok(serde_json::to_string(self)?)
     }
 }
@@ -81,23 +91,31 @@ mod tests {
         }
 
         let test_cases = vec![
-            TestCase { // Test case 0: Not a valid WS base URI
+            TestCase {
+                // Test case 0: Not a valid WS base URI
                 input_base_uri: "not a valid base uri".to_string(),
                 expected_can_connect: false,
             },
-            TestCase { // Test case 1: Valid Binance WS base URI
+            TestCase {
+                // Test case 1: Valid Binance WS base URI
                 input_base_uri: "wss://stream.binance.com:9443/ws".to_string(),
                 expected_can_connect: true,
             },
-            TestCase { // Test case 2: Valid Bitstamp WS base URI
+            TestCase {
+                // Test case 2: Valid Bitstamp WS base URI
                 input_base_uri: "wss://ws.bitstamp.net/".to_string(),
-                expected_can_connect: true
+                expected_can_connect: true,
             },
         ];
 
         for (index, test) in test_cases.into_iter().enumerate() {
             let actual_result = connect(&test.input_base_uri).await;
-            assert_eq!(test.expected_can_connect, actual_result.is_ok(), "Test case: {:?}", index);
-        };
+            assert_eq!(
+                test.expected_can_connect,
+                actual_result.is_ok(),
+                "Test case: {:?}",
+                index
+            );
+        }
     }
 }

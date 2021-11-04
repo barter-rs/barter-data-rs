@@ -1,11 +1,11 @@
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use ta::{Close, High, Low, Open, Volume};
 
 #[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub enum MarketData {
     Trade(Trade),
-    Candle(Candle)
+    Candle(Candle),
 }
 
 /// Normalised Trade model to be returned from an [ExchangeClient].
@@ -29,9 +29,19 @@ pub enum BuyerType {
 /// Defines the possible intervals that a [Candle] represents.
 #[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub enum Interval {
-    Minute1, Minute3, Minute5, Minute15, Minute30,
-    Hour1, Hour2, Hour4, Hour6, Hour8, Hour12,
-    Day1, Day3,
+    Minute1,
+    Minute3,
+    Minute5,
+    Minute15,
+    Minute30,
+    Hour1,
+    Hour2,
+    Hour4,
+    Hour6,
+    Hour8,
+    Hour12,
+    Day1,
+    Day3,
     Week1,
     Month1,
 }
@@ -59,7 +69,7 @@ impl Default for Candle {
             low: 900.0,
             close: 1050.0,
             volume: 1000000000.0,
-            trade_count: 100
+            trade_count: 100,
         }
     }
 }

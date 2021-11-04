@@ -1,15 +1,15 @@
 use crate::error::ClientError;
-use crate::{StreamIdentifier, Identifier, Subscription, WSStream};
-use log::{debug, info, warn, error};
+use crate::{Identifier, StreamIdentifier, Subscription, WSStream};
+use futures_util::SinkExt;
+use log::{debug, error, info, warn};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::time::Duration;
-use tokio_stream::StreamExt;
-use futures_util::SinkExt;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 use tokio::sync::mpsc;
 use tokio::time::{interval, Interval};
+use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message as WSMessage;
 
 /// Type alias to communicate a stream's unique String identifier that can be used to route messages
@@ -33,21 +33,25 @@ pub struct ConnectionHandler<Message, Sub> {
     /// Map containing the data channel transmitter for every [Subscription] actioned. The map's
     /// [StreamRoutingId] key is used to identify which data channel to transmit an incoming
     /// exchange message to.
-    pub exchange_data_txs: HashMap<StreamRoutingId, mpsc::UnboundedSender<Message>>
+    pub exchange_data_txs: HashMap<StreamRoutingId, mpsc::UnboundedSender<Message>>,
 }
 
 impl<Message, Sub> ConnectionHandler<Message, Sub>
-    where
-        Sub: Debug + Subscription + StreamIdentifier + Serialize + Send + Sync,
-        Message: Debug + StreamIdentifier + DeserializeOwned + Send + Sync,
+where
+    Sub: Debug + Subscription + StreamIdentifier + Serialize + Send + Sync,
+    Message: Debug + StreamIdentifier + DeserializeOwned + Send + Sync,
 {
     /// Constructs a new [ConnectionHandler] instance using the [WSStream] connection provided.
-    pub fn new(rate_limit_per_second: u64, ws_conn: WSStream, subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>) -> Self {
+    pub fn new(
+        rate_limit_per_second: u64,
+        ws_conn: WSStream,
+        subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>,
+    ) -> Self {
         Self {
             rate_limit: interval(Duration::from_secs(rate_limit_per_second)),
             ws_conn,
             subscription_rx,
-            exchange_data_txs: Default::default()
+            exchange_data_txs: Default::default(),
         }
     }
 
@@ -129,18 +133,27 @@ impl<Message, Sub> ConnectionHandler<Message, Sub>
     /// transmitter is inserted into the exchange_data_txs map upon subscribing, this is used by
     /// the [ConnectionHandler] to route incoming exchange messages to the associated downstream
     /// consumers.
-    async fn action_subscription_request(mut self, sub_request: Sub, data_tx: mpsc::UnboundedSender<Message>) -> Self {
-        info!("Received Subscription request from ExchangeClient: {:?}", sub_request);
+    async fn action_subscription_request(
+        mut self,
+        sub_request: Sub,
+        data_tx: mpsc::UnboundedSender<Message>,
+    ) -> Self {
+        info!(
+            "Received Subscription request from ExchangeClient: {:?}",
+            sub_request
+        );
 
         // Identify StreamRoutingId of the Subscription
         let routing_id = match sub_request.get_stream_id() {
             Identifier::Yes(routing_id) => routing_id,
             Identifier::No => {
-                warn!("Ignoring subscription request due to a non-identifiable routing_id: {:?}", sub_request);
-                return self
+                warn!(
+                    "Ignoring subscription request due to a non-identifiable routing_id: {:?}",
+                    sub_request
+                );
+                return self;
             }
         };
-
 
         // Subscribe to stream via the WebSocket connection
         match self.subscribe(sub_request).await {
@@ -149,7 +162,10 @@ impl<Message, Sub> ConnectionHandler<Message, Sub>
                 self.exchange_data_txs.insert(routing_id.clone(), data_tx);
             }
             Err(err) => {
-                warn!("Failed to subscribe to stream: {:?} due to error: {:?}", routing_id, err)
+                warn!(
+                    "Failed to subscribe to stream: {:?} due to error: {:?}",
+                    routing_id, err
+                )
             }
         }
 
@@ -167,12 +183,19 @@ impl<Message, Sub> ConnectionHandler<Message, Sub>
 
     /// Retrieves the data transmitter associated with a [StreamRoutingId] from the
     /// [ConnectionHandler]'s exchange_data_tx map.
-    fn retrieve_relevant_data_transmitter(&mut self, routing_id: &String) -> &mut mpsc::UnboundedSender<Message> {
-        self.exchange_data_txs
-            .get_mut(routing_id)
-            .expect(format!("Message with StreamRoutingId: {:?} has been received \
+    fn retrieve_relevant_data_transmitter(
+        &mut self,
+        routing_id: &String,
+    ) -> &mut mpsc::UnboundedSender<Message> {
+        self.exchange_data_txs.get_mut(routing_id).expect(
+            format!(
+                "Message with StreamRoutingId: {:?} has been received \
                                     without a relevant exchange_data_tx in the map to route \
-                                    it to", routing_id).as_str())
+                                    it to",
+                routing_id
+            )
+            .as_str(),
+        )
     }
 }
 
@@ -184,7 +207,9 @@ mod tests {
 
     // Binance Connection & Subscription
     async fn gen_binance_conn() -> WSStream {
-        connect(&String::from("wss://stream.binance.com:9443/ws")).await.unwrap()
+        connect(&String::from("wss://stream.binance.com:9443/ws"))
+            .await
+            .unwrap()
     }
     fn gen_valid_binance_sub() -> BinanceSub {
         BinanceSub::new("@depth20@100ms".to_string(), "ethbtc".to_string())
@@ -192,7 +217,9 @@ mod tests {
 
     // Bitstamp Connection & Subscription
     async fn gen_bitstamp_conn() -> WSStream {
-        connect(&String::from("wss://ws.bitstamp.net/")).await.unwrap()
+        connect(&String::from("wss://ws.bitstamp.net/"))
+            .await
+            .unwrap()
     }
     // fn gen_valid_bitstamp_sub() -> BitstampSub {
     //     BitstampSub::new("order_book_".to_string(), "ethbtc".to_string())
@@ -207,16 +234,22 @@ mod tests {
         }
 
         let test_cases = vec![
-            TestCase { // Test case 0: Valid Binance subscription
+            TestCase {
+                // Test case 0: Valid Binance subscription
                 conn_handler: ConnectionHandler::new(
-                    4, gen_binance_conn().await, mpsc::channel(10).1
+                    4,
+                    gen_binance_conn().await,
+                    mpsc::channel(10).1,
                 ),
                 input_sub: gen_valid_binance_sub(),
                 expected_can_subscribe: true,
             },
-            TestCase { // Test case 1: Valid Binance subscription
+            TestCase {
+                // Test case 1: Valid Binance subscription
                 conn_handler: ConnectionHandler::new(
-                    4, gen_binance_conn().await, mpsc::channel(10).1
+                    4,
+                    gen_binance_conn().await,
+                    mpsc::channel(10).1,
                 ),
                 input_sub: BinanceSub::new("invalid".to_string(), "invalid".to_string()),
                 expected_can_subscribe: false,
@@ -226,7 +259,12 @@ mod tests {
         for (index, mut test) in test_cases.into_iter().enumerate() {
             println!("{:?}", test.input_sub);
             let actual_result = test.conn_handler.subscribe(test.input_sub).await;
-            assert_eq!(test.expected_can_subscribe, actual_result.is_ok(), "Test case: {:?}", index);
+            assert_eq!(
+                test.expected_can_subscribe,
+                actual_result.is_ok(),
+                "Test case: {:?}",
+                index
+            );
         }
     }
 }

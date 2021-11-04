@@ -1,14 +1,14 @@
-use crate::client::{ClientConfig, de_str_to_f64};
-use crate::error::ClientError;
+use crate::client::{de_str_to_f64, ClientConfig};
 use crate::connection::ConnectionHandler;
-use crate::{Candle, connect, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
-use log::{info, warn, error};
-use serde::{Deserialize, Serialize};
+use crate::error::ClientError;
+use crate::model::BuyerType;
+use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use log::{error, info, warn};
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use crate::model::BuyerType;
 
 /// [ExchangeClient] implementation for Binance.
 pub struct Binance {
@@ -20,23 +20,24 @@ pub struct Binance {
 
 #[async_trait]
 impl ExchangeClient for Binance {
-    async fn consume_trades(&mut self, symbol: String) -> Result<UnboundedReceiverStream<Trade>, ClientError> {
+    async fn consume_trades(
+        &mut self,
+        symbol: String,
+    ) -> Result<UnboundedReceiverStream<Trade>, ClientError> {
         // Construct trades channel that ConnectionHandler will distribute trade stream data on
         let (binance_trade_tx, mut binance_trade_rx) = mpsc::unbounded_channel();
 
         // Construct Subscription for the ConnectionHandler to action
-        let trades_subscription = BinanceSub::new(
-            String::from(Binance::TRADE_STREAM),
-            symbol
-        );
+        let trades_subscription = BinanceSub::new(String::from(Binance::TRADE_STREAM), symbol);
 
         // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
         if let Err(err) = self
             .subscription_tx
             .send((trades_subscription, binance_trade_tx))
-            .await {
+            .await
+        {
             error!("Subscription request receiver has dropped by the ConnectionHandler - closing transmitter: {:?}", err);
-            return Err(ClientError::SendFailure)
+            return Err(ClientError::SendFailure);
         }
 
         // Construct channel to distribute normalised Trade data to downstream consumers
@@ -50,8 +51,8 @@ impl ExchangeClient for Binance {
                             info!("Receiver for Binance Trades has been dropped - closing stream.");
                             return;
                         }
-                    },
-                    _ => warn!("consume_trades() received BinanceMessage that was not a Trade")
+                    }
+                    _ => warn!("consume_trades() received BinanceMessage that was not a Trade"),
                 }
             }
         });
@@ -60,23 +61,28 @@ impl ExchangeClient for Binance {
         Ok(UnboundedReceiverStream::new(trade_rx))
     }
 
-    async fn consume_candles(&mut self, symbol: String, interval: &str) -> Result<UnboundedReceiverStream<Candle>, ClientError> {
+    async fn consume_candles(
+        &mut self,
+        symbol: String,
+        interval: &str,
+    ) -> Result<UnboundedReceiverStream<Candle>, ClientError> {
         // Construct trades channel that ConnectionHandler will distribute trade stream data on
         let (binance_candle_tx, mut binance_candle_rx) = mpsc::unbounded_channel();
 
         // Construct Subscription for the ConnectionHandler to action
         let candles_subscription = BinanceSub::new(
             Binance::CANDLE_STREAM.replace("<interval>", interval),
-            symbol
+            symbol,
         );
 
         // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
         if let Err(err) = self
             .subscription_tx
             .send((candles_subscription, binance_candle_tx))
-            .await {
+            .await
+        {
             error!("Subscription request receiver has dropped by the ConnectionHandler - closing transmitter: {:?}", err);
-            return Err(ClientError::SendFailure)
+            return Err(ClientError::SendFailure);
         }
 
         // Construct channel to distribute normalised Trade data to downstream consumers
@@ -87,17 +93,18 @@ impl ExchangeClient for Binance {
             while let Some(binance_message) = binance_candle_rx.recv().await {
                 match binance_message {
                     BinanceMessage::Kline(binance_kline) => {
-
                         if binance_kline.data.kline_closed == false {
                             continue;
                         }
 
                         if candle_tx.send(Candle::from(binance_kline)).is_err() {
-                            info!("Receiver for Binance Candles has been dropped - closing stream.");
+                            info!(
+                                "Receiver for Binance Candles has been dropped - closing stream."
+                            );
                             return;
                         }
-                    },
-                    _ => warn!("consume_candles() received BinanceMessage that was not a Candle")
+                    }
+                    _ => warn!("consume_candles() received BinanceMessage that was not a Candle"),
                 }
             }
         });
@@ -121,10 +128,8 @@ impl Binance {
         let (subscription_tx, subscription_rx) = mpsc::channel(10);
 
         // Construct ConnectionHandler
-        let connection = ConnectionHandler::new(
-            cfg.rate_limit_per_second,
-            ws_conn, subscription_rx
-        );
+        let connection =
+            ConnectionHandler::new(cfg.rate_limit_per_second, ws_conn, subscription_rx);
 
         // Manage connection via event loop
         let _ = tokio::spawn(connection.manage());
@@ -141,19 +146,24 @@ pub enum BinanceMessage {
     SubscriptionResponse(BinanceSubResponse),
     Trade(BinanceTrade),
     Kline(BinanceKline),
-    OrderBook(BinanceOrderBook)
+    OrderBook(BinanceOrderBook),
 }
 
 impl StreamIdentifier for BinanceMessage {
     fn get_stream_id(&self) -> Identifier {
         match self {
-            BinanceMessage::Trade(trade) => {
-                Identifier::Yes(format!("{}@{}", trade.symbol.to_lowercase(), trade.event_type))
-            },
-            BinanceMessage::Kline(kline) => {
-                Identifier::Yes(format!("{}@{}_{}", kline.symbol.to_lowercase(), kline.event_type, kline.data.interval))
-            }
-            _ => Identifier::No
+            BinanceMessage::Trade(trade) => Identifier::Yes(format!(
+                "{}@{}",
+                trade.symbol.to_lowercase(),
+                trade.event_type
+            )),
+            BinanceMessage::Kline(kline) => Identifier::Yes(format!(
+                "{}@{}_{}",
+                kline.symbol.to_lowercase(),
+                kline.event_type,
+                kline.data.interval
+            )),
+            _ => Identifier::No,
         }
     }
 }
@@ -212,13 +222,14 @@ pub struct BinanceTrade {
     #[serde(rename = "m")]
     buyer_is_market_maker: bool,
     #[serde(rename = "M", skip_deserializing)]
-    deprecated: bool
+    deprecated: bool,
 }
 
 impl From<BinanceTrade> for Trade {
     fn from(binance_trade: BinanceTrade) -> Self {
         let timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_trade.trade_time, 0), Utc
+            NaiveDateTime::from_timestamp(binance_trade.trade_time, 0),
+            Utc,
         );
 
         let buyer = match binance_trade.buyer_is_market_maker {
@@ -236,7 +247,6 @@ impl From<BinanceTrade> for Trade {
         }
     }
 }
-
 
 /// [Binance] specific Candle message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -293,11 +303,13 @@ pub struct BinanceKlineData {
 impl From<BinanceKline> for Candle {
     fn from(binance_kline: BinanceKline) -> Self {
         let start_timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_kline.data.start_time, 0), Utc
+            NaiveDateTime::from_timestamp(binance_kline.data.start_time, 0),
+            Utc,
         );
 
         let end_timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_kline.data.end_time, 0), Utc
+            NaiveDateTime::from_timestamp(binance_kline.data.end_time, 0),
+            Utc,
         );
 
         Self {
@@ -308,7 +320,7 @@ impl From<BinanceKline> for Candle {
             low: binance_kline.data.low,
             close: binance_kline.data.close,
             volume: binance_kline.data.base_asset_volume,
-            trade_count: binance_kline.data.number_trades
+            trade_count: binance_kline.data.number_trades,
         }
     }
 }
