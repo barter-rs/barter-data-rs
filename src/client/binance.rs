@@ -42,7 +42,6 @@ impl ExchangeClient for Binance {
         // Construct channel to distribute normalised Trade data to downstream consumers
         let (trade_tx, trade_rx) = mpsc::unbounded_channel();
 
-        // Async task to consume from binance_trades_tx and produce normalised Trades via the trades_tx
         tokio::spawn(async move {
             while let Some(binance_message) = binance_trade_rx.recv().await {
                 match binance_message {
@@ -195,7 +194,7 @@ pub struct BinanceTrade {
     #[serde(rename = "e")]
     event_type: String,
     #[serde(rename = "E", skip_deserializing)]
-    event_time: u64,
+    event_time: i64,
     #[serde(rename = "s")]
     symbol: String,
     #[serde(rename = "a")]
@@ -209,7 +208,7 @@ pub struct BinanceTrade {
     #[serde(rename = "l", skip_deserializing)]
     seller_order_id: u64,
     #[serde(rename = "T")]
-    trade_time: u64,
+    trade_time: i64,
     #[serde(rename = "m")]
     buyer_is_market_maker: bool,
     #[serde(rename = "M", skip_deserializing)]
@@ -218,6 +217,10 @@ pub struct BinanceTrade {
 
 impl From<BinanceTrade> for Trade {
     fn from(binance_trade: BinanceTrade) -> Self {
+        let timestamp = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(binance_trade.trade_time, 0), Utc
+        );
+
         let buyer = match binance_trade.buyer_is_market_maker {
             true => BuyerType::MarketMaker,
             false => BuyerType::Taker,
@@ -225,7 +228,7 @@ impl From<BinanceTrade> for Trade {
 
         Self {
             trade_id: binance_trade.trade_id.to_string(),
-            timestamp: binance_trade.trade_time.to_string(),
+            timestamp,
             ticker: binance_trade.symbol,
             price: binance_trade.price,
             quantity: binance_trade.quantity,
@@ -288,18 +291,24 @@ pub struct BinanceKlineData {
 }
 
 impl From<BinanceKline> for Candle {
-    fn from(binance_candle: BinanceKline) -> Self {
-        let timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_candle.data.end_time, 0), Utc
+    fn from(binance_kline: BinanceKline) -> Self {
+        let start_timestamp = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(binance_kline.data.start_time, 0), Utc
+        );
+
+        let end_timestamp = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(binance_kline.data.end_time, 0), Utc
         );
 
         Self {
-            timestamp,
-            open: binance_candle.data.open,
-            high: binance_candle.data.high,
-            low: binance_candle.data.low,
-            close: binance_candle.data.close,
-            volume: binance_candle.data.base_asset_volume,
+            start_timestamp,
+            end_timestamp,
+            open: binance_kline.data.open,
+            high: binance_kline.data.high,
+            low: binance_kline.data.low,
+            close: binance_kline.data.close,
+            volume: binance_kline.data.base_asset_volume,
+            trade_count: binance_kline.data.number_trades
         }
     }
 }

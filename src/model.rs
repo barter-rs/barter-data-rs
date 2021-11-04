@@ -2,11 +2,17 @@ use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
 use ta::{Close, High, Low, Open, Volume};
 
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+pub enum MarketData {
+    Trade(Trade),
+    Candle(Candle)
+}
+
 /// Normalised Trade model to be returned from an [ExchangeClient].
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub struct Trade {
     pub trade_id: String,
-    pub timestamp: String,
+    pub timestamp: DateTime<Utc>,
     pub ticker: String,
     pub price: f64,
     pub quantity: f64,
@@ -14,14 +20,14 @@ pub struct Trade {
 }
 
 /// Defines if the buyer in a [Trade] is a market maker.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub enum BuyerType {
     MarketMaker,
     Taker,
 }
 
 /// Defines the possible intervals that a [Candle] represents.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub enum Interval {
     Minute1, Minute3, Minute5, Minute15, Minute30,
     Hour1, Hour2, Hour4, Hour6, Hour8, Hour12,
@@ -31,25 +37,29 @@ pub enum Interval {
 }
 
 /// Normalised OHLCV data from an [Interval] with the associated [DateTime] UTC timestamp;
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub struct Candle {
-    pub timestamp: DateTime<Utc>,
+    pub start_timestamp: DateTime<Utc>,
+    pub end_timestamp: DateTime<Utc>,
     pub open: f64,
     pub high: f64,
     pub low: f64,
     pub close: f64,
     pub volume: f64,
+    pub trade_count: u64,
 }
 
 impl Default for Candle {
     fn default() -> Self {
         Self {
-            timestamp: Utc::now(),
+            start_timestamp: Utc::now(),
+            end_timestamp: Utc::now(),
             open: 1000.0,
             high: 1100.0,
             low: 900.0,
             close: 1050.0,
             volume: 1000000000.0,
+            trade_count: 100
         }
     }
 }
