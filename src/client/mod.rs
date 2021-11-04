@@ -1,5 +1,6 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use serde::{de, Deserialize, Deserializer};
+use serde::{de, Serialize, Deserialize, Deserializer};
 
 /// Binance WebSocket client implementing the ExchangeClient trait.
 pub mod binance;
@@ -8,8 +9,20 @@ pub mod binance;
 pub mod bitstamp;
 
 /// Common client configuration that is likely required by an ExchangeClient trait implementor.
+#[derive(Debug, Deserialize)]
 pub struct ClientConfig {
     pub rate_limit_per_second: u64,
+}
+
+/// Possible exchange Client names.
+#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+pub enum ClientName { Binance, }
+
+impl Display for ClientName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let name = match self { ClientName::Binance => "Binance" };
+        write!(f, "{}", name)
+    }
 }
 
 /// Custom [Deserializer] function to deserialize an input [str] to a [f64].
