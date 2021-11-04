@@ -24,10 +24,6 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 //     '-> ensure logging is aligned once this has been done
 //  - manage() add in connection fixing, reconnections
 
-// Todo: error.rs / model.rs:
-//  - Do I even want a CandleBuilder? If not then remove the errors. Could provide a new() method
-//    that performs the same validation on the candle
-
 /// Useful type alias for a [WebSocketStream] connection.
 pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
