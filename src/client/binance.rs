@@ -129,7 +129,7 @@ impl Binance {
 
         // Construct ConnectionHandler
         let connection =
-            ConnectionHandler::new(cfg.rate_limit_per_second, ws_conn, subscription_rx);
+            ConnectionHandler::new(cfg.rate_limit_per_minute, ws_conn, subscription_rx);
 
         // Manage connection via event loop
         let _ = tokio::spawn(connection.manage());

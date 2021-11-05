@@ -43,12 +43,12 @@ where
 {
     /// Constructs a new [ConnectionHandler] instance using the [WSStream] connection provided.
     pub fn new(
-        rate_limit_per_second: u64,
+        rate_limit_per_minute: u64,
         ws_conn: WSStream,
         subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>,
     ) -> Self {
         Self {
-            rate_limit: interval(Duration::from_secs(rate_limit_per_second)),
+            rate_limit: calculate_rate_limit_interval(rate_limit_per_minute),
             ws_conn,
             subscription_rx,
             exchange_data_txs: Default::default(),
@@ -199,6 +199,11 @@ where
     }
 }
 
+fn calculate_rate_limit_interval(rate_limit_per_minute: u64) -> Interval {
+    let rate_limit_per_second = (rate_limit_per_minute as f64 / 60.0) as f64;
+    interval(Duration::from_secs_f64(rate_limit_per_second))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,6 +229,37 @@ mod tests {
     // fn gen_valid_bitstamp_sub() -> BitstampSub {
     //     BitstampSub::new("order_book_".to_string(), "ethbtc".to_string())
     // }
+
+    #[tokio::test]
+    async fn test_calculate_rate_limit_interval() {
+        struct TestCase {
+            input_limit_per_min: u64,
+            output_limit_duration: Duration,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                // Test case 0:
+                input_limit_per_min: 33,
+                output_limit_duration: Duration::from_millis(550),
+            },
+            TestCase {
+                // Test case 1:
+                input_limit_per_min: 255,
+                output_limit_duration: Duration::from_millis(4250)
+            },
+            TestCase {
+                // Test case 2:
+                input_limit_per_min: 5,
+                output_limit_duration: Duration::from_secs_f64(1.0 / 12.0)
+            },
+        ];
+
+        for (index, test) in test_cases.into_iter().enumerate() {
+            let actual_result = calculate_rate_limit_interval(test.input_limit_per_min);
+            assert_eq!(test.output_limit_duration, actual_result.period(), "Test case: {:?}", index)
+        }
+    }
 
     #[tokio::test]
     async fn test_binance_subscribe() {
@@ -257,7 +293,6 @@ mod tests {
         ];
 
         for (index, mut test) in test_cases.into_iter().enumerate() {
-            println!("{:?}", test.input_sub);
             let actual_result = test.conn_handler.subscribe(test.input_sub).await;
             assert_eq!(
                 test.expected_can_subscribe,

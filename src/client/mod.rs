@@ -11,7 +11,7 @@ pub mod bitstamp;
 /// Common client configuration that is likely required by an ExchangeClient trait implementor.
 #[derive(Debug, Deserialize)]
 pub struct ClientConfig {
-    pub rate_limit_per_second: u64,
+    pub rate_limit_per_minute: u64,
 }
 
 /// Possible exchange Client names.
