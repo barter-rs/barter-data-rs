@@ -228,7 +228,7 @@ pub struct BinanceTrade {
 impl From<BinanceTrade> for Trade {
     fn from(binance_trade: BinanceTrade) -> Self {
         let timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_trade.trade_time/1000, 0),
+            NaiveDateTime::from_timestamp(binance_trade.trade_time / 1000, 0),
             Utc,
         );
 
@@ -303,12 +303,12 @@ pub struct BinanceKlineData {
 impl From<BinanceKline> for Candle {
     fn from(binance_kline: BinanceKline) -> Self {
         let start_timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_kline.data.start_time/1000, 0),
+            NaiveDateTime::from_timestamp(binance_kline.data.start_time / 1000, 0),
             Utc,
         );
 
         let end_timestamp = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(binance_kline.data.end_time/1000, 0),
+            NaiveDateTime::from_timestamp(binance_kline.data.end_time / 1000, 0),
             Utc,
         );
 
@@ -342,13 +342,4 @@ pub struct BinanceLevel {
     #[serde(rename = "quantity")]
     #[serde(deserialize_with = "de_str_to_f64")]
     pub amount: f64,
-}
-
-
-#[cfg(test)]
-mod tests {
-    // use super::*;
-    //
-    // #[tokio::test]
-    // async fn test() {}
 }

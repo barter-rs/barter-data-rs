@@ -246,18 +246,23 @@ mod tests {
             TestCase {
                 // Test case 1:
                 input_limit_per_min: 255,
-                output_limit_duration: Duration::from_millis(4250)
+                output_limit_duration: Duration::from_millis(4250),
             },
             TestCase {
                 // Test case 2:
                 input_limit_per_min: 5,
-                output_limit_duration: Duration::from_secs_f64(1.0 / 12.0)
+                output_limit_duration: Duration::from_secs_f64(1.0 / 12.0),
             },
         ];
 
         for (index, test) in test_cases.into_iter().enumerate() {
             let actual_result = calculate_rate_limit_interval(test.input_limit_per_min);
-            assert_eq!(test.output_limit_duration, actual_result.period(), "Test case: {:?}", index)
+            assert_eq!(
+                test.output_limit_duration,
+                actual_result.period(),
+                "Test case: {:?}",
+                index
+            )
         }
     }
 
