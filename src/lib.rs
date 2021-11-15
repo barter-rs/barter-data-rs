@@ -6,7 +6,7 @@ pub mod model;
 use crate::error::ClientError;
 use crate::model::{Candle, Trade};
 use async_trait::async_trait;
-use log::info;
+use log::debug;
 use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -68,7 +68,7 @@ pub enum Identifier {
 
 /// Connect asynchronously to an exchange's server, returning a [WebSocketStream].
 async fn connect(base_uri: &String) -> Result<WSStream, ClientError> {
-    info!("Establishing WebSocket connection to: {:?}", base_uri);
+    debug!("Establishing WebSocket connection to: {:?}", base_uri);
     connect_async(base_uri)
         .await
         .and_then(|(ws_stream, _)| Ok(ws_stream))
