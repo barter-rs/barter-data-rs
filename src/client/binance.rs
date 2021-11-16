@@ -120,7 +120,7 @@ impl Binance {
     const CANDLE_STREAM: &'static str = "@kline_<interval>";
 
     /// Constructs a new [Binance] [ExchangeClient] instance using the [ClientConfig] provided.
-    pub async fn new(cfg: ClientConfig) -> Result<Self, ClientError> {
+    pub async fn init(cfg: ClientConfig) -> Result<Self, ClientError> {
         // Connect to client WebSocket server
         let ws_conn = connect(&String::from(Binance::BASE_URI)).await?;
 
@@ -248,7 +248,7 @@ impl From<BinanceTrade> for Trade {
     }
 }
 
-/// [Binance] specific Candle message.
+/// [Binance] specific Kline message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceKline {
     #[serde(rename = "e")]
@@ -261,7 +261,7 @@ pub struct BinanceKline {
     data: BinanceKlineData,
 }
 
-/// [Binance] candle data contained within a [BinanceCandle].
+/// [Binance] Kline data contained within a [BinanceKline].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceKlineData {
     #[serde(rename = "t")]

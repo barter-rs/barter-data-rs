@@ -55,9 +55,10 @@ where
         }
     }
 
-    /// Consumes two types of incoming messages [Subscription] requests received from an [ExchangeClient], and also
-    /// the data received from an exchange as a result of a [Subscription]. This function handles the actioning of
-    /// [Subscription] requests, and routes the exchange data to the associated downstream subscriber.
+    /// Consumes two types of incoming messages [Subscription] requests received from an
+    /// ExchangeClient implementor instance, and also the data received from an exchange as a
+    /// result of a [Subscription]. This function handles the actioning of [Subscription] requests,
+    /// and routes the exchange data to the associated downstream subscriber.
     pub async fn manage(mut self) {
         loop {
             // Consume incoming messages:
@@ -221,11 +222,11 @@ mod tests {
     }
 
     // Bitstamp Connection & Subscription
-    async fn gen_bitstamp_conn() -> WSStream {
-        connect(&String::from("wss://ws.bitstamp.net/"))
-            .await
-            .unwrap()
-    }
+    // async fn gen_bitstamp_conn() -> WSStream {
+    //     connect(&String::from("wss://ws.bitstamp.net/"))
+    //         .await
+    //         .unwrap()
+    // }
     // fn gen_valid_bitstamp_sub() -> BitstampSub {
     //     BitstampSub::new("order_book_".to_string(), "ethbtc".to_string())
     // }
@@ -284,16 +285,6 @@ mod tests {
                 ),
                 input_sub: gen_valid_binance_sub(),
                 expected_can_subscribe: true,
-            },
-            TestCase {
-                // Test case 1: Valid Binance subscription
-                conn_handler: ConnectionHandler::new(
-                    4,
-                    gen_binance_conn().await,
-                    mpsc::channel(10).1,
-                ),
-                input_sub: BinanceSub::new("invalid".to_string(), "invalid".to_string()),
-                expected_can_subscribe: false,
             },
         ];
 

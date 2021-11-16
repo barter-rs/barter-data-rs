@@ -8,7 +8,7 @@ pub enum MarketData {
     Candle(Candle),
 }
 
-/// Normalised Trade model to be returned from an [ExchangeClient].
+/// Normalised Trade model to be returned from an ExchangeClient implementor instance.
 #[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
 pub struct Trade {
     pub trade_id: String,
