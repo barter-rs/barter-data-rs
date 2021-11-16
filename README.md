@@ -1,57 +1,97 @@
-# barter-data-rs
+# Barter-Data
+A high-performance WebSocket integration library for streaming public data from leading cryptocurrency 
+exchanges - batteries included. It is:
+* **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
+* **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
+* **Easy**: Barter-Data's simple ExchangeClient interface allows for easy & quick setup.
+* **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to via new integrations!
 
+**Note: Barter-Data is recommended for use with the [`Barter`].**
 
+[![Crates.io][crates-badge]][crates-url]
+[![MIT licensed][mit-badge]][mit-url]
+[![Build Status][actions-badge]][actions-url]
 
-## Getting started
+[crates-badge]: https://img.shields.io/crates/v/barter-data.svg
+[crates-url]: https://crates.io/crates/barter-data
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs/-/blob/main/LICENCE
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+[actions-badge]: https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs/badges/-/blob/main/pipeline.svg
+[actions-url]: https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs/-/commits/main
 
-# Editing this README
+[discord-badge]: https://img.shields.io/discord/910237311332151317.svg?logo=discord&style=flat-square
+[discord-url]: https://discord.gg/tokio
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://gitlab.com/-/experiment/new_project_readme_content:2e78e552d81fecb1c1b38ebdbc0a49ed?https://www.makeareadme.com/) for this template.
+[API Documentation] |
+[Chat]
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+[`Barter`]: https://crates.io/crates/barter
+[API Documentation]: https://docs.rs/barter-data/latest/barter_data
+[Chat]: https://discord.gg/wE7RqhnQMV
 
-## Name
-Choose a self-explaining name for your project.
+## Overview
+Barter-Data is a high-performance WebSocket integration library for streaming public data from leading cryptocurrency 
+exchanges. It presents an easy to use, extensible, interface that can deliver normalised exchange data in real-time.
+At a high level, it provides a few major components:
+* ConnectionHandler that manages the WebSocket connection (ping-pongs, re-connections, rate-limiting) and actions subscription
+  requests on behalf of an Exchange Client implementation (eg/ Binance Exchange Client).
+* Unified ExchangeClient trait that enables easy extensibility, ease of use, and the delivery of a normalised data model
+  to downstream consumers.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Example
+Binance tick-by-tick Trade consumer with Barter-Data.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```rust,no_run
+use barter_data::client::binance::Binance;
+use barter_data::client::ClientConfig;
+use barter_data::ExchangeClient;
+use tokio_stream::StreamExt;
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    
+    // 
+    let mut binance = Binance::new(ClientConfig {
+        rate_limit_per_minute: 300
+    }).await?;
+    
+    let mut trade_stream = binance
+        .consume_trades(String::from("btcusdt"))
+        .await?;
+    
+    while let Some(trade) = trade_stream.next().await {
+        // Do something with normalised Trade
+        println!("{:?}", trade);
+    }
+}
+```
+**For a larger, "real world" example, see the [`Barter`] repository.**
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## Getting Help
+Firstly, see if the answer to your question can be found in the [API Documentation]. If the answer is not there, I'd be 
+happy to help to [Chat] and try answer your question via Discord. 
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+:tada: Thanks for your help in improving the barter ecosystem! Please do get in touch on the discord to discuss 
+development, new features, and the future roadmap. 
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## Related Projects
+In addition to the Barter-Data crate, the Barter project also maintains:
+* [`Barter`]: High-performance, extensible & modular trading components with batteries-included. Contains a 
+pre-built trading Engine that can serve as a live-trading or backtesting system.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Roadmap
+* Extend the existing integrations scope to include more endpoints.
+* Implement integrations for more exchanges.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## Licence
+This project is licensed under the [MIT license].
 
-## License
-For open source projects, say how it is licensed.
+[MIT license]: https://github.com/tokio-rs/tokio/blob/master/LICENSE
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
-
+### Contribution
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in Tokio by you, shall be licensed as MIT, without any additional
+terms or conditions.
