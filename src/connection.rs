@@ -55,9 +55,10 @@ where
         }
     }
 
-    /// Consumes two types of incoming messages [Subscription] requests received from an [ExchangeClient], and also
-    /// the data received from an exchange as a result of a [Subscription]. This function handles the actioning of
-    /// [Subscription] requests, and routes the exchange data to the associated downstream subscriber.
+    /// Consumes two types of incoming messages [Subscription] requests received from an
+    /// ExchangeClient implementor instance, and also the data received from an exchange as a
+    /// result of a [Subscription]. This function handles the actioning of [Subscription] requests,
+    /// and routes the exchange data to the associated downstream subscriber.
     pub async fn manage(mut self) {
         loop {
             // Consume incoming messages:
