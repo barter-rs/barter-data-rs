@@ -11,6 +11,7 @@ exchanges - batteries included. It is:
 [![Crates.io][crates-badge]][crates-url]
 [![MIT licensed][mit-badge]][mit-url]
 [![Build Status][actions-badge]][actions-url]
+[![Discord chat][discord-badge]][discord-url]
 
 [crates-badge]: https://img.shields.io/crates/v/barter-data.svg
 [crates-url]: https://crates.io/crates/barter-data
@@ -22,7 +23,7 @@ exchanges - batteries included. It is:
 [actions-url]: https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs/-/commits/main
 
 [discord-badge]: https://img.shields.io/discord/910237311332151317.svg?logo=discord&style=flat-square
-[discord-url]: https://discord.gg/tokio
+[discord-url]: https://discord.gg/wE7RqhnQMV
 
 [API Documentation] |
 [Chat]
