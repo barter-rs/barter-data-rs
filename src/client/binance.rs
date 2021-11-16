@@ -120,7 +120,7 @@ impl Binance {
     const CANDLE_STREAM: &'static str = "@kline_<interval>";
 
     /// Constructs a new [Binance] [ExchangeClient] instance using the [ClientConfig] provided.
-    pub async fn new(cfg: ClientConfig) -> Result<Self, ClientError> {
+    pub async fn init(cfg: ClientConfig) -> Result<Self, ClientError> {
         // Connect to client WebSocket server
         let ws_conn = connect(&String::from(Binance::BASE_URI)).await?;
 
