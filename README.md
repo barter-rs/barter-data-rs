@@ -52,16 +52,17 @@ use tokio_stream::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    
-    // 
-    let mut binance = Binance::new(ClientConfig {
+    // Initialise new Binance Exchange Client
+    let mut binance = Binance::init(ClientConfig {
         rate_limit_per_minute: 300
     }).await?;
     
+    // Subscribe & consume normalised Trade stream
     let mut trade_stream = binance
         .consume_trades(String::from("btcusdt"))
         .await?;
     
+    // Loop over arriving Trades
     while let Some(trade) = trade_stream.next().await {
         // Do something with normalised Trade
         println!("{:?}", trade);
