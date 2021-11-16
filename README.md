@@ -91,7 +91,7 @@ pre-built trading Engine that can serve as a live-trading or backtesting system.
 ## Licence
 This project is licensed under the [MIT license].
 
-[MIT license]: https://github.com/tokio-rs/tokio/blob/master/LICENSE
+[MIT license]: https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs/-/blob/main/LICENSE
 
 ### Contribution
 Unless you explicitly state otherwise, any contribution intentionally submitted
