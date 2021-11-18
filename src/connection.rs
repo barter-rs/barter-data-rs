@@ -208,52 +208,6 @@ mod tests {
         BinanceSub::new("@depth20@100ms".to_string(), "ethbtc".to_string())
     }
 
-    // Bitstamp Connection & Subscription
-    // async fn gen_bitstamp_conn() -> WSStream {
-    //     connect(&String::from("wss://ws.bitstamp.net/"))
-    //         .await
-    //         .unwrap()
-    // }
-    // fn gen_valid_bitstamp_sub() -> BitstampSub {
-    //     BitstampSub::new("order_book_".to_string(), "ethbtc".to_string())
-    // }
-
-    #[tokio::test]
-    async fn test_calculate_rate_limit_interval() {
-        struct TestCase {
-            input_limit_per_min: u64,
-            output_limit_duration: Duration,
-        }
-
-        let test_cases = vec![
-            TestCase {
-                // Test case 0:
-                input_limit_per_min: 33,
-                output_limit_duration: Duration::from_millis(550),
-            },
-            TestCase {
-                // Test case 1:
-                input_limit_per_min: 255,
-                output_limit_duration: Duration::from_millis(4250),
-            },
-            TestCase {
-                // Test case 2:
-                input_limit_per_min: 5,
-                output_limit_duration: Duration::from_secs_f64(1.0 / 12.0),
-            },
-        ];
-
-        for (index, test) in test_cases.into_iter().enumerate() {
-            let actual_result = calculate_rate_limit_interval(test.input_limit_per_min);
-            assert_eq!(
-                test.output_limit_duration,
-                actual_result.period(),
-                "Test case: {:?}",
-                index
-            )
-        }
-    }
-
     #[tokio::test]
     async fn test_binance_subscribe() {
         struct TestCase {
