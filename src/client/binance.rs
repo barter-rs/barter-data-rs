@@ -1,4 +1,4 @@
-use crate::client::{de_str_to_f64, ClientConfig};
+use crate::client::de_str_to_f64;
 use crate::connection::ConnectionHandler;
 use crate::error::ClientError;
 use crate::model::BuyerType;
@@ -120,7 +120,7 @@ impl Binance {
     const CANDLE_STREAM: &'static str = "@kline_<interval>";
 
     /// Constructs a new [Binance] [ExchangeClient] instance using the [ClientConfig] provided.
-    pub async fn init(cfg: ClientConfig) -> Result<Self, ClientError> {
+    pub async fn init() -> Result<Self, ClientError> {
         // Connect to client WebSocket server
         let ws_conn = connect(&String::from(Binance::BASE_URI)).await?;
 
@@ -128,8 +128,7 @@ impl Binance {
         let (subscription_tx, subscription_rx) = mpsc::channel(10);
 
         // Construct ConnectionHandler
-        let connection =
-            ConnectionHandler::new(cfg.rate_limit_per_minute, ws_conn, subscription_rx);
+        let connection = ConnectionHandler::new(ws_conn, subscription_rx);
 
         // Manage connection via event loop
         let _ = tokio::spawn(connection.manage());

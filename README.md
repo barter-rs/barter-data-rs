@@ -76,7 +76,7 @@ Firstly, see if the answer to your question can be found in the [API Documentati
 happy to help to [Chat] and try answer your question via Discord. 
 
 ## Contributing
-:tada: Thanks for your help in improving the barter ecosystem! Please do get in touch on the discord to discuss 
+Thanks for your help in improving the Barter ecosystem! Please do get in touch on the discord to discuss 
 development, new features, and the future roadmap. 
 
 ## Related Projects
@@ -95,5 +95,5 @@ This project is licensed under the [MIT license].
 
 ### Contribution
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Tokio by you, shall be licensed as MIT, without any additional
+for inclusion in Barter-Data by you, shall be licensed as MIT, without any additional
 terms or conditions.

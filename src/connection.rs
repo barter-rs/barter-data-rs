@@ -6,9 +6,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::time::Duration;
 use tokio::sync::mpsc;
-use tokio::time::{interval, Interval};
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message as WSMessage;
 
@@ -21,8 +19,6 @@ pub type StreamRoutingId = String;
 /// incoming exchange messages from the WebSocket connection and routing them to the appropriate
 /// downstream consumer.
 pub struct ConnectionHandler<Message, Sub> {
-    /// Rate limit interval in the form of a Future, awaiting it takes the [Duration] of the [Interval].
-    pub rate_limit: Interval,
     /// An established [WSStream] connection that all ExchangeClient <--> ConnectionHandler
     /// communication goes through.
     pub ws_conn: WSStream,
@@ -43,12 +39,10 @@ where
 {
     /// Constructs a new [ConnectionHandler] instance using the [WSStream] connection provided.
     pub fn new(
-        rate_limit_per_minute: u64,
         ws_conn: WSStream,
         subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>,
     ) -> Self {
         Self {
-            rate_limit: calculate_rate_limit_interval(rate_limit_per_minute),
             ws_conn,
             subscription_rx,
             exchange_data_txs: Default::default(),
@@ -73,8 +67,6 @@ where
 
                 // Route incoming exchange data to the associated downstream subscriber
                 Some(ws_message_result) = self.ws_conn.next() => {
-                    // Rate limit consumption from the exchange via the WebSocket connection
-                    self.rate_limit.tick().await;
 
                     // Handle WebSocket message Result
                     let ws_message = match ws_message_result {
@@ -200,11 +192,6 @@ where
     }
 }
 
-fn calculate_rate_limit_interval(rate_limit_per_minute: u64) -> Interval {
-    let rate_limit_per_second = (rate_limit_per_minute as f64 / 60.0) as f64;
-    interval(Duration::from_secs_f64(rate_limit_per_second))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,7 +266,6 @@ mod tests {
             TestCase {
                 // Test case 0: Valid Binance subscription
                 conn_handler: ConnectionHandler::new(
-                    4,
                     gen_binance_conn().await,
                     mpsc::channel(10).1,
                 ),
