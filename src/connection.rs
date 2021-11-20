@@ -1,7 +1,6 @@
 use crate::error::ClientError;
 use crate::{Identifier, StreamIdentifier, Subscription, WSStream};
 use futures_util::SinkExt;
-use tracing::{debug, error, info, warn};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -9,6 +8,7 @@ use std::fmt::Debug;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message as WSMessage;
+use tracing::{debug, error, info, warn};
 
 /// Type alias to communicate a stream's unique String identifier that can be used to route messages
 /// from the [ConnectionHandler] to the relevant downstream consumer.
@@ -216,17 +216,12 @@ mod tests {
             expected_can_subscribe: bool,
         }
 
-        let test_cases = vec![
-            TestCase {
-                // Test case 0: Valid Binance subscription
-                conn_handler: ConnectionHandler::new(
-                    gen_binance_conn().await,
-                    mpsc::channel(10).1,
-                ),
-                input_sub: gen_valid_binance_sub(),
-                expected_can_subscribe: true,
-            },
-        ];
+        let test_cases = vec![TestCase {
+            // Test case 0: Valid Binance subscription
+            conn_handler: ConnectionHandler::new(gen_binance_conn().await, mpsc::channel(10).1),
+            input_sub: gen_valid_binance_sub(),
+            expected_can_subscribe: true,
+        }];
 
         for (index, mut test) in test_cases.into_iter().enumerate() {
             let actual_result = test.conn_handler.subscribe(test.input_sub).await;

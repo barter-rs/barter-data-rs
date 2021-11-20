@@ -6,11 +6,11 @@ pub mod model;
 use crate::error::ClientError;
 use crate::model::{Candle, Trade};
 use async_trait::async_trait;
-use tracing::debug;
 use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tracing::debug;
 
 // Todo: general:
 //  - Increase test coverage significantly now you know the PoC design works
