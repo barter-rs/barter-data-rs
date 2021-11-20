@@ -5,7 +5,7 @@ use crate::model::BuyerType;
 use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use log::{error, info, warn};
+use tracing::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;

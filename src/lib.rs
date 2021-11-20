@@ -6,7 +6,7 @@ pub mod model;
 use crate::error::ClientError;
 use crate::model::{Candle, Trade};
 use async_trait::async_trait;
-use log::debug;
+use tracing::debug;
 use serde::Serialize;
 use tokio::net::TcpStream;
 use tokio_stream::wrappers::UnboundedReceiverStream;

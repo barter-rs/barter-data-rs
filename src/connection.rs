@@ -1,7 +1,7 @@
 use crate::error::ClientError;
 use crate::{Identifier, StreamIdentifier, Subscription, WSStream};
 use futures_util::SinkExt;
-use log::{debug, error, info, warn};
+use tracing::{debug, error, info, warn};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;

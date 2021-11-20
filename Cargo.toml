@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.2.7"
+version = "0.2.8"
 authors = ["keirbailey <keirinvestment@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -15,7 +15,7 @@ categories = ["accessibility", "simulation"]
 
 [dependencies]
 # Logging
-log = "0.4.14"
+tracing = "0.1.29"
 
 # Async
 tokio = { version = "1.12.0", features = ["full"] }
