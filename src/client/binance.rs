@@ -8,7 +8,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, info, warn};
+use tracing::{error, debug, info, warn};
 
 /// [ExchangeClient] implementation for Binance.
 pub struct Binance {
@@ -20,6 +20,8 @@ pub struct Binance {
 
 #[async_trait]
 impl ExchangeClient for Binance {
+    const EXCHANGE_NAME: &'static str = "Binance";
+
     async fn consume_trades(
         &mut self,
         symbol: String,
@@ -123,6 +125,7 @@ impl Binance {
     pub async fn init() -> Result<Self, ClientError> {
         // Connect to client WebSocket server
         let ws_conn = connect(&String::from(Binance::BASE_URI)).await?;
+        debug!(uri = Binance::BASE_URI, "connected to WebSocket server");
 
         // Construct subscription message channel to subscribe to streams via the ConnectionHandler
         let (subscription_tx, subscription_rx) = mpsc::channel(10);

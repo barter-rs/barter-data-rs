@@ -31,6 +31,8 @@ pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 /// a stream of normalised data.
 #[async_trait]
 pub trait ExchangeClient {
+    const EXCHANGE_NAME: &'static str;
+
     async fn consume_trades(
         &mut self,
         symbol: String,
