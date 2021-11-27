@@ -8,7 +8,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, debug, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// [ExchangeClient] implementation for Binance.
 pub struct Binance {
