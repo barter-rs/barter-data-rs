@@ -2,14 +2,14 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ta::{Close, High, Low, Open, Volume};
 
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub enum MarketData {
     Trade(Trade),
     Candle(Candle),
 }
 
 /// Normalised Trade model to be returned from an ExchangeClient implementor instance.
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct Trade {
     pub trade_id: String,
     pub timestamp: DateTime<Utc>,
@@ -20,14 +20,14 @@ pub struct Trade {
 }
 
 /// Defines if the buyer in a [Trade] is a market maker.
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub enum BuyerType {
     MarketMaker,
     Taker,
 }
 
 /// Defines the possible intervals that a [Candle] represents.
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub enum Interval {
     Minute1,
     Minute3,
@@ -47,7 +47,7 @@ pub enum Interval {
 }
 
 /// Normalised OHLCV data from an [Interval] with the associated [DateTime] UTC timestamp;
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct Candle {
     pub start_timestamp: DateTime<Utc>,
     pub end_timestamp: DateTime<Utc>,
