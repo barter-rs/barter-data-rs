@@ -1,5 +1,4 @@
-use serde::{de, Deserialize, Deserializer, Serialize};
-use std::fmt::{Display, Formatter};
+use serde::{de, Deserialize, Deserializer};
 use std::str::FromStr;
 
 /// Binance WebSocket client implementing the ExchangeClient trait.
