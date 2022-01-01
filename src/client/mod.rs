@@ -8,21 +8,6 @@ pub mod binance;
 /// Bitstamp WebSocket client implementing the ExchangeClient trait.
 pub mod bitstamp;
 
-/// Possible exchange Client names.
-#[derive(Debug, Deserialize, Serialize, PartialOrd, PartialEq, Clone)]
-pub enum ClientName {
-    Binance,
-}
-
-impl Display for ClientName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let name = match self {
-            ClientName::Binance => "Binance",
-        };
-        write!(f, "{}", name)
-    }
-}
-
 /// Custom [Deserializer] function to deserialize an input [str] to a [f64].
 pub fn de_str_to_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
 where
