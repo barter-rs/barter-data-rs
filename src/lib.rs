@@ -24,7 +24,7 @@ use tracing::debug;
 //     '-> ensure logging is aligned once this has been done
 //  - manage() add in connection fixing, reconnections
 
-/// Useful type alias for a [WebSocketStream] connection.
+/// Useful type alias for a [`WebSocketStream`] connection.
 pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 /// Client trait defining the behaviour of all implementing ExchangeClients. All methods return
@@ -44,11 +44,11 @@ pub trait ExchangeClient {
     ) -> Result<UnboundedReceiverStream<Candle>, ClientError>;
 }
 
-/// Utilised to subscribe to an exchange's [WebSocketStream] via a ConnectionHandler (eg/ Trade stream).
+/// Utilised to subscribe to an exchange's [`WebSocketStream`] via a ConnectionHandler (eg/ Trade stream).
 pub trait Subscription {
-    /// Constructs a new [Subscription] implementation.
+    /// Constructs a new [`Subscription`] implementation.
     fn new(stream_name: String, ticker_pair: String) -> Self;
-    /// Serializes the [Subscription] in a String data format.
+    /// Serializes the [`Subscription`] in a String data format.
     fn as_text(&self) -> Result<String, ClientError>
     where
         Self: Serialize,
@@ -57,18 +57,18 @@ pub trait Subscription {
     }
 }
 
-/// Returns a stream identifier that can be used to route messages from a [Subscription].
+/// Returns a stream identifier that can be used to route messages from a [`Subscription`].
 pub trait StreamIdentifier {
     fn get_stream_id(&self) -> Identifier;
 }
 
-/// Enum returned from [StreamIdentifier] representing if a struct has an identifiable stream Id.
+/// Enum returned from [`StreamIdentifier`] representing if a struct has an identifiable stream Id.
 pub enum Identifier {
     Yes(String),
     No,
 }
 
-/// Connect asynchronously to an exchange's server, returning a [WebSocketStream].
+/// Connect asynchronously to an exchange's server, returning a [`WebSocketStream`].
 async fn connect(base_uri: &String) -> Result<WSStream, ClientError> {
     debug!("Establishing WebSocket connection to: {:?}", base_uri);
     connect_async(base_uri)

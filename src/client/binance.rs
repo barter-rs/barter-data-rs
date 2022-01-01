@@ -10,11 +10,11 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{debug, error, info, warn};
 
-/// [ExchangeClient] implementation for Binance.
+/// [`ExchangeClient`] implementation for Binance.
 pub struct Binance {
-    /// [Subscription] request channel transmitter. Transmits a tuple of [Subscription] and a data
+    /// [`Subscription`] request channel transmitter. Transmits a tuple of [`Subscription`] and a data
     /// channel transmitter. This data channel transmitter is used to send messages relating the
-    /// [Subscription] back to this Binance client from the [ConnectionHandler].
+    /// [`Subscription`] back to this Binance client from the [`ConnectionHandler`].
     subscription_tx: mpsc::Sender<(BinanceSub, mpsc::UnboundedSender<BinanceMessage>)>,
 }
 
@@ -121,7 +121,7 @@ impl Binance {
     const TRADE_STREAM: &'static str = "@aggTrade";
     const CANDLE_STREAM: &'static str = "@kline_<interval>";
 
-    /// Constructs a new [Binance] [ExchangeClient] instance using the [ClientConfig] provided.
+    /// Constructs a new [`Binance`] [`ExchangeClient`] instance using the [`ClientConfig`] provided.
     pub async fn init() -> Result<Self, ClientError> {
         // Connect to client WebSocket server
         let ws_conn = connect(&String::from(Binance::BASE_URI)).await?;
@@ -140,7 +140,7 @@ impl Binance {
     }
 }
 
-/// [Binance] Message variants that could be received from Binance WebSocket server.
+/// [`Binance`] Message variants that could be received from Binance WebSocket server.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BinanceMessage {
@@ -170,7 +170,7 @@ impl StreamIdentifier for BinanceMessage {
     }
 }
 
-/// [Binance] specific subscription message.
+/// [`Binance`] specific subscription message.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct BinanceSub {
     method: String,
@@ -194,13 +194,13 @@ impl StreamIdentifier for BinanceSub {
     }
 }
 
-/// [Binance] specific subscription response message.
+/// [`Binance`] specific subscription response message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceSubResponse {
     id: u64,
 }
 
-/// [Binance] specific Trade message.
+/// [`Binance`] specific Trade message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceTrade {
     #[serde(rename = "e")]
@@ -250,7 +250,7 @@ impl From<BinanceTrade> for Trade {
     }
 }
 
-/// [Binance] specific Kline message.
+/// [`Binance`] specific Kline message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceKline {
     #[serde(rename = "e")]
@@ -263,7 +263,7 @@ pub struct BinanceKline {
     data: BinanceKlineData,
 }
 
-/// [Binance] Kline data contained within a [BinanceKline].
+/// [`Binance`] Kline data contained within a [`BinanceKline`].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceKlineData {
     #[serde(rename = "t")]
@@ -327,7 +327,7 @@ impl From<BinanceKline> for Candle {
     }
 }
 
-/// [Binance] specific OrderBook snapshot message.
+/// [`Binance`] specific OrderBook snapshot message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceOrderBook {
     #[serde(rename = "lastUpdateId")]
@@ -336,7 +336,7 @@ pub struct BinanceOrderBook {
     pub asks: Vec<BinanceLevel>,
 }
 
-/// [Binance] specific Level data structure used to construct a [BinanceOrderBook].
+/// [`Binance`] specific Level data structure used to construct a [`BinanceOrderBook`].
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceLevel {
     #[serde(deserialize_with = "de_str_to_f64")]

@@ -11,23 +11,23 @@ use tokio_tungstenite::tungstenite::Message as WSMessage;
 use tracing::{debug, error, info, warn};
 
 /// Type alias to communicate a stream's unique String identifier that can be used to route messages
-/// from the [ConnectionHandler] to the relevant downstream consumer.
+/// from the [`ConnectionHandler`] to the relevant downstream consumer.
 pub type StreamRoutingId = String;
 
 /// Manages all connection related actions. This includes maintaining the WebSocket connection;
-/// re-connections; actioning [Subscription] requests received from an ExchangeClient; consuming
+/// re-connections; actioning [`Subscription`] requests received from an ExchangeClient; consuming
 /// incoming exchange messages from the WebSocket connection and routing them to the appropriate
 /// downstream consumer.
 pub struct ConnectionHandler<Message, Sub> {
-    /// An established [WSStream] connection that all ExchangeClient <--> ConnectionHandler
+    /// An established [`WSStream`] connection that all ExchangeClient <--> ConnectionHandler
     /// communication goes through.
     pub ws_conn: WSStream,
-    /// [Subscription] request channel receiver. Receives a tuple of [Subscription] and a data channel
+    /// [`Subscription`] request channel receiver. Receives a tuple of [`Subscription`] and a data channel
     /// transmitter. This data channel transmitter is used to route messages relating to a particular
-    /// [Subscription] back to the subscriber via the ExchangeClient implementation.
+    /// [`Subscription`] back to the subscriber via the ExchangeClient implementation.
     pub subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>,
-    /// Map containing the data channel transmitter for every [Subscription] actioned. The map's
-    /// [StreamRoutingId] key is used to identify which data channel to transmit an incoming
+    /// Map containing the data channel transmitter for every [`Subscription`] actioned. The map's
+    /// [`StreamRoutingId`] key is used to identify which data channel to transmit an incoming
     /// exchange message to.
     pub exchange_data_txs: HashMap<StreamRoutingId, mpsc::UnboundedSender<Message>>,
 }
@@ -37,7 +37,7 @@ where
     Sub: Debug + Subscription + StreamIdentifier + Serialize + Send + Sync,
     Message: Debug + StreamIdentifier + DeserializeOwned + Send + Sync,
 {
-    /// Constructs a new [ConnectionHandler] instance using the [WSStream] connection provided.
+    /// Constructs a new [`ConnectionHandler`] instance using the [`WSStream`] connection provided.
     pub fn new(
         ws_conn: WSStream,
         subscription_rx: mpsc::Receiver<(Sub, mpsc::UnboundedSender<Message>)>,
@@ -49,9 +49,9 @@ where
         }
     }
 
-    /// Consumes two types of incoming messages [Subscription] requests received from an
+    /// Consumes two types of incoming messages [`Subscription`] requests received from an
     /// ExchangeClient implementor instance, and also the data received from an exchange as a
-    /// result of a [Subscription]. This function handles the actioning of [Subscription] requests,
+    /// result of a [`Subscription`]. This function handles the actioning of [`Subscription`] requests,
     /// and routes the exchange data to the associated downstream subscriber.
     pub async fn manage(mut self) {
         loop {
@@ -122,16 +122,16 @@ where
         }
     }
 
-    /// Action a [Subscription] request received from an ExchangeClient. An exchange data
+    /// Action a [`Subscription`] request received from an ExchangeClient. An exchange data
     /// transmitter is inserted into the exchange_data_txs map upon subscribing, this is used by
-    /// the [ConnectionHandler] to route incoming exchange messages to the associated downstream
+    /// the [`ConnectionHandler`] to route incoming exchange messages to the associated downstream
     /// consumers.
     async fn action_subscription_request(
         mut self,
         sub_request: Sub,
         data_tx: mpsc::UnboundedSender<Message>,
     ) -> Self {
-        info!(
+        debug!(
             "Received Subscription request from ExchangeClient: {:?}",
             sub_request
         );
@@ -165,7 +165,7 @@ where
         self
     }
 
-    /// Subscribe asynchronously to a WebSocket data stream using the [Subscription] provided.
+    /// Subscribe asynchronously to a WebSocket data stream using the [`Subscription`] provided.
     pub async fn subscribe(&mut self, subscription: Sub) -> Result<(), ClientError> {
         self.ws_conn
             .send(WSMessage::text(subscription.as_text()?))
@@ -174,8 +174,8 @@ where
         Ok(())
     }
 
-    /// Retrieves the data transmitter associated with a [StreamRoutingId] from the
-    /// [ConnectionHandler]'s exchange_data_tx map.
+    /// Retrieves the data transmitter associated with a [`StreamRoutingId`] from the
+    /// [`ConnectionHandler`]'s exchange_data_tx map.
     fn retrieve_relevant_data_transmitter(
         &mut self,
         routing_id: &String,

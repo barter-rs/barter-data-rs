@@ -19,14 +19,14 @@ pub struct Trade {
     pub buyer: BuyerType,
 }
 
-/// Defines if the buyer in a [Trade] is a market maker.
+/// Defines if the buyer in a [`Trade`] is a market maker.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub enum BuyerType {
     MarketMaker,
     Taker,
 }
 
-/// Defines the possible intervals that a [Candle] represents.
+/// Defines the possible intervals that a [`Candle`] represents.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub enum Interval {
     Minute1,
@@ -46,7 +46,7 @@ pub enum Interval {
     Month1,
 }
 
-/// Normalised OHLCV data from an [Interval] with the associated [DateTime] UTC timestamp;
+/// Normalised OHLCV data from an [`Interval`] with the associated [`DateTime`] UTC timestamp;
 #[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct Candle {
     pub start_timestamp: DateTime<Utc>,
