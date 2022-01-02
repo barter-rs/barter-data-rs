@@ -1,14 +1,14 @@
+use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use crate::client::de_str_to_f64;
 use crate::connection::ConnectionHandler;
 use crate::error::ClientError;
 use crate::model::BuyerType;
-use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{debug, error, info, warn};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tracing::{debug, error, warn};
 
 /// [`ExchangeClient`] implementation for Binance.
 pub struct Binance {
@@ -25,32 +25,39 @@ impl ExchangeClient for Binance {
     async fn consume_trades(
         &mut self,
         symbol: String,
-    ) -> Result<UnboundedReceiverStream<Trade>, ClientError> {
-        // Construct trades channel that ConnectionHandler will distribute trade stream data on
+    ) -> Result<UnboundedReceiver<Trade>, ClientError> {
+        // Construct trades channel that ConnectionHandler will distribute BinanceTrades to
         let (binance_trade_tx, mut binance_trade_rx) = mpsc::unbounded_channel();
 
-        // Construct Subscription for the ConnectionHandler to action
-        let trades_subscription = BinanceSub::new(String::from(Binance::TRADE_STREAM), symbol);
+        // Construct BinanceTrade Subscription for the ConnectionHandler to action
+        let subscription = BinanceSub::new(String::from(Binance::TRADE_STREAM), symbol);
 
-        // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
+        // Subscribe by passing tuple of (Subscription, binance_trade_tx) to the ConnectionHandler
         if let Err(err) = self
             .subscription_tx
-            .send((trades_subscription, binance_trade_tx))
-            .await
-        {
-            error!("Subscription request receiver has dropped by the ConnectionHandler - closing transmitter: {:?}", err);
+            .send((subscription, binance_trade_tx))
+            .await {
+            error!(
+                error = &*format!("{:?}", err),
+                "cannot send Trade Subscription request to ConnectionHandler"
+            );
             return Err(ClientError::SendFailure);
         }
 
-        // Construct channel to distribute normalised Trade data to downstream consumers
+        // Construct channel to distribute normalised Barter-Data Trades to downstream consumer
         let (trade_tx, trade_rx) = mpsc::unbounded_channel();
 
+        // Spawn task to consume from binance_trades_tx and produce normalised Trades via trade_tx
         tokio::spawn(async move {
             while let Some(binance_message) = binance_trade_rx.recv().await {
                 match binance_message {
                     BinanceMessage::Trade(binance_trade) => {
                         if trade_tx.send(Trade::from(binance_trade)).is_err() {
-                            info!("Receiver for Binance Trades has been dropped - closing stream.");
+                            debug!(
+                                action = "closing stream",
+                                why = "Receiver for Binance Trades has been dropped",
+                                "cannot send Binance Trades to downstream consumer"
+                            );
                             return;
                         }
                     }
@@ -59,38 +66,41 @@ impl ExchangeClient for Binance {
             }
         });
 
-        // Return normalised Trade stream to consumer
-        Ok(UnboundedReceiverStream::new(trade_rx))
+        // Return normalised Trade UnboundedReceiver to downstream consumer
+        Ok(trade_rx)
     }
 
     async fn consume_candles(
         &mut self,
         symbol: String,
         interval: &str,
-    ) -> Result<UnboundedReceiverStream<Candle>, ClientError> {
-        // Construct trades channel that ConnectionHandler will distribute trade stream data on
+    ) -> Result<UnboundedReceiver<Candle>, ClientError> {
+        // Construct candles channel that ConnectionHandler will distribute BinanceCandles to
         let (binance_candle_tx, mut binance_candle_rx) = mpsc::unbounded_channel();
 
-        // Construct Subscription for the ConnectionHandler to action
-        let candles_subscription = BinanceSub::new(
+        // Construct BinanceCandle Subscription for the ConnectionHandler to action
+        let subscription = BinanceSub::new(
             Binance::CANDLE_STREAM.replace("<interval>", interval),
             symbol,
         );
 
-        // Subscribe by passing a tuple of (Subscription, trade_tx) to the ConnectionHandler
+        // Subscribe by passing tuple of (Subscription, binance_candle_tx) to the ConnectionHandler
         if let Err(err) = self
             .subscription_tx
-            .send((candles_subscription, binance_candle_tx))
+            .send((subscription, binance_candle_tx))
             .await
         {
-            error!("Subscription request receiver has dropped by the ConnectionHandler - closing transmitter: {:?}", err);
+            error!(
+                error = &*format!("{:?}", err),
+                "cannot send Candle Subscription request to ConnectionHandler"
+            );
             return Err(ClientError::SendFailure);
         }
 
-        // Construct channel to distribute normalised Trade data to downstream consumers
+        // Construct channel to distribute normalised Barter-Data Candles to downstream consumer
         let (candle_tx, candle_rx) = mpsc::unbounded_channel();
 
-        // Async task to consume from binance_trades_tx and produce normalised Trades via the trades_tx
+        // Spawn task to consume from binance_candle_tx and produce normalised Candles via candle_rx
         tokio::spawn(async move {
             while let Some(binance_message) = binance_candle_rx.recv().await {
                 match binance_message {
@@ -100,8 +110,10 @@ impl ExchangeClient for Binance {
                         }
 
                         if candle_tx.send(Candle::from(binance_kline)).is_err() {
-                            info!(
-                                "Receiver for Binance Candles has been dropped - closing stream."
+                            debug!(
+                                action = "closing stream",
+                                why = "Receiver for Binance Candles has been dropped",
+                                "cannot send Binance Candles to downstream consumer"
                             );
                             return;
                         }
@@ -111,8 +123,8 @@ impl ExchangeClient for Binance {
             }
         });
 
-        // Return normalised Trade stream to consumer
-        Ok(UnboundedReceiverStream::new(candle_rx))
+        // Return normalised Candle UnboundedReceiver to downstream consumer
+        Ok(candle_rx)
     }
 }
 
@@ -242,7 +254,7 @@ impl From<BinanceTrade> for Trade {
         Self {
             trade_id: binance_trade.trade_id.to_string(),
             timestamp,
-            ticker: binance_trade.symbol,
+            ticker: binance_trade.symbol.to_lowercase(),
             price: binance_trade.price,
             quantity: binance_trade.quantity,
             buyer,

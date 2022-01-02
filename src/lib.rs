@@ -8,8 +8,8 @@ use crate::model::{Candle, Trade};
 use async_trait::async_trait;
 use serde::Serialize;
 use tokio::net::TcpStream;
-use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::debug;
 
 // Todo: general:
@@ -36,12 +36,12 @@ pub trait ExchangeClient {
     async fn consume_trades(
         &mut self,
         symbol: String,
-    ) -> Result<UnboundedReceiverStream<Trade>, ClientError>;
+    ) -> Result<UnboundedReceiver<Trade>, ClientError>;
     async fn consume_candles(
         &mut self,
         symbol: String,
         interval: &str,
-    ) -> Result<UnboundedReceiverStream<Candle>, ClientError>;
+    ) -> Result<UnboundedReceiver<Candle>, ClientError>;
 }
 
 /// Utilised to subscribe to an exchange's [`WebSocketStream`] via a ConnectionHandler (eg/ Trade stream).
