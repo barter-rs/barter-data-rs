@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use crate::client::de_str_to_f64;
 use crate::connection::ConnectionHandler;
@@ -203,6 +204,12 @@ impl Subscription for BinanceSub {
 impl StreamIdentifier for BinanceSub {
     fn get_stream_id(&self) -> Identifier {
         Identifier::Yes(self.params.get(0).unwrap().clone())
+    }
+}
+
+impl Display for BinanceSub {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Binance: {:?}", self.params)
     }
 }
 
