@@ -72,7 +72,10 @@ where
                     let ws_message = match ws_message_result {
                         Ok(ws_message) => ws_message,
                         Err(err) => {
-                            warn!("Skipping message Result due to unexpected error: {:?}", err);
+                            warn!(
+                                error = &*format!("{:?}", err),
+                                "skipping message due to unexpected error"
+                            );
                             continue
                         },
                     };
@@ -83,17 +86,28 @@ where
                             match serde_json::from_str::<Message>(&*text.clone()) {
                                 Ok(message) => message,
                                 Err(err) => {
-                                    error!("Failure to deserialise message: {:?} due to error: {:?}", text, err);
+                                    error!(
+                                        error = &*format!("{:?}", err),
+                                        payload = &*text,
+                                        "failed to deserialise incoming exchange message"
+                                    );
                                     continue;
                                 },
                                 }
                         },
                         WSMessage::Binary(binary) => {
-                            warn!("Received unexpected binary message: {:?}", binary);
+                            warn!(
+                                payload = &*format!("{:?}", binary),
+                                "received unexpected binary message"
+                            );
                             continue;
                         },
                         WSMessage::Close(close_frame) => {
-                            info!("WebSocket connection closed with final frame: {:?}", close_frame);
+                            info!(
+                                payload = &*format!("{:?}", close_frame),
+                                why = "received WebSocket::Close final frame",
+                                "WebSocket connection closed"
+                            );
                             break;
                         }
                         _ => continue,
@@ -103,7 +117,10 @@ where
                     let routing_id = match exchange_message.get_stream_id() {
                         Identifier::Yes(routing_id) => routing_id,
                         Identifier::No => {
-                            debug!("Ignoring received message due to no route: {:?}", exchange_message);
+                            debug!(
+                                payload = &*format!("{:?}", exchange_message),
+                                "skipping message due to no routing id",
+                            );
                             continue
                         },
                     };
@@ -113,7 +130,12 @@ where
 
                     // Route Message to associated downstream subscriber
                     if data_tx.send(exchange_message).is_err() {
-                        info!("Receiver for: {:?} has been dropped - closing stream", &routing_id);
+                        debug!(
+                            action = "closing stream",
+                            routing_id = &*routing_id,
+                            why = "Receiver for Exchange message has been dropped",
+                            "cannot send Exchange message to downstream consumer"
+                        );
                         self.exchange_data_txs.remove_entry(&routing_id);
                         continue;
                     }
@@ -131,10 +153,7 @@ where
         sub_request: Sub,
         data_tx: mpsc::UnboundedSender<Message>,
     ) -> Self {
-        debug!(
-            "Received Subscription request from ExchangeClient: {:?}",
-            sub_request
-        );
+        info!("received Subscription request from ExchangeClient: {:?}", sub_request);
 
         // Identify StreamRoutingId of the Subscription
         let routing_id = match sub_request.get_stream_id() {
