@@ -200,13 +200,9 @@ where
         routing_id: &String,
     ) -> &mut mpsc::UnboundedSender<Message> {
         self.exchange_data_txs.get_mut(routing_id).expect(
-            format!(
-                "Message with StreamRoutingId: {:?} has been received \
-                                    without a relevant exchange_data_tx in the map to route \
-                                    it to",
-                routing_id
-            )
-            .as_str(),
+            &*format!(
+                "Message with StreamRoutingId: {:?} has been received without a relevant \
+                exchange_data_tx in the map to route it to", routing_id)
         )
     }
 }
