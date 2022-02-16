@@ -254,7 +254,7 @@ impl From<BinanceTrade> for Trade {
         );
 
         let buyer = match binance_trade.buyer_is_market_maker {
-            true => BuyerType::MarketMaker,
+            true => BuyerType::Maker,
             false => BuyerType::Taker,
         };
 
