@@ -60,21 +60,6 @@ pub struct Candle {
     pub trade_count: u64,
 }
 
-impl Default for Candle {
-    fn default() -> Self {
-        Self {
-            start_timestamp: Utc::now(),
-            end_timestamp: Utc::now(),
-            open: 1000.0,
-            high: 1100.0,
-            low: 900.0,
-            close: 1050.0,
-            volume: 1000000000.0,
-            trade_count: 100,
-        }
-    }
-}
-
 impl Open for Candle {
     fn open(&self) -> f64 {
         self.open
