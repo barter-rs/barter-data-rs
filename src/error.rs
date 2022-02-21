@@ -12,9 +12,9 @@ pub enum ClientError {
     #[error("Failed to read data via websocket connection")]
     WebSocketRead(#[source] tungstenite::error::Error),
 
-    #[error("Failed to deserialize message contents due to ??")]
-    Deserialisation(#[from] serde_json::Error),
+    #[error("Failed to deserialize/serialize JSON due to: {0}")]
+    JsonSerDeError(#[from] serde_json::Error),
 
-    #[error("Failed to send message due to due dropped receiver")]
+    #[error("Failed to send message due to dropped receiver")]
     SendFailure,
 }
