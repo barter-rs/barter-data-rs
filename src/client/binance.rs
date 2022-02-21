@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use crate::{connect, Candle, ExchangeClient, Identifier, StreamIdentifier, Subscription, Trade};
 use crate::client::de_str_to_f64;
 use crate::connection::ConnectionHandler;
@@ -206,6 +207,12 @@ impl StreamIdentifier for BinanceSub {
     }
 }
 
+impl Display for BinanceSub {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Binance: {:?}", self.params)
+    }
+}
+
 /// [`Binance`] specific subscription response message.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BinanceSubResponse {
@@ -247,7 +254,7 @@ impl From<BinanceTrade> for Trade {
         );
 
         let buyer = match binance_trade.buyer_is_market_maker {
-            true => BuyerType::MarketMaker,
+            true => BuyerType::Maker,
             false => BuyerType::Taker,
         };
 

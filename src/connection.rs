@@ -4,7 +4,7 @@ use futures_util::SinkExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message as WSMessage;
@@ -34,7 +34,7 @@ pub struct ConnectionHandler<Message, Sub> {
 
 impl<Message, Sub> ConnectionHandler<Message, Sub>
 where
-    Sub: Debug + Subscription + StreamIdentifier + Serialize + Send + Sync,
+    Sub: Display + Subscription + StreamIdentifier + Serialize + Send + Sync,
     Message: Debug + StreamIdentifier + DeserializeOwned + Send + Sync,
 {
     /// Constructs a new [`ConnectionHandler`] instance using the [`WSStream`] connection provided.
@@ -153,15 +153,19 @@ where
         sub_request: Sub,
         data_tx: mpsc::UnboundedSender<Message>,
     ) -> Self {
-        info!("received Subscription request from ExchangeClient: {:?}", sub_request);
+        info!(
+            request = &*format!("{}", sub_request),
+            "received Subscription(s)",
+        );
 
         // Identify StreamRoutingId of the Subscription
         let routing_id = match sub_request.get_stream_id() {
             Identifier::Yes(routing_id) => routing_id,
             Identifier::No => {
                 warn!(
-                    "Ignoring subscription request due to a non-identifiable routing_id: {:?}",
-                    sub_request
+                    request = &*format!("{}", sub_request),
+                    why = "non-identifiable routing_id",
+                    "ignoring Subscription request"
                 );
                 return self;
             }

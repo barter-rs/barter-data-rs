@@ -77,6 +77,24 @@ async fn connect(base_uri: &String) -> Result<WSStream, ClientError> {
         .map_err(|err| ClientError::WebSocketConnect(err))
 }
 
+pub mod test_util {
+    use crate::model::Candle;
+    use chrono::Utc;
+
+    pub fn candle() -> Candle {
+        Candle {
+            start_timestamp: Utc::now(),
+            end_timestamp: Utc::now(),
+            open: 1000.0,
+            high: 1100.0,
+            low: 900.0,
+            close: 1050.0,
+            volume: 1000000000.0,
+            trade_count: 100,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

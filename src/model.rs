@@ -2,14 +2,15 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ta::{Close, High, Low, Open, Volume};
 
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
+/// Possible market data types.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum MarketData {
     Trade(Trade),
     Candle(Candle),
 }
 
 /// Normalised Trade model to be returned from an ExchangeClient implementor instance.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Trade {
     pub trade_id: String,
     pub timestamp: DateTime<Utc>,
@@ -20,14 +21,14 @@ pub struct Trade {
 }
 
 /// Defines if the buyer in a [`Trade`] is a market maker.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub enum BuyerType {
-    MarketMaker,
+    Maker,
     Taker,
 }
 
 /// Defines the possible intervals that a [`Candle`] represents.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub enum Interval {
     Minute1,
     Minute3,
@@ -47,7 +48,7 @@ pub enum Interval {
 }
 
 /// Normalised OHLCV data from an [`Interval`] with the associated [`DateTime`] UTC timestamp;
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
     pub start_timestamp: DateTime<Utc>,
     pub end_timestamp: DateTime<Utc>,
@@ -57,21 +58,6 @@ pub struct Candle {
     pub close: f64,
     pub volume: f64,
     pub trade_count: u64,
-}
-
-impl Default for Candle {
-    fn default() -> Self {
-        Self {
-            start_timestamp: Utc::now(),
-            end_timestamp: Utc::now(),
-            open: 1000.0,
-            high: 1100.0,
-            low: 900.0,
-            close: 1050.0,
-            volume: 1000000000.0,
-            trade_count: 100,
-        }
-    }
 }
 
 impl Open for Candle {
