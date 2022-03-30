@@ -1,10 +1,10 @@
 use crate::error::ClientError;
 use crate::{Identifier, StreamIdentifier, Subscription, WSStream};
-use futures_util::SinkExt;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
+use futures::SinkExt;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message as WSMessage;

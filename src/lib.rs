@@ -1,16 +1,31 @@
 pub mod client;
 pub mod connection;
 pub mod error;
-pub mod model;
+pub mod lib_new;
 
-use crate::error::ClientError;
-use crate::model::{Candle, Trade};
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use crate::{
+    error::ClientError,
+    model::{Candle, MarketData, Trade},
+    client::binance::BinanceMessage
+};
+use barter_integration::socket::{
+    Transformer, error::SocketError, ExchangeSocket
+};
 use async_trait::async_trait;
+use futures::{Sink, Stream};
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{
+    connect_async, MaybeTlsStream, WebSocketStream,
+    tungstenite::Message as WsMessage
+};
 use tokio::sync::mpsc::UnboundedReceiver;
 use tracing::debug;
+use barter_integration::socket::protocol::websocket::{WebSocket, WebSocketParser};
+
 
 // Todo: general:
 //  - Increase test coverage significantly now you know the PoC design works
@@ -24,24 +39,13 @@ use tracing::debug;
 //     '-> ensure logging is aligned once this has been done
 //  - manage() add in connection fixing, reconnections
 
-/// Useful type alias for a [`WebSocketStream`] connection.
-pub type WSStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
-
 /// Client trait defining the behaviour of all implementing ExchangeClients. All methods return
 /// a stream of normalised data.
 #[async_trait]
 pub trait ExchangeClient {
     const EXCHANGE_NAME: &'static str;
-
-    async fn consume_trades(
-        &mut self,
-        symbol: String,
-    ) -> Result<UnboundedReceiver<Trade>, ClientError>;
-    async fn consume_candles(
-        &mut self,
-        symbol: String,
-        interval: &str,
-    ) -> Result<UnboundedReceiver<Candle>, ClientError>;
+    async fn consume_trades(&mut self, symbol: String, ) -> Result<UnboundedReceiver<Trade>, ClientError>;
+    async fn consume_candles(&mut self, symbol: String, interval: &str) -> Result<UnboundedReceiver<Candle>, ClientError>;
 }
 
 /// Utilised to subscribe to an exchange's [`WebSocketStream`] via a ConnectionHandler (eg/ Trade stream).
