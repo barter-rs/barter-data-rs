@@ -1,16 +1,13 @@
 use super::BinanceMessage;
 use crate::{
     ExchangeId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription,
-    model::{MarketData, Sequence, StreamKind, StreamMeta},
+    model::{MarketData, StreamKind, StreamMeta},
 };
-use barter_integration::{
-    Instrument,
-    socket::{
-        Transformer,
-        error::SocketError,
-        protocol::websocket::ExchangeWebSocket,
-    }
-};
+use barter_integration::{Instrument, Sequence, socket::{
+    Transformer,
+    error::SocketError,
+    protocol::websocket::ExchangeWebSocket,
+}};
 use std::{
     collections::HashMap,
     ops::DerefMut,

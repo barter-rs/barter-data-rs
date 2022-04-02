@@ -1,3 +1,12 @@
+#![warn(
+    missing_debug_implementations,
+    missing_copy_implementations,
+    rust_2018_idioms,
+    // missing_docs
+)]
+
+///! # Barter-Data
+
 use crate::model::{MarketEvent, StreamId, Subscription};
 use barter_integration::socket::{
     {ExchangeSocket, Transformer},
@@ -13,50 +22,6 @@ pub mod builder;
 pub mod model;
 pub mod binance;
 
-// Todo: Rust docs, add basic impls, change name to ExchangeId ? Produce &'static str
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub enum ExchangeId {
-    BinanceFutures,
-    Binance,
-    Ftx,
-}
-
-impl ExchangeId {
-    /// Todo:
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ExchangeId::Binance => "binance",
-            ExchangeId::BinanceFutures => "binance_futures",
-            ExchangeId::Ftx => "ftx",
-        }
-    }
-
-    /// Todo:
-    pub fn supports_spot(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFutures => false,
-            _ => true,
-        }
-    }
-
-    /// Todo:
-    pub fn supports_futures(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFutures => true,
-            _ => false,
-        }
-    }
-}
-
-impl Display for ExchangeId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ExchangeId::BinanceFutures => "binance_futures",
-            ExchangeId::Binance => "binance",
-            ExchangeId::Ftx => "ftx",
-        })
-    }
-}
 
 /// Todo:
 pub trait StreamIdentifier {
@@ -104,6 +69,102 @@ where
     }
 }
 
+// Todo: Rust docs, add basic impls, change name to ExchangeId ? Produce &'static str
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum ExchangeId {
+    BinanceFutures,
+    Binance,
+    Ftx,
+}
+
+impl ExchangeId {
+    /// Todo:
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ExchangeId::Binance => "binance",
+            ExchangeId::BinanceFutures => "binance_futures",
+            ExchangeId::Ftx => "ftx",
+        }
+    }
+
+    /// Todo:
+    pub fn supports_spot(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFutures => false,
+            _ => true,
+        }
+    }
+
+    /// Todo:
+    pub fn supports_futures(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFutures => true,
+            _ => false,
+        }
+    }
+}
+
+impl Display for ExchangeId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            ExchangeId::BinanceFutures => "binance_futures",
+            ExchangeId::Binance => "binance",
+            ExchangeId::Ftx => "ftx",
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builder::Streams;
+    use crate::model::StreamKind;
+    use barter_integration::InstrumentKind;
+
+    // Todo: Add subscription validation - it currently fails silently
+    // Todo: Maybe OutputIter will become an Option<OutputIter>?
+    // Todo: Do I want to keep the name trait Exchange? Do I like the generic ExTransformer, etc.
+
+    #[tokio::test]
+    async fn stream_builder_works() -> Result<(), Box<dyn std::error::Error>> {
+
+        let streams = Streams::builder()
+            .subscribe(ExchangeId::BinanceFutures, [
+                ("btc", "usdt", InstrumentKind::Future, StreamKind::Trades),
+                ("eth", "usdt", InstrumentKind::Future, StreamKind::Trades),
+            ])
+            // .subscribe(ExchangeId::Binance, [
+            //     ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+            //     ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+            // ])
+            // .subscribe(ExchangeId::Ftx, [
+            //     ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+            //     ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+            // ])
+            .init()
+            .await?;
+
+        // Select individual exchange streams
+        // let mut futures_stream = streams
+        //     .select(ExchangeId::BinanceFutures)
+        //     .ok_or(SocketError::Unidentifiable("".to_owned()))?; // Todo
+
+
+        // let mut ftx_stream = streams
+        //     .select(ExchangeId::Ftx)
+        //     .ok_or(SocketError::Unidentifiable("".to_owned()))?; // Todo:
+
+        // Join the remaining exchange streams into one
+        let mut joined_stream = streams.join().await;
+
+        while let Some(event) = joined_stream.recv().await {
+            println!("{:?}", event);
+        }
+
+
+        Ok(())
+    }
+}
 
 
 

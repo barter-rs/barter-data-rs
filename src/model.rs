@@ -1,13 +1,14 @@
-use barter_integration::{Instrument, InstrumentKind, Symbol};
+use barter_integration::{Instrument, InstrumentKind, Sequence, Symbol};
 use std::{
     fmt::{Debug, Display, Formatter},
-    ops::{Deref, DerefMut}
+    ops::Deref,
 };
 use serde::{de, Deserialize, Deserializer, Serialize};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 
-/// Todo:
+/// Barter [`Subscription`] used to subscribe to a market [`StreamKind`] for a particular
+/// [`Instrument`].
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub struct Subscription {
     pub kind: StreamKind,
@@ -175,47 +176,6 @@ impl StreamMeta {
             sequence: Sequence(0),
             subscription
         }
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-pub struct Sequence(pub u64);
-
-impl Display for Sequence {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Debug for Sequence {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl AsRef<u64> for Sequence {
-    fn as_ref(&self) -> &u64 {
-        &self.0
-    }
-}
-
-impl Deref for Sequence {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Sequence {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for Sequence {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        u64::deserialize(deserializer).map(Sequence)
     }
 }
 

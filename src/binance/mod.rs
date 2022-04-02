@@ -12,6 +12,9 @@ use rust_decimal::Decimal;
 
 pub mod futures;
 
+// Todo: Add proper error enum for BinanceMessage in Barter-Data
+//     '--> eg/ enum BinanceMessage { Error, BinancePayload }
+
 /// Binance Message variants that could be received over [`WebSocket`].
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "camelCase")]
