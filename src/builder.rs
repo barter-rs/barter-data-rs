@@ -1,13 +1,16 @@
-use std::collections::HashMap;
-use std::time::Duration;
+use crate::{
+    ExchangeId, MarketEvent, MarketStream, Subscription,
+    binance::futures::BinanceFuturesStream
+};
+use barter_integration::socket::error::SocketError;
+use std::{
+    time::Duration,
+    collections::HashMap
+};
 use futures::StreamExt;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio_stream::StreamMap;
 use tracing::{error, info, warn};
-use barter_integration::socket::error::SocketError;
-use crate::{ExchangeId, MarketEvent, MarketStream, Subscription};
-use crate::binance::futures::BinanceFuturesStream;
 
 /// Todo:
 const STARTING_RECONNECT_BACKOFF_MS: u64 = 250;
@@ -15,7 +18,7 @@ const STARTING_RECONNECT_BACKOFF_MS: u64 = 250;
 /// Todo:
 #[derive(Debug)]
 pub struct Streams {
-    pub streams: HashMap<ExchangeId, UnboundedReceiver<MarketEvent>>
+    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<MarketEvent>>
 }
 
 impl Streams {
@@ -25,13 +28,13 @@ impl Streams {
     }
 
     /// Todo:
-    pub fn select(&mut self, exchange: ExchangeId) -> Option<UnboundedReceiver<MarketEvent>> {
+    pub fn select(&mut self, exchange: ExchangeId) -> Option<mpsc::UnboundedReceiver<MarketEvent>> {
         self.streams
             .remove(&exchange)
     }
 
     /// Todo:
-    pub async fn join(self) -> StreamMap<ExchangeId, UnboundedReceiver<MarketEvent>> {
+    pub async fn join(self) -> StreamMap<ExchangeId, mpsc::UnboundedReceiver<MarketEvent>> {
         self.streams
             .into_iter()
             .fold(
@@ -108,7 +111,7 @@ impl StreamBuilder {
 pub async fn consume<Stream>(
     exchange: ExchangeId,
     subscriptions: Vec<Subscription>,
-    exchange_tx: UnboundedSender<MarketEvent>
+    exchange_tx: mpsc::UnboundedSender<MarketEvent>
 ) -> SocketError
 where
     Stream: MarketStream,

@@ -1,10 +1,14 @@
+use crate::{
+    ExchangeId, StreamId, StreamIdentifier,
+    model::{Direction, MarketData, Trade}
+};
+use barter_integration::{
+    Instrument,
+    util::epoch_ms_to_datetime_utc
+};
+use serde::{Deserialize, Serialize};
 use chrono::Utc;
 use rust_decimal::Decimal;
-use barter_integration::Instrument;
-use barter_integration::util::epoch_ms_to_datetime_utc;
-use crate::{ExchangeId, StreamId, StreamIdentifier};
-use crate::model::{Direction, MarketData, Trade};
-use serde::{Deserialize, Serialize};
 
 pub mod futures;
 

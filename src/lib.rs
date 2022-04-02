@@ -1,10 +1,12 @@
-use std::fmt::{Display, Formatter};
-use futures::{SinkExt, Stream};
-use barter_integration::socket::error::SocketError;
-use barter_integration::socket::protocol::websocket::{connect, ExchangeWebSocket, WebSocketParser, WsMessage};
-use barter_integration::socket::{ExchangeSocket, Transformer};
 use crate::model::{MarketEvent, StreamId, Subscription};
+use barter_integration::socket::{
+    {ExchangeSocket, Transformer},
+    error::SocketError,
+    protocol::websocket::{connect, ExchangeWebSocket, WebSocketParser, WsMessage},
+};
+use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
+use futures::{SinkExt, Stream};
 use async_trait::async_trait;
 
 pub mod builder;

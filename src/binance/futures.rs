@@ -1,14 +1,22 @@
-use std::collections::HashMap;
-use std::ops::DerefMut;
-use serde_json::json;
-use barter_integration::Instrument;
-use barter_integration::socket::error::SocketError;
-use barter_integration::socket::protocol::websocket::ExchangeWebSocket;
-use barter_integration::socket::Transformer;
-use crate::binance::BinanceMessage;
-use crate::{ExchangeId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription};
-use crate::model::{MarketData, Sequence, StreamKind, StreamMeta};
+use super::BinanceMessage;
+use crate::{
+    ExchangeId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription,
+    model::{MarketData, Sequence, StreamKind, StreamMeta},
+};
+use barter_integration::{
+    Instrument,
+    socket::{
+        Transformer,
+        error::SocketError,
+        protocol::websocket::ExchangeWebSocket,
+    }
+};
+use std::{
+    collections::HashMap,
+    ops::DerefMut,
+};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 // Todo: Can I simplify these ie/ remove generics or derive some generics from others
 pub type BinanceFuturesStream = ExchangeWebSocket<BinanceFutures, BinanceMessage, MarketEvent>;
