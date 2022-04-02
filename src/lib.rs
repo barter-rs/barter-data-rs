@@ -116,6 +116,7 @@ impl Display for ExchangeId {
 
 #[cfg(test)]
 mod tests {
+    use futures::StreamExt;
     use super::*;
     use crate::builder::Streams;
     use crate::model::StreamKind;
@@ -157,7 +158,7 @@ mod tests {
         // Join the remaining exchange streams into one
         let mut joined_stream = streams.join().await;
 
-        while let Some(event) = joined_stream.recv().await {
+        while let Some((exchange, event)) = joined_stream.next().await {
             println!("{:?}", event);
         }
 

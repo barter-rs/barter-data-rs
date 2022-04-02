@@ -7,6 +7,54 @@ use serde::{de, Deserialize, Deserializer, Serialize};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 
+/// Normalised Barter `MarketEvent` containing a [`MarketData`] variant, and the associated
+/// `timestamp` and `sequence` number metadata.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct MarketEvent {
+    pub sequence: Sequence,
+    pub timestamp: DateTime<Utc>,
+    pub data: MarketData,
+}
+
+impl MarketEvent {
+    pub fn new(sequence: Sequence, data: MarketData) -> Self {
+        Self {
+            sequence,
+            timestamp: Utc::now(),
+            data
+        }
+    }
+}
+
+/// Possible public market data types.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub enum MarketData {
+    Trade(Trade),
+    Candle,
+    Kline,
+    OrderBook,
+}
+
+/// Normalised public [`Trade`] model.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct Trade {
+    pub id: String,
+    pub exchange: String,
+    pub instrument: Instrument,
+    pub received_timestamp: DateTime<Utc>,
+    pub exchange_timestamp: DateTime<Utc>,
+    pub price: Decimal,
+    pub quantity: Decimal,
+    pub direction: Direction,
+}
+
+/// Todo:
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum Direction {
+    Long,
+    Short
+}
+
 /// Barter [`Subscription`] used to subscribe to a market [`StreamKind`] for a particular
 /// [`Instrument`].
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
@@ -50,6 +98,8 @@ where
         }
     }
 }
+
+// Todo: Add Subscription constructor method w/ flexible api
 
 /// Possible Stream types a [`Subscription`] is associated with.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -114,54 +164,6 @@ impl Interval {
     pub fn new<S>(input: S) -> Self where S: Into<Interval> {
         input.into()
     }
-}
-
-/// Normalised Barter `MarketEvent` containing a [`MarketData`] variant, and the associated
-/// `timestamp` and `sequence` number metadata.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
-    pub sequence: Sequence,
-    pub timestamp: DateTime<Utc>,
-    pub data: MarketData,
-}
-
-impl MarketEvent {
-    pub fn new(sequence: Sequence, data: MarketData) -> Self {
-        Self {
-            sequence,
-            timestamp: Utc::now(),
-            data
-        }
-    }
-}
-
-/// Possible public market data types.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub enum MarketData {
-    Trade(Trade),
-    Candle,
-    Kline,
-    OrderBook,
-}
-
-/// Normalised public [`Trade`] model.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct Trade {
-    pub id: String,
-    pub exchange: String,
-    pub instrument: Instrument,
-    pub received_timestamp: DateTime<Utc>,
-    pub exchange_timestamp: DateTime<Utc>,
-    pub price: Decimal,
-    pub quantity: Decimal,
-    pub direction: Direction,
-}
-
-/// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub enum Direction {
-    Long,
-    Short
 }
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
