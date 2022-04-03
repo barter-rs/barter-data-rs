@@ -8,6 +8,7 @@ use std::{
     collections::HashMap
 };
 use futures::StreamExt;
+use rust_decimal::prelude::Zero;
 use tokio::sync::mpsc;
 use tokio_stream::StreamMap;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -74,13 +75,8 @@ impl StreamBuilder {
 
     /// Todo:
     pub async fn init(self) -> Result<Streams, SocketError> {
-        // Determine total number of exchange subscriptions
-        let num_exchanges = self.subscriptions.len();
-        if num_exchanges == 0 {
-            return Err(SocketError::SubscribeError(
-                "StreamBuilder contains no Subscription to action".to_owned())
-            )
-        }
+        // Validate exchange Subscriptions provided to the StreamBuilder
+        self.validate()?;
 
         // Construct Hashmap containing each Exchange's stream receiver
         let mut exchange_streams = HashMap::with_capacity(num_exchanges);
@@ -105,6 +101,19 @@ impl StreamBuilder {
         }
 
         Ok(Streams { streams: exchange_streams })
+    }
+
+    /// Todo:
+    pub async fn validate(&self) -> Result<(), SocketError> {
+        // Ensure at least one exchange Subscription has been provided
+        if self.subscriptions.len().is_zero() {
+            return Err(SocketError::SubscribeError(
+                "StreamBuilder contains no Subscription to action".to_owned())
+            )
+        }
+
+        // Todo: Add more here, eg/ can't use a non-fut exchange with fut subs
+        Ok(())
     }
 }
 
