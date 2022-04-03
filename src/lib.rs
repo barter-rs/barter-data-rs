@@ -131,8 +131,8 @@ mod tests {
 
         let streams = Streams::builder()
             .subscribe(ExchangeId::BinanceFutures, [
-                ("btc", "usdt", InstrumentKind::Future, StreamKind::Trades),
-                ("eth", "usdt", InstrumentKind::Future, StreamKind::Trades),
+                ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
+                ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
             ])
             // .subscribe(ExchangeId::Binance, [
             //     ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
