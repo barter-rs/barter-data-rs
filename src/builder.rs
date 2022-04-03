@@ -10,6 +10,7 @@ use std::{
 use futures::StreamExt;
 use tokio::sync::mpsc;
 use tokio_stream::StreamMap;
+use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{error, info, warn};
 
 /// Todo:
@@ -34,13 +35,13 @@ impl Streams {
     }
 
     /// Todo:
-    pub async fn join(self) -> StreamMap<ExchangeId, mpsc::UnboundedReceiver<MarketEvent>> {
+    pub async fn join(self) -> StreamMap<ExchangeId, UnboundedReceiverStream<MarketEvent>> {
         self.streams
             .into_iter()
             .fold(
                 StreamMap::new(),
                 |mut map, (exchange, rx)| {
-                    map.insert(exchange, rx);
+                    map.insert(exchange, UnboundedReceiverStream::new(rx));
                     map
                 }
             )
