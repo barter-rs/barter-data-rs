@@ -1,7 +1,4 @@
-use crate::{
-    ExchangeId, MarketEvent, MarketStream, Subscription,
-    binance::futures::BinanceFuturesStream
-};
+use crate::{ExchangeTransformerId, MarketEvent, MarketStream, Subscription, binance::futures::BinanceFuturesStream, Validator};
 use barter_integration::socket::error::SocketError;
 use std::{
     time::Duration,
@@ -14,29 +11,31 @@ use tokio_stream::StreamMap;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{error, info, warn};
 
-/// Todo:
-const STARTING_RECONNECT_BACKOFF_MS: u64 = 250;
+/// Initial duration that the [`consume`] function should wait before attempting to re-initialise
+/// a [`MarketStream`]. This duration will increase exponentially as a result of continued
+/// disconnections.
+const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 
-/// Todo:
+/// Collection of exchange [`MarketEvent`] streams.
 #[derive(Debug)]
 pub struct Streams {
-    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<MarketEvent>>
+    pub streams: HashMap<ExchangeTransformerId, mpsc::UnboundedReceiver<MarketEvent>>
 }
 
 impl Streams {
-    /// Todo:
+    /// Construct a [`StreamBuilder`] for configuring a new [`MarketEvent`] [`Streams`].
     pub fn builder() -> StreamBuilder {
         StreamBuilder::new()
     }
 
-    /// Todo:
-    pub fn select(&mut self, exchange: ExchangeId) -> Option<mpsc::UnboundedReceiver<MarketEvent>> {
+    /// Remove an exchange [`MarketEvent`] stream from the [`Streams`] `HashMap`.
+    pub fn select(&mut self, exchange: ExchangeTransformerId) -> Option<mpsc::UnboundedReceiver<MarketEvent>> {
         self.streams
             .remove(&exchange)
     }
 
-    /// Todo:
-    pub async fn join(self) -> StreamMap<ExchangeId, UnboundedReceiverStream<MarketEvent>> {
+    /// Join all exchange [`MarketEvent`] streams into a unified stream.
+    pub async fn join(self) -> StreamMap<ExchangeTransformerId, UnboundedReceiverStream<MarketEvent>> {
         self.streams
             .into_iter()
             .fold(
@@ -49,23 +48,25 @@ impl Streams {
     }
 }
 
-/// Todo:
+/// Builder to configure and initialise [`Streams`] instances.
 #[derive(Debug)]
 pub struct StreamBuilder {
-    subscriptions: HashMap<ExchangeId, Vec<Subscription>>,
+    subscriptions: HashMap<ExchangeTransformerId, Vec<Subscription>>,
 }
 
 impl StreamBuilder {
-    /// Todo:
+    /// Construct a new [`StreamBuilder`] instance.
     fn new() -> Self {
         Self { subscriptions: HashMap::new() }
     }
 
-    /// Todo:
-    pub fn subscribe<SubIter, Sub>(mut self, exchange: ExchangeId, subscriptions: SubIter) -> Self
-        where
-            SubIter: IntoIterator<Item = Sub>,
-            Sub: Into<Subscription>,
+    /// Add a set of [`Subscription`]s for an exchange to the [`StreamBuilder`]. Note
+    /// that provided [`Subscription`]s are not actioned until the [`StreamBuilder::init()`](init)
+    /// method is invoked.
+    pub fn subscribe<SubIter, Sub>(mut self, exchange: ExchangeTransformerId, subscriptions: SubIter) -> Self
+    where
+        SubIter: IntoIterator<Item = Sub>,
+        Sub: Into<Subscription>,
     {
         self.subscriptions
             .insert(exchange, subscriptions.into_iter().map(Sub::into).collect());
@@ -73,12 +74,14 @@ impl StreamBuilder {
         self
     }
 
-    /// Todo:
-    pub async fn init(self) -> Result<Streams, SocketError> {
+    /// Spawn a [`MarketEvent`] consumer loop for each exchange that distributes events to the
+    /// returned [`Streams`] `HashMap`.
+    pub async fn init(mut self) -> Result<Streams, SocketError> {
         // Validate exchange Subscriptions provided to the StreamBuilder
-        self.validate()?;
+        self = self.validate()?;
 
         // Construct Hashmap containing each Exchange's stream receiver
+        let num_exchanges = self.subscriptions.len();
         let mut exchange_streams = HashMap::with_capacity(num_exchanges);
 
         for (exchange, subscriptions) in self.subscriptions {
@@ -88,11 +91,11 @@ impl StreamBuilder {
 
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
-                ExchangeId::BinanceFutures => {
+                ExchangeTransformerId::BinanceFutures => {
                     tokio::spawn(consume::<BinanceFuturesStream>(exchange, subscriptions, exchange_tx));
                 }
                 not_supported => {
-                    return Err(SocketError::SubscribeError(not_supported.to_string()))
+                    return Err(SocketError::Subscribe(not_supported.to_string()))
                 }
             }
 
@@ -102,24 +105,36 @@ impl StreamBuilder {
 
         Ok(Streams { streams: exchange_streams })
     }
+}
 
-    /// Todo:
-    pub async fn validate(&self) -> Result<(), SocketError> {
+impl Validator for StreamBuilder {
+    fn validate(self) -> Result<Self, SocketError>
+    where
+        Self: Sized
+    {
         // Ensure at least one exchange Subscription has been provided
         if self.subscriptions.len().is_zero() {
-            return Err(SocketError::SubscribeError(
+            return Err(SocketError::Subscribe(
                 "StreamBuilder contains no Subscription to action".to_owned())
             )
         }
 
-        // Todo: Add more here, eg/ can't use a non-fut exchange with fut subs
-        Ok(())
+        // Ensure each ExchangeTransformer supports the provided Subscriptions
+        self.subscriptions
+            .iter()
+            .map(|exchange_subs| exchange_subs.validate())
+            .collect::<Result<Vec<_>, SocketError>>()?;
+
+        Ok(self)
     }
 }
 
-/// Todo:
+/// Central [`MarketEvent`] consumer loop. Initialises an exchange [`MarketStream`] using a
+/// collection of [`Subscription`]s. Consumed events are distributed downstream via the
+/// `exchange_tx mpsc::UnboundedSender`. A re-connection mechanism with an exponential backoff
+/// policy is utilised to ensure maximum up-time.
 pub async fn consume<Stream>(
-    exchange: ExchangeId,
+    exchange: ExchangeTransformerId,
     subscriptions: Vec<Subscription>,
     exchange_tx: mpsc::UnboundedSender<MarketEvent>
 ) -> SocketError

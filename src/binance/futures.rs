@@ -1,6 +1,6 @@
 use super::BinanceMessage;
 use crate::{
-    ExchangeId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription,
+    ExchangeTransformerId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription,
     model::{MarketData, StreamKind, StreamMeta},
 };
 use barter_integration::{Instrument, Sequence, socket::{
@@ -24,7 +24,7 @@ pub struct BinanceFutures {
 }
 
 impl ExchangeTransformer for BinanceFutures {
-    const EXCHANGE: ExchangeId = ExchangeId::BinanceFutures;
+    const EXCHANGE: ExchangeTransformerId = ExchangeTransformerId::BinanceFutures;
     const BASE_URL: &'static str = "wss://fstream.binance.com/ws";
 
     fn new() -> Self {
@@ -34,7 +34,7 @@ impl ExchangeTransformer for BinanceFutures {
     fn generate_subscriptions(&mut self, subscriptions: &[Subscription]) -> Vec<serde_json::Value> {
         // Map Barter Subscriptions to a vector of BinanceFutures StreamIds
         let channels = subscriptions
-            .into_iter()
+            .iter()
             .map(|subscription| {
                 // Determine the BinanceFutures specific channel for this Subscription
                 let stream_id = BinanceFutures::get_stream_id(subscription);
@@ -67,7 +67,7 @@ impl Transformer<MarketEvent> for BinanceFutures {
         match input {
             BinanceMessage::Subscribed(sub_outcome) => {
                 if sub_outcome.is_failure() {
-                    output_iter.push(Err(SocketError::SubscribeError(
+                    output_iter.push(Err(SocketError::Subscribe(
                         "received Binance subscription failure".to_string()
                     )))
                 }

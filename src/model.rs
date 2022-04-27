@@ -48,19 +48,19 @@ pub struct Trade {
     pub direction: Direction,
 }
 
-/// Todo:
+/// Direction of a [`Trade`]. Todo:
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub enum Direction {
-    Long,
-    Short
+    Buy,
+    Sell
 }
 
 /// Barter [`Subscription`] used to subscribe to a market [`StreamKind`] for a particular
 /// [`Instrument`].
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub struct Subscription {
-    pub kind: StreamKind,
     pub instrument: Instrument,
+    pub kind: StreamKind,
 }
 
 impl Debug for Subscription {
@@ -99,7 +99,18 @@ where
     }
 }
 
-// Todo: Add Subscription constructor method w/ flexible api
+impl Subscription {
+    /// Constructs a new [`Subscription`] using the provided configuration.
+    pub fn new<I>(instrument: I, kind: StreamKind) -> Self
+    where
+        I: Into<Instrument>
+    {
+        Self {
+            instrument: instrument.into(),
+            kind
+        }
+    }
+}
 
 /// Possible Stream types a [`Subscription`] is associated with.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -108,16 +119,18 @@ pub enum StreamKind {
     Trades,
     Candles(Interval),
     Klines(Interval),
-    OrderBookDeltas
+    OrderBookDeltas,
+    OrderBooks,
 }
 
 impl Display for StreamKind {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", match self {
-            StreamKind::Trades => "Trades".to_owned(),
-            StreamKind::Candles(interval) => format!("Candles_{}", interval),
-            StreamKind::Klines(interval) => format!("Klines_{}", interval),
-            StreamKind::OrderBookDeltas => "OrderBookDeltas".to_owned(),
+            StreamKind::Trades => "trades".to_owned(),
+            StreamKind::Candles(interval) => format!("candles_{}", interval),
+            StreamKind::Klines(interval) => format!("klines_{}", interval),
+            StreamKind::OrderBookDeltas => "order_book_deltas".to_owned(),
+            StreamKind::OrderBooks => "order_books".to_owned()
         })
 
     }
@@ -153,19 +166,26 @@ impl<'de> de::Deserialize<'de> for Interval {
     }
 }
 
-impl<S> From<S> for Interval where S: Into<String> {
+impl<S> From<S> for Interval
+where
+    S: Into<String>
+{
     fn from(input: S) -> Self {
-        Self(input.into().to_lowercase())
+        Self(input.into())
     }
 }
 
 impl Interval {
-    /// Construct a new [`Symbol`] (new type) using the provided `Into<Symbol>` value.
-    pub fn new<S>(input: S) -> Self where S: Into<Interval> {
+    /// Construct an [`Interval`] new type using the provided `Into<Interval>` value.
+    pub fn new<S>(input: S) -> Self
+    where
+        S: Into<Interval>
+    {
         input.into()
     }
 }
 
+/// Todo:
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct StreamMeta {
     pub sequence: Sequence,
@@ -173,6 +193,7 @@ pub struct StreamMeta {
 }
 
 impl StreamMeta {
+    /// Construct a new [`StreamMeta`] using the [`Subscription`] provided.
     pub fn new(subscription: Subscription) -> Self {
         Self {
             sequence: Sequence(0),
@@ -181,6 +202,7 @@ impl StreamMeta {
     }
 }
 
+/// Todo:
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct StreamId(pub String);
 
@@ -216,7 +238,10 @@ impl<'de> Deserialize<'de> for StreamId {
     }
 }
 
-impl<S> From<S> for StreamId where S: Into<String> {
+impl<S> From<S> for StreamId
+where
+    S: Into<String>
+{
     fn from(input: S) -> Self {
         Self(input.into())
     }

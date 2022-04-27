@@ -7,7 +7,7 @@
 
 ///! # Barter-Data
 
-use crate::model::{MarketEvent, StreamId, Subscription};
+use crate::model::{MarketEvent, StreamId, StreamKind, Subscription};
 use barter_integration::socket::{
     {ExchangeSocket, Transformer},
     error::SocketError,
@@ -17,29 +17,29 @@ use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 use futures::{SinkExt, Stream};
 use async_trait::async_trait;
+use barter_integration::{Instrument, InstrumentKind};
 
 pub mod builder;
 pub mod model;
 pub mod binance;
 
-
-/// Todo:
-pub trait StreamIdentifier {
-    fn to_stream_id(&self) -> StreamId;
-}
-
-/// Todo:
+/// `Stream` supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
+/// for an [`ExchangeWebSocket`].
 #[async_trait]
 pub trait MarketStream: Stream<Item = Result<MarketEvent, SocketError>> + Sized + Unpin {
+    /// Initialises a new [`MarketEvent`] stream using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
 }
 
-/// Todo:
+/// Trait that defines how to translate between exchange specific data structures & Barter data
+/// structures. This must be implemented when integrating a new exchange.
 pub trait ExchangeTransformer: Sized
 where
     Self: Transformer<MarketEvent>,
 {
-    const EXCHANGE: ExchangeId;
+    /// Unique identifier for an `ExchangeTransformer`.
+    const EXCHANGE: ExchangeTransformerId;
+    /// Base URL of the exchange to establish a connection with.
     const BASE_URL: &'static str;
     fn new() -> Self;
     fn generate_subscriptions(&mut self, subscriptions: &[Subscription]) -> Vec<serde_json::Value>;
@@ -69,48 +69,110 @@ where
     }
 }
 
-// Todo: Rust docs, add basic impls, change name to ExchangeId ? Produce &'static str
+/// `StreamIdentifier`s are capable of determine what [`StreamId`] is associated with itself.
+pub trait StreamIdentifier {
+    /// Return the [`StreamId`] associated with `self`.
+    fn to_stream_id(&self) -> StreamId;
+}
+
+/// `Validator`s are capable of determining if their internal state is satisfactory to fulfill some
+/// use case defined by the implementor.
+pub trait Validator {
+    /// Check if `Self` is valid for some use case.
+    fn validate(self) -> Result<Self, SocketError>
+    where
+        Self: Sized;
+}
+
+/// Used to uniquely identify an `ExchangeTransformer` implementation. Each variant represents an
+/// exchange server which can be subscribed to. Note that an exchange may have multiple servers
+/// (eg/ binance, binance_futures), therefore there is a many-to-one relationship between
+/// an `ExchangeId` and an exchange name.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub enum ExchangeId {
+pub enum ExchangeTransformerId {
     BinanceFutures,
     Binance,
     Ftx,
 }
 
-impl ExchangeId {
-    /// Todo:
-    pub fn as_str(&self) -> &'static str {
+impl Display for ExchangeTransformerId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl ExchangeTransformerId {
+    /// Return the exchange name this `ExchangeTransformerId` is associated with.
+    ///
+    /// eg/ ExchangeTransformerId::BinanceFutures => "binance"
+    pub fn exchange(&self) -> &'static str {
         match self {
-            ExchangeId::Binance => "binance",
-            ExchangeId::BinanceFutures => "binance_futures",
-            ExchangeId::Ftx => "ftx",
+            ExchangeTransformerId::Binance | ExchangeTransformerId::BinanceFutures => "binance",
+            ExchangeTransformerId::Ftx => "ftx",
         }
     }
 
-    /// Todo:
+    /// Return the &str representation this `ExchangeTransformerId` is associated with.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ExchangeTransformerId::Binance => "binance",
+            ExchangeTransformerId::BinanceFutures => "binance_futures",
+            ExchangeTransformerId::Ftx => "ftx",
+        }
+    }
+
+    /// Determines whether this `ExchangeTransformerId` supports the ingestion of
+    /// [`InstrumentKind::Spot`](InstrumentKind) market data.
     pub fn supports_spot(&self) -> bool {
         match self {
-            ExchangeId::BinanceFutures => false,
+            ExchangeTransformerId::BinanceFutures => false,
             _ => true,
         }
     }
 
-    /// Todo:
+    /// Determines whether this `ExchangeTransformerId` supports the collection of
+    /// [`InstrumentKind::Future**`](InstrumentKind) market data.
     pub fn supports_futures(&self) -> bool {
         match self {
-            ExchangeId::BinanceFutures => true,
+            ExchangeTransformerId::BinanceFutures => true,
             _ => false,
         }
     }
 }
 
-impl Display for ExchangeId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            ExchangeId::BinanceFutures => "binance_futures",
-            ExchangeId::Binance => "binance",
-            ExchangeId::Ftx => "ftx",
-        })
+impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
+    fn validate(self) -> Result<Self, SocketError>
+        where
+            Self: Sized
+    {
+        let (transformer_id, subscriptions) = self;
+
+        // Check type of InstrumentKinds associated with this ExchangeTransformer's Subscriptions
+        let mut spot_subs = false;
+        let mut future_subs = false;
+        subscriptions
+            .iter()
+            .for_each(|subscription| match subscription.instrument.kind {
+                InstrumentKind::Spot => spot_subs = true,
+                _ => future_subs = true,
+            });
+
+        // Ensure ExchangeTransformer supports those InstrumentKinds
+        let supports_spot = transformer_id.supports_spot();
+        let supports_futures = transformer_id.supports_futures();
+        match (supports_spot, supports_futures, spot_subs, future_subs) {
+            // ExchangeTransformer has full support for all Subscription InstrumentKinds
+            (true, true, _, _) => Ok(self),
+            // ExchangeTransformer supports InstrumentKind::Spot, and therefore provided Subscriptions
+            (true, false, true, false) => Ok(self),
+            // ExchangeTransformer supports InstrumentKind::Future*, and therefore provided Subscriptions
+            (false, true, false, true) => Ok(self),
+            // ExchangeTransformer cannot support configured Subscriptions
+            _ => Err(SocketError::Subscribe(format!(
+                "ExchangeTransformer {} does not support InstrumentKinds of provided Subscriptions",
+                transformer_id
+            ))),
+        }
     }
 }
 
@@ -119,10 +181,9 @@ mod tests {
     use futures::StreamExt;
     use super::*;
     use crate::builder::Streams;
-    use crate::model::StreamKind;
+    use crate::model::{Interval, StreamKind};
     use barter_integration::InstrumentKind;
 
-    // Todo: Add subscription validation - it currently fails silently
     // Todo: Maybe OutputIter will become an Option<OutputIter>?
     // Todo: Do I want to keep the name trait Exchange? Do I like the generic ExTransformer, etc.
 
@@ -130,20 +191,19 @@ mod tests {
     async fn stream_builder_works() -> Result<(), Box<dyn std::error::Error>> {
 
         let streams = Streams::builder()
-            .subscribe(ExchangeId::BinanceFutures, [
+            .subscribe(ExchangeTransformerId::Binance, [
                 ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
                 ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
             ])
-            // .subscribe(ExchangeId::Binance, [
-            //     ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-            //     ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-            // ])
-            // .subscribe(ExchangeId::Ftx, [
-            //     ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-            //     ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-            // ])
+            .subscribe(ExchangeTransformerId::Ftx, [
+                ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+                ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
+            ])
             .init()
             .await?;
+
+
+
 
         // Select individual exchange streams
         // let mut futures_stream = streams
@@ -166,80 +226,3 @@ mod tests {
         Ok(())
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// pub mod test_util {
-//     use crate::model::Candle;
-//     use chrono::Utc;
-//
-//     pub fn candle() -> Candle {
-//         Candle {
-//             start_timestamp: Utc::now(),
-//             end_timestamp: Utc::now(),
-//             open: 1000.0,
-//             high: 1100.0,
-//             low: 900.0,
-//             close: 1050.0,
-//             volume: 1000000000.0,
-//             trade_count: 100,
-//         }
-//     }
-// }
-//
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-//     #[tokio::test]
-//     async fn test_connect() {
-//         struct TestCase {
-//             input_base_uri: String,
-//             expected_can_connect: bool,
-//         }
-//
-//         let test_cases = vec![
-//             TestCase {
-//                 // Test case 0: Not a valid WS base URI
-//                 input_base_uri: "not a valid base uri".to_string(),
-//                 expected_can_connect: false,
-//             },
-//             TestCase {
-//                 // Test case 1: Valid Binance WS base URI
-//                 input_base_uri: "wss://stream.binance.com:9443/ws".to_string(),
-//                 expected_can_connect: true,
-//             },
-//             TestCase {
-//                 // Test case 2: Valid Bitstamp WS base URI
-//                 input_base_uri: "wss://ws.bitstamp.net/".to_string(),
-//                 expected_can_connect: true,
-//             },
-//         ];
-//
-//         for (index, test) in test_cases.into_iter().enumerate() {
-//             let actual_result = connect(&test.input_base_uri).await;
-//             assert_eq!(
-//                 test.expected_can_connect,
-//                 actual_result.is_ok(),
-//                 "Test case: {:?}",
-//                 index
-//             );
-//         }
-//     }
-// }

@@ -1,5 +1,5 @@
 use crate::{
-    ExchangeId, StreamId, StreamIdentifier,
+    ExchangeTransformerId, StreamId, StreamIdentifier,
     model::{Direction, MarketData, Trade}
 };
 use barter_integration::{
@@ -61,8 +61,8 @@ impl StreamIdentifier for BinanceTrade {
     }
 }
 
-impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketData {
-    fn from((exchange, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
+impl From<(ExchangeTransformerId, Instrument, BinanceTrade)> for MarketData {
+    fn from((exchange, instrument, trade): (ExchangeTransformerId, Instrument, BinanceTrade)) -> Self {
         Self::Trade(Trade {
             id: trade.id.to_string(),
             exchange: exchange.to_string(),
@@ -71,10 +71,10 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketData {
             exchange_timestamp: epoch_ms_to_datetime_utc(trade.trade_ts),
             price: trade.price,
             quantity: trade.quantity,
-            direction: if trade.buyer_is_maker { // Todo: Check this
-                Direction::Short
+            direction: if trade.buyer_is_maker {
+                Direction::Sell
             } else {
-                Direction::Long
+                Direction::Buy
             }
         })
     }
