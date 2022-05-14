@@ -7,28 +7,116 @@
 
 ///! # Barter-Data
 
-use crate::model::{MarketEvent, StreamId, StreamKind, Subscription};
-use barter_integration::socket::{
-    {ExchangeSocket, Transformer},
-    error::SocketError,
-    protocol::websocket::{connect, ExchangeWebSocket, WebSocketParser, WsMessage},
+use crate::{
+    error::DataError,
+    model::{MarketEvent, Subscription, SubscriptionId, SubscriptionIds, SubscriptionMeta}
 };
-use std::fmt::{Display, Formatter};
-use serde::{Deserialize, Serialize};
-use futures::{SinkExt, Stream};
+use barter_integration::{
+    InstrumentKind,
+    socket::{
+        ExchangeSocket, Transformer,
+        error::SocketError,
+        protocol::websocket::{WebSocket, WebSocketParser, connect},
+    }
+};
+use std::{
+    time::Duration,
+    fmt::{Display, Formatter},
+};
+use serde::{
+    Deserialize, Serialize,
+    de::DeserializeOwned
+};
 use async_trait::async_trait;
-use barter_integration::{Instrument, InstrumentKind};
+use futures::{SinkExt, Stream};
 
 pub mod builder;
 pub mod model;
 pub mod binance;
+
+/// Utilities to assist with Barter integrations.
+pub mod util;
+
+/// Custom `DataError`s generated in `barter-data`.
+pub mod error;
+
+/// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
+pub type ExchangeWebSocket<Exchange> = ExchangeSocket<
+    WebSocketParser, WebSocket, <Exchange as Transformer<MarketEvent>>::Input, Exchange, MarketEvent>;
 
 /// `Stream` supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
 /// for an [`ExchangeWebSocket`].
 #[async_trait]
 pub trait MarketStream: Stream<Item = Result<MarketEvent, SocketError>> + Sized + Unpin {
     /// Initialises a new [`MarketEvent`] stream using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
+    async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError>;
+}
+
+/// Trait that defines how a subscriber will establish a [`WebSocket`] connection with an exchange,
+/// and action [`Subscription`]s. This must be implemented when integrating a new exchange.
+#[async_trait]
+pub trait Subscriber {
+    /// Deserialisable type that this [`Subscriber`] expects to receive from the exchange in
+    /// response to [`Subscription`] requests. Implements [`Validator`] in order to determine
+    /// if the `SubResponse` communicates a successful outcome.
+    type SubResponse: Validator + DeserializeOwned;
+
+    /// Initialises a [`WebSocket`] connection, actions the provided collection of Barter
+    /// [`Subscription`]s, and validates that the [`Subscription`] were accepted by the exchange.
+    async fn subscribe(subscriptions: &[Subscription]) -> Result<(WebSocket, SubscriptionIds), DataError> {
+        // Connect to exchange
+        let mut websocket = connect(Self::base_url()).await?;
+
+        // Subscribe
+        let SubscriptionMeta {
+            ids,
+            subscriptions,
+            expected_responses,
+        } = Self::build_subscription_meta(subscriptions)?;
+
+        for subscription in subscriptions {
+            websocket.send(subscription).await.map_err(SocketError::WebSocket)?;
+        }
+
+        // Validate subscriptions
+        Self::validate(&mut websocket, expected_responses).await?;
+
+        Ok((websocket, ids))
+    }
+
+    /// Returns the Base URL of the exchange to establish a connection with.
+    fn base_url() -> &'static str;
+
+    /// Uses the provided Barter [`Subscription`]s to build exchange specific subscription
+    /// payloads. Generates a [`SubscriptionIds`] `Hashmap` that is used by an [`ExchangeTransformer`]
+    /// to identify the Barter [`Subscription`]s associated with received messages.
+    fn build_subscription_meta(
+        subscriptions: &[Subscription],
+    ) -> Result<SubscriptionMeta, DataError>;
+
+
+    /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
+    /// validate their outcomes.
+    async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), DataError> {
+        todo!()
+    }
+
+    /// Return the expected `Duration` in which the exchange will respond to all actioned
+    /// `WebSocket` [`Subscription`] requests.
+    ///
+    /// Default: 10 seconds
+    fn subscription_timeout() -> Duration {
+        Duration::from_secs(10)
+    }
+}
+
+/// `Validator`s are capable of determining if their internal state is satisfactory to fulfill some
+/// use case defined by the implementor.
+pub trait Validator {
+    /// Check if `Self` is valid for some use case.
+    fn validate(self) -> Result<Self, DataError>
+    where
+        Self: Sized;
 }
 
 /// Trait that defines how to translate between exchange specific data structures & Barter data
@@ -39,49 +127,26 @@ where
 {
     /// Unique identifier for an `ExchangeTransformer`.
     const EXCHANGE: ExchangeTransformerId;
-    /// Base URL of the exchange to establish a connection with.
-    const BASE_URL: &'static str;
-    fn new() -> Self;
-    fn generate_subscriptions(&mut self, subscriptions: &[Subscription]) -> Vec<serde_json::Value>;
+
+    /// Construct a new `ExchangeTransformer` using a `HashMap` containing the relationship between
+    /// all active Barter [`Subscription`]s and their associated exchange specific identifiers.
+    fn new(ids: SubscriptionIds) -> Self;
 }
 
 #[async_trait]
-impl<ExchangeT> MarketStream for ExchangeWebSocket<ExchangeT, ExchangeT::Input, MarketEvent>
+impl<Exchange> MarketStream for ExchangeWebSocket<Exchange>
 where
-    Self: Stream<Item = Result<MarketEvent, SocketError>> + Sized + Unpin,
-    ExchangeT: ExchangeTransformer + Send,
+    Exchange: Subscriber + ExchangeTransformer + Send,
 {
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
-        // Construct Exchange Transformer to translate between Barter & exchange data structures
-        let mut exchange = ExchangeT::new();
+    async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError> {
+        // Connect & subscribe
+        let (websocket, ids) = Exchange::subscribe(subscriptions).await?;
 
-        // Connect to exchange WebSocket server
-        let mut websocket = connect(ExchangeT::BASE_URL).await?;
+        // Construct ExchangeTransformer
+        let transformer = Exchange::new(ids);
 
-        // Action Subscriptions over the socket
-        for sub_payload in exchange.generate_subscriptions(subscriptions) {
-            websocket
-                .send(WsMessage::Text(sub_payload.to_string()))
-                .await?;
-        }
-
-        Ok(ExchangeSocket::new(websocket, WebSocketParser, exchange))
+        Ok(ExchangeSocket::new(websocket, transformer))
     }
-}
-
-/// `StreamIdentifier`s are capable of determine what [`StreamId`] is associated with itself.
-pub trait StreamIdentifier {
-    /// Return the [`StreamId`] associated with `self`.
-    fn to_stream_id(&self) -> StreamId;
-}
-
-/// `Validator`s are capable of determining if their internal state is satisfactory to fulfill some
-/// use case defined by the implementor.
-pub trait Validator {
-    /// Check if `Self` is valid for some use case.
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized;
 }
 
 /// Used to uniquely identify an `ExchangeTransformer` implementation. Each variant represents an
@@ -141,9 +206,9 @@ impl ExchangeTransformerId {
 }
 
 impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
-    fn validate(self) -> Result<Self, SocketError>
-        where
-            Self: Sized
+    fn validate(self) -> Result<Self, DataError>
+    where
+        Self: Sized
     {
         let (transformer_id, subscriptions) = self;
 
@@ -168,7 +233,7 @@ impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
             // ExchangeTransformer supports InstrumentKind::Future*, and therefore provided Subscriptions
             (false, true, false, true) => Ok(self),
             // ExchangeTransformer cannot support configured Subscriptions
-            _ => Err(SocketError::Subscribe(format!(
+            _ => Err(DataError::Subscribe(format!(
                 "ExchangeTransformer {} does not support InstrumentKinds of provided Subscriptions",
                 transformer_id
             ))),
