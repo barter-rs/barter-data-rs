@@ -3,16 +3,16 @@ use std::{
     fmt::{Debug, Display, Formatter},
     ops::Deref,
 };
+use std::collections::HashMap;
 use serde::{de, Deserialize, Deserializer, Serialize};
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
+use barter_integration::socket::protocol::websocket::WsMessage;
 
 /// Normalised Barter `MarketEvent` containing a [`MarketData`] variant, and the associated
 /// `timestamp` and `sequence` number metadata.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct MarketEvent {
     pub sequence: Sequence,
-    pub timestamp: DateTime<Utc>,
     pub data: MarketData,
 }
 
@@ -20,7 +20,6 @@ impl MarketEvent {
     pub fn new(sequence: Sequence, data: MarketData) -> Self {
         Self {
             sequence,
-            timestamp: Utc::now(),
             data
         }
     }
@@ -43,12 +42,12 @@ pub struct Trade {
     pub instrument: Instrument,
     pub received_timestamp: DateTime<Utc>,
     pub exchange_timestamp: DateTime<Utc>,
-    pub price: Decimal,
-    pub quantity: Decimal,
+    pub price: f64,
+    pub quantity: f64,
     pub direction: Direction,
 }
 
-/// Direction of a [`Trade`]. Todo:
+/// Direction of a [`Trade`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub enum Direction {
     Buy,
@@ -133,6 +132,71 @@ impl Display for StreamKind {
             StreamKind::OrderBooks => "order_books".to_owned()
         })
 
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+/// Metadata generated from a collection of Keyrock [`Subscription`]s. This includes the exchange
+/// specific subscription payloads that are sent to the exchange.
+pub struct SubscriptionMeta {
+    /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
+    /// and a Barter [`Subscription`]. Used to identify the original [`Subscription`] associated
+    /// with a received message.
+    pub ids: SubscriptionIds,
+    /// Number of [`Subscription`] responses expected from the exchange. Used to validate all
+    /// [`Subscription`] were accepted.
+    pub expected_responses: usize,
+    /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
+    pub subscriptions: Vec<WsMessage>,
+}
+
+/// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
+/// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
+/// [`Subscription`] associated with a received message.
+pub type SubscriptionIds = HashMap<SubscriptionId, Subscription>;
+
+/// New type representing a unique `String` identifier for a stream that has been subscribed to.
+/// This identifier is used to associated a [`Subscription`] with data structures received from
+/// the exchange.
+///
+/// Note: Each exchange will require the use of different `String` identifiers depending on the
+/// data structures they send.
+///
+/// eg/ [`SubscriptionId`] of an `FtxTrade` is "{BASE}/{QUOTE}" (ie/ market).
+/// eg/ [`SubscriptionId`] of a `BinanceTrade` is "{base}{symbol}@trade" (ie/ channel).
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+pub struct SubscriptionId(pub String);
+
+impl Debug for SubscriptionId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Display for SubscriptionId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl AsRef<str> for SubscriptionId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl<'de> de::Deserialize<'de> for SubscriptionId {
+    fn deserialize<D: de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer).map(SubscriptionId)
+    }
+}
+
+impl<S> From<S> for SubscriptionId
+    where
+        S: Into<String>,
+{
+    fn from(input: S) -> Self {
+        Self(input.into())
     }
 }
 
