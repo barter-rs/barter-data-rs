@@ -1,59 +1,33 @@
-use super::BinanceMessage;
+use super::{BinanceSubResponse, BinanceMessage};
 use crate::{
-    ExchangeTransformerId, ExchangeTransformer, MarketEvent, StreamId, StreamIdentifier, Subscription,
-    model::{MarketData, StreamKind, StreamMeta},
+    ExchangeTransformerId, Subscriber, ExchangeTransformer, MarketEvent, Subscription,
+    SubscriptionMeta, SubscriptionIds,
+    error::DataError,
+    model::StreamKind
 };
-use barter_integration::{Instrument, Sequence, socket::{
-    Transformer,
-    error::SocketError,
-    protocol::websocket::ExchangeWebSocket,
-}};
-use std::{
-    collections::HashMap,
-    ops::DerefMut,
-};
+use barter_integration::socket::{Transformer, error::SocketError};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
-// Todo: Can I simplify these ie/ remove generics or derive some generics from others
-pub type BinanceFuturesStream = ExchangeWebSocket<BinanceFutures, BinanceMessage, MarketEvent>;
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct BinanceFutures {
-    pub streams: HashMap<StreamId, StreamMeta>
+    pub ids: SubscriptionIds,
+}
+
+impl Subscriber for BinanceFutures {
+    type SubResponse = BinanceSubResponse;
+
+    fn base_url() -> &'static str { "wss://fstream.binance.com/ws" }
+
+    fn build_subscription_meta(subscriptions: &[Subscription]) -> Result<SubscriptionMeta, DataError> {
+        todo!()
+    }
 }
 
 impl ExchangeTransformer for BinanceFutures {
     const EXCHANGE: ExchangeTransformerId = ExchangeTransformerId::BinanceFutures;
-    const BASE_URL: &'static str = "wss://fstream.binance.com/ws";
 
-    fn new() -> Self {
-        Self { streams: HashMap::new() }
-    }
-
-    fn generate_subscriptions(&mut self, subscriptions: &[Subscription]) -> Vec<serde_json::Value> {
-        // Map Barter Subscriptions to a vector of BinanceFutures StreamIds
-        let channels = subscriptions
-            .iter()
-            .map(|subscription| {
-                // Determine the BinanceFutures specific channel for this Subscription
-                let stream_id = BinanceFutures::get_stream_id(subscription);
-
-                // Add channel with the associated original Subscription to the internal HashMap
-                self.streams
-                    .insert(stream_id.clone(), StreamMeta::new(subscription.clone()));
-
-                stream_id
-            })
-            .collect::<Vec<StreamId>>();
-
-        // Construct BinanceFutures specific subscription message for all desired channels
-        vec![json!({
-            "method": "SUBSCRIBE",
-            "params": channels,
-            "id": 1
-        })]
-    }
+    fn new(ids: SubscriptionIds) -> Self { Self { ids } }
 }
 
 impl Transformer<MarketEvent> for BinanceFutures {
@@ -61,57 +35,44 @@ impl Transformer<MarketEvent> for BinanceFutures {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        // Output vector to return (only ever 0 or 1 length)
-        let mut output_iter = Vec::with_capacity(1);
-
-        match input {
-            BinanceMessage::Subscribed(sub_outcome) => {
-                if sub_outcome.is_failure() {
-                    output_iter.push(Err(SocketError::Subscribe(
-                        "received Binance subscription failure".to_string()
-                    )))
-                }
-            }
-            BinanceMessage::Trade(trade) => {
-                let (instrument, sequence) = match self.get_stream_meta(&trade.to_stream_id()) {
-                    Ok(stream_meta) => stream_meta,
-                    Err(err) => {
-                        output_iter.push(Err(err));
-                        return output_iter;
-                    },
-                };
-
-                output_iter.push(Ok(MarketEvent::new(
-                    sequence,
-                    MarketData::from((BinanceFutures::EXCHANGE, instrument, trade))
-                )))
-            }
-        };
-
-        output_iter
+        todo!()
+        //
+        // match input {
+        //     BinanceMessage::Trade(_) => {}
+        // }
+        //
+        // // Output vector to return (only ever 0 or 1 length)
+        // let mut output_iter = Vec::with_capacity(1);
+        //
+        // match input {
+        //     BinanceMessage::Trade(trade) => {
+        //         let (instrument, sequence) = match self.get_stream_meta(&trade.to_stream_id()) {
+        //             Ok(stream_meta) => stream_meta,
+        //             Err(err) => {
+        //                 output_iter.push(Err(err));
+        //                 return output_iter;
+        //             },
+        //         };
+        //
+        //         output_iter.push(Ok(MarketEvent::new(
+        //             sequence,
+        //             MarketData::from((BinanceFutures::EXCHANGE, instrument, trade))
+        //         )))
+        //     }
+        // };
+        //
+        // output_iter
     }
 }
 
 impl BinanceFutures {
-    fn get_stream_id(sub: &Subscription) -> StreamId {
-        match sub.kind {
-            StreamKind::Trades => {
-                StreamId(format!("{}{}@aggTrade", sub.instrument.base, sub.instrument.quote))
-            }
-            _ => panic!("unsupported")
-        }
-    }
-
-    fn get_stream_meta(&mut self, stream_id: &StreamId) -> Result<(Instrument, Sequence), SocketError> {
-        self.streams
-            .get_mut(stream_id)
-            .map(|stream_meta| {
-                // Increment the Sequence number associated with this StreamId
-                let sequence = stream_meta.sequence;
-                *stream_meta.sequence.deref_mut() += 1;
-
-                (stream_meta.subscription.instrument.clone(), sequence)
+    fn get_channel_id(sub: &Subscription) -> Result<String, DataError> {
+        match &sub.kind {
+            StreamKind::Trades => Ok(format!("{}{}@aggTrade", sub.instrument.base, sub.instrument.quote)),
+            other =>  Err(DataError::Unsupported {
+                entity: BinanceFutures::EXCHANGE.as_str(),
+                item: other.to_string()
             })
-            .ok_or_else(|| SocketError::Unidentifiable(stream_id.0.clone()))
+        }
     }
 }

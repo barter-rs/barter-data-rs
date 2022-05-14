@@ -1,43 +1,42 @@
-use crate::{
-    ExchangeTransformerId, StreamId, StreamIdentifier,
-    model::{Direction, MarketData, Trade}
-};
-use barter_integration::{
-    Instrument,
-    util::epoch_ms_to_datetime_utc
-};
+use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, util::epoch_ms_to_datetime_utc};
+use barter_integration::Instrument;
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
-use rust_decimal::Decimal;
 
 pub mod futures;
 
-// Todo: Add proper error enum for BinanceMessage in Barter-Data
-//     '--> eg/ enum BinanceMessage { Error, BinancePayload }
 
 /// Binance Message variants that could be received over [`WebSocket`].
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum BinanceMessage {
-    Subscribed(BinanceSubscribed),
     Trade(BinanceTrade)
 }
 
-/// Binance specific subscription confirmation message.
+/// `Binance` & `BinanceFutures` `Subscription` response message.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct BinanceSubscribed {
+pub struct BinanceSubResponse {
     result: Option<Vec<String>>,
     id: u32,
 }
 
-impl BinanceSubscribed {
-    pub fn is_failure(&self) -> bool {
-        self.result.is_some()
+impl Validator for BinanceSubResponse {
+    fn validate(self) -> Result<Self, DataError>
+    where
+        Self: Sized,
+    {
+        if self.result.is_none() {
+            Ok(self)
+        } else {
+            Err(DataError::Subscribe(
+                "received failure subscription response".to_owned(),
+            ))
+        }
     }
 }
 
 /// Binance specific Trade message.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {
     #[serde(rename = "e")]
     event_type: String,
@@ -48,17 +47,11 @@ pub struct BinanceTrade {
     #[serde(rename = "a")]
     id: u64,
     #[serde(rename = "p")]
-    price: Decimal,
+    price: f64,
     #[serde(rename = "q")]
-    quantity: Decimal,
+    quantity: f64,
     #[serde(rename = "m")]
     buyer_is_maker: bool,
-}
-
-impl StreamIdentifier for BinanceTrade {
-    fn to_stream_id(&self) -> StreamId {
-        format!("{}@{}", self.symbol.to_lowercase(), self.event_type).into()
-    }
 }
 
 impl From<(ExchangeTransformerId, Instrument, BinanceTrade)> for MarketData {

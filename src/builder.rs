@@ -1,14 +1,16 @@
-use crate::{ExchangeTransformerId, MarketEvent, MarketStream, Subscription, binance::futures::BinanceFuturesStream, Validator};
-use barter_integration::socket::error::SocketError;
+use crate::{
+    DataError, ExchangeTransformerId, ExchangeWebSocket, MarketEvent, MarketStream, Subscription, Validator,
+    binance::futures::BinanceFutures,
+};
 use std::{
     time::Duration,
     collections::HashMap
 };
 use futures::StreamExt;
-use rust_decimal::prelude::Zero;
 use tokio::sync::mpsc;
-use tokio_stream::StreamMap;
-use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::{
+    StreamMap, wrappers::UnboundedReceiverStream
+};
 use tracing::{error, info, warn};
 
 /// Initial duration that the [`consume`] function should wait before attempting to re-initialise
@@ -76,7 +78,7 @@ impl StreamBuilder {
 
     /// Spawn a [`MarketEvent`] consumer loop for each exchange that distributes events to the
     /// returned [`Streams`] `HashMap`.
-    pub async fn init(mut self) -> Result<Streams, SocketError> {
+    pub async fn init(mut self) -> Result<Streams, DataError> {
         // Validate exchange Subscriptions provided to the StreamBuilder
         self = self.validate()?;
 
@@ -92,10 +94,10 @@ impl StreamBuilder {
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
                 ExchangeTransformerId::BinanceFutures => {
-                    tokio::spawn(consume::<BinanceFuturesStream>(exchange, subscriptions, exchange_tx));
+                    tokio::spawn(consume::<ExchangeWebSocket<BinanceFutures>>(exchange, subscriptions, exchange_tx));
                 }
                 not_supported => {
-                    return Err(SocketError::Subscribe(not_supported.to_string()))
+                    return Err(DataError::Subscribe(not_supported.to_string()))
                 }
             }
 
@@ -108,13 +110,13 @@ impl StreamBuilder {
 }
 
 impl Validator for StreamBuilder {
-    fn validate(self) -> Result<Self, SocketError>
+    fn validate(self) -> Result<Self, DataError>
     where
         Self: Sized
     {
         // Ensure at least one exchange Subscription has been provided
-        if self.subscriptions.len().is_zero() {
-            return Err(SocketError::Subscribe(
+        if self.subscriptions.is_empty() {
+            return Err(DataError::Subscribe(
                 "StreamBuilder contains no Subscription to action".to_owned())
             )
         }
@@ -123,7 +125,7 @@ impl Validator for StreamBuilder {
         self.subscriptions
             .iter()
             .map(|exchange_subs| exchange_subs.validate())
-            .collect::<Result<Vec<_>, SocketError>>()?;
+            .collect::<Result<Vec<_>, DataError>>()?;
 
         Ok(self)
     }
@@ -137,14 +139,14 @@ pub async fn consume<Stream>(
     exchange: ExchangeTransformerId,
     subscriptions: Vec<Subscription>,
     exchange_tx: mpsc::UnboundedSender<MarketEvent>
-) -> SocketError
+) -> DataError
 where
     Stream: MarketStream,
 {
     let exchange = exchange.as_str();
     info!(
         exchange,
-        subscriptions = &*format!("{:?}", subscriptions),
+        ?subscriptions,
         policy = "retry connection with exponential backoff",
         "MarketStream consumer loop running",
     );
@@ -193,17 +195,17 @@ where
                         .send(market_event)
                         .map_err(|err| {
                             error!(
-                                payload = &*format!("{:?}", err.0),
+                                payload = ?err.0,
                                 why = "receiver dropped",
                                 "failed to send MarketEvent to Exchange receiver"
                             );
                         });
                 }
                 // If SocketError: log & continue to next Result<MarketEvent, SocketError>
-                Err(err) => {
+                Err(error) => {
                     warn!(
                         exchange,
-                        error = &*err.to_string(),
+                        %error,
                         action = "skipping message",
                         "consumed SocketError from MarketStream",
                     );
