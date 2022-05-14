@@ -1,4 +1,5 @@
-use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, util::epoch_ms_to_datetime_utc};
+use super::epoch_ms_to_datetime_utc;
+use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, SubscriptionId};
 use barter_integration::Instrument;
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
@@ -54,11 +55,21 @@ pub struct BinanceTrade {
     buyer_is_maker: bool,
 }
 
+impl From<&BinanceTrade> for SubscriptionId {
+    fn from(trade: &BinanceTrade) -> Self {
+        SubscriptionId(format!(
+            "{}@{}",
+            trade.symbol.to_lowercase(),
+            trade.event_type
+        ))
+    }
+}
+
 impl From<(ExchangeTransformerId, Instrument, BinanceTrade)> for MarketData {
     fn from((exchange, instrument, trade): (ExchangeTransformerId, Instrument, BinanceTrade)) -> Self {
         Self::Trade(Trade {
             id: trade.id.to_string(),
-            exchange: exchange.to_string(),
+            exchange: exchange.exchange().to_string(),
             instrument,
             received_timestamp: Utc::now(),
             exchange_timestamp: epoch_ms_to_datetime_utc(trade.trade_ts),

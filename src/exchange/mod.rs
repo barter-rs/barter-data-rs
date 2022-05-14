@@ -1,3 +1,5 @@
+pub mod binance;
+
 use std::time::Duration;
 use chrono::{DateTime, Utc};
 

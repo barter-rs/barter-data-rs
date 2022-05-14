@@ -1,12 +1,12 @@
 use barter_integration::{Instrument, InstrumentKind, Sequence, Symbol};
 use std::{
     fmt::{Debug, Display, Formatter},
-    ops::Deref,
 };
 use std::collections::HashMap;
-use serde::{de, Deserialize, Deserializer, Serialize};
+use serde::{de, Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use barter_integration::socket::protocol::websocket::WsMessage;
+use crate::DataError;
 
 /// Normalised Barter `MarketEvent` containing a [`MarketData`] variant, and the associated
 /// `timestamp` and `sequence` number metadata.
@@ -136,7 +136,7 @@ impl Display for StreamKind {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-/// Metadata generated from a collection of Keyrock [`Subscription`]s. This includes the exchange
+/// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
 /// specific subscription payloads that are sent to the exchange.
 pub struct SubscriptionMeta {
     /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
@@ -153,7 +153,22 @@ pub struct SubscriptionMeta {
 /// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
-pub type SubscriptionIds = HashMap<SubscriptionId, Subscription>;
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+pub struct SubscriptionIds(pub HashMap<SubscriptionId, Subscription>);
+
+impl SubscriptionIds {
+    /// Find the [`Instrument`] associated with the provided `Into<SubscriptionId>`.
+    pub fn find_instrument<Id>(&self, id: &Id) -> Result<Instrument, DataError>
+    where
+        Id: Into<SubscriptionId>
+    {
+        let subscription_id: SubscriptionId = id.into();
+        self.0
+            .get(&subscription_id)
+            .map(|subscription| subscription.instrument.clone())
+            .ok_or_else(|| DataError::Unidentifiable(subscription_id))
+    }
+}
 
 /// New type representing a unique `String` identifier for a stream that has been subscribed to.
 /// This identifier is used to associated a [`Subscription`] with data structures received from
@@ -246,67 +261,5 @@ impl Interval {
         S: Into<Interval>
     {
         input.into()
-    }
-}
-
-/// Todo:
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct StreamMeta {
-    pub sequence: Sequence,
-    pub subscription: Subscription,
-}
-
-impl StreamMeta {
-    /// Construct a new [`StreamMeta`] using the [`Subscription`] provided.
-    pub fn new(subscription: Subscription) -> Self {
-        Self {
-            sequence: Sequence(0),
-            subscription
-        }
-    }
-}
-
-/// Todo:
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-pub struct StreamId(pub String);
-
-impl Debug for StreamId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Display for StreamId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl AsRef<str> for StreamId {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for StreamId {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for StreamId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        String::deserialize(deserializer).map(StreamId)
-    }
-}
-
-impl<S> From<S> for StreamId
-where
-    S: Into<String>
-{
-    fn from(input: S) -> Self {
-        Self(input.into())
     }
 }

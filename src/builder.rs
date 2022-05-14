@@ -1,6 +1,6 @@
 use crate::{
     DataError, ExchangeTransformerId, ExchangeWebSocket, MarketEvent, MarketStream, Subscription, Validator,
-    binance::futures::BinanceFutures,
+    exchange::binance::futures::BinanceFutures,
 };
 use std::{
     time::Duration,

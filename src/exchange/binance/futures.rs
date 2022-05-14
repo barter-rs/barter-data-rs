@@ -1,9 +1,8 @@
 use super::{BinanceSubResponse, BinanceMessage};
 use crate::{
-    ExchangeTransformerId, Subscriber, ExchangeTransformer, MarketEvent, Subscription,
-    SubscriptionMeta, SubscriptionIds,
+    ExchangeTransformerId, Subscriber, ExchangeTransformer, Subscription, SubscriptionMeta, SubscriptionIds,
     error::DataError,
-    model::StreamKind
+    model::{StreamKind, MarketData}
 };
 use barter_integration::socket::{Transformer, error::SocketError};
 use serde::{Deserialize, Serialize};
@@ -30,38 +29,20 @@ impl ExchangeTransformer for BinanceFutures {
     fn new(ids: SubscriptionIds) -> Self { Self { ids } }
 }
 
-impl Transformer<MarketEvent> for BinanceFutures {
+impl Transformer<MarketData> for BinanceFutures {
     type Input = BinanceMessage;
-    type OutputIter = Vec<Result<MarketEvent, SocketError>>;
+    type OutputIter = Vec<Result<MarketData, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        todo!()
-        //
-        // match input {
-        //     BinanceMessage::Trade(_) => {}
-        // }
-        //
-        // // Output vector to return (only ever 0 or 1 length)
-        // let mut output_iter = Vec::with_capacity(1);
-        //
-        // match input {
-        //     BinanceMessage::Trade(trade) => {
-        //         let (instrument, sequence) = match self.get_stream_meta(&trade.to_stream_id()) {
-        //             Ok(stream_meta) => stream_meta,
-        //             Err(err) => {
-        //                 output_iter.push(Err(err));
-        //                 return output_iter;
-        //             },
-        //         };
-        //
-        //         output_iter.push(Ok(MarketEvent::new(
-        //             sequence,
-        //             MarketData::from((BinanceFutures::EXCHANGE, instrument, trade))
-        //         )))
-        //     }
-        // };
-        //
-        // output_iter
+        let market_data = match input {
+            BinanceMessage::Trade(trade) => {
+                    MarketData::from((
+                        BinanceFutures::EXCHANGE, self.ids.find_instrument(&trade)?, trade
+                    ))
+            },
+        };
+
+        vec![Ok(market_data)]
     }
 }
 

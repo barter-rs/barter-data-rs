@@ -29,20 +29,24 @@ use serde::{
 };
 use async_trait::async_trait;
 use futures::{SinkExt, Stream};
+use crate::model::MarketData;
 
-pub mod builder;
+/// Core data structures to support consuming `MarketStream`s.
+///
+/// eg/ `MarketEvent`, `Trade`, `Subscription`, `SubscriptionId`, etc.
 pub mod model;
-pub mod binance;
 
-/// Utilities to assist with Barter integrations.
-pub mod util;
+/// Contains `Subscriber` & `ExchangeMapper` implementations for specific exchanges.
+pub mod exchange;
+
+/// Todo:
+pub mod builder;
 
 /// Custom `DataError`s generated in `barter-data`.
 pub mod error;
 
 /// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWebSocket<Exchange> = ExchangeSocket<
-    WebSocketParser, WebSocket, <Exchange as Transformer<MarketEvent>>::Input, Exchange, MarketEvent>;
+pub type ExchangeWebSocket<Exchange> = ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketData>;
 
 /// `Stream` supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
 /// for an [`ExchangeWebSocket`].
@@ -123,7 +127,7 @@ pub trait Validator {
 /// structures. This must be implemented when integrating a new exchange.
 pub trait ExchangeTransformer: Sized
 where
-    Self: Transformer<MarketEvent>,
+    Self: Transformer<MarketData>,
 {
     /// Unique identifier for an `ExchangeTransformer`.
     const EXCHANGE: ExchangeTransformerId;
