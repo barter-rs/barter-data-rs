@@ -35,4 +35,4 @@ ta = "0.4.0"
 
 # Misc
 chrono = {version = "0.4.19", features = ["serde"]}
-rust_decimal = "1.22.0"
+thiserror = "1.0.31"
