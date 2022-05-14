@@ -1,18 +1,12 @@
 use super::epoch_ms_to_datetime_utc;
-use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, SubscriptionId};
+use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
 use barter_integration::Instrument;
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
+/// Todo:
 pub mod futures;
 
-
-/// Binance Message variants that could be received over [`WebSocket`].
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-#[serde(untagged, rename_all = "camelCase")]
-pub enum BinanceMessage {
-    Trade(BinanceTrade)
-}
 
 /// `Binance` & `BinanceFutures` `Subscription` response message.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -32,6 +26,21 @@ impl Validator for BinanceSubResponse {
             Err(DataError::Subscribe(
                 "received failure subscription response".to_owned(),
             ))
+        }
+    }
+}
+
+/// Binance Message variants that could be received over [`WebSocket`].
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum BinanceMessage {
+    Trade(BinanceTrade)
+}
+
+impl Identifiable for BinanceMessage {
+    fn id(&self) -> SubscriptionId {
+        match self {
+            BinanceMessage::Trade(trade) => SubscriptionId::from(trade)
         }
     }
 }

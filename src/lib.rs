@@ -51,7 +51,7 @@ pub type ExchangeWebSocket<Exchange> = ExchangeSocket<WebSocketParser, WebSocket
 /// `Stream` supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
 /// for an [`ExchangeWebSocket`].
 #[async_trait]
-pub trait MarketStream: Stream<Item = Result<MarketEvent, SocketError>> + Sized + Unpin {
+pub trait MarketStream: Stream<Item = Result<MarketData, SocketError>> + Sized + Unpin {
     /// Initialises a new [`MarketEvent`] stream using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError>;
 }
@@ -125,9 +125,9 @@ pub trait Validator {
 
 /// Trait that defines how to translate between exchange specific data structures & Barter data
 /// structures. This must be implemented when integrating a new exchange.
-pub trait ExchangeTransformer: Sized
+pub trait ExchangeTransformer: Transformer<MarketData> + Sized
 where
-    Self: Transformer<MarketData>,
+    <Self as Transformer<MarketData>>::Input: Identifiable
 {
     /// Unique identifier for an `ExchangeTransformer`.
     const EXCHANGE: ExchangeTransformerId;
@@ -137,10 +137,16 @@ where
     fn new(ids: SubscriptionIds) -> Self;
 }
 
+/// Todo:
+pub trait Identifiable {
+    fn id(&self) -> SubscriptionId;
+}
+
 #[async_trait]
 impl<Exchange> MarketStream for ExchangeWebSocket<Exchange>
 where
     Exchange: Subscriber + ExchangeTransformer + Send,
+    <Exchange as Transformer<MarketData>>::Input: Identifiable
 {
     async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError> {
         // Connect & subscribe

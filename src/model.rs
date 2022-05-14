@@ -153,7 +153,7 @@ pub struct SubscriptionMeta {
 /// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash, Deserialize, Serialize)]
 pub struct SubscriptionIds(pub HashMap<SubscriptionId, Subscription>);
 
 impl SubscriptionIds {
