@@ -33,7 +33,7 @@ use futures::{SinkExt, Stream};
 //  - Add Identifiable into ExchangeMessage bounds for ExchangeSocket & do most of transform for free
 //    '--> Keep concept of ExchangeTransformer so we don't have to add From<(ExchangeId, instrument)>
 //      '--> It can be a method eg/ transform<T>(&self, T) where T: Into<MarketData>
-//  - Create a clear seperation between DataError & SocketError, eg/ inside builder.rs and main traits?
+//  - Create a clear separation between DataError & SocketError, eg/ inside builder.rs and main traits?
 //  - Remove StreamKind & Interval from barter-integration since it's barter-data specific
 //    '--> causes knock on effects... use Subscription<Kind>?
 
@@ -109,7 +109,7 @@ pub trait Subscriber {
     /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), SocketError> {
-        todo!()
+        Ok(())
     }
 
     /// Return the expected `Duration` in which the exchange will respond to all actioned
@@ -260,10 +260,8 @@ impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
 
 #[cfg(test)]
 mod tests {
-    use futures::StreamExt;
     use super::*;
     use crate::builder::Streams;
-    use crate::model::{Interval, StreamKind};
     use barter_integration::{InstrumentKind, StreamKind};
 
     // Todo: Maybe OutputIter will become an Option<OutputIter>?
@@ -272,8 +270,8 @@ mod tests {
     #[tokio::test]
     async fn stream_builder_works() -> Result<(), Box<dyn std::error::Error>> {
 
-        let streams = Streams::builder()
-            .subscribe(ExchangeTransformerId::Binance, [
+        let mut streams = Streams::builder()
+            .subscribe(ExchangeTransformerId::BinanceFutures, [
                 ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
                 ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
             ])
@@ -284,25 +282,30 @@ mod tests {
             .init()
             .await?;
 
-
+        // println!("{:?}", streams);
+        //
+        // let streams = streams.unwrap();
 
 
         // Select individual exchange streams
-        // let mut futures_stream = streams
-        //     .select(ExchangeId::BinanceFutures)
-        //     .ok_or(SocketError::Unidentifiable("".to_owned()))?; // Todo
+        let mut futures_stream = streams
+            .select(ExchangeTransformerId::BinanceFutures)
+            .unwrap();
 
+        while let Some(event) = futures_stream.recv().await {
+            println!("{:?}", event);
+        }
 
         // let mut ftx_stream = streams
         //     .select(ExchangeId::Ftx)
         //     .ok_or(SocketError::Unidentifiable("".to_owned()))?; // Todo:
 
         // Join the remaining exchange streams into one
-        let mut joined_stream = streams.join().await;
+        // let mut joined_stream = streams.join().await;
 
-        while let Some((exchange, event)) = joined_stream.next().await {
-            println!("{:?}", event);
-        }
+
+
+
 
 
         Ok(())

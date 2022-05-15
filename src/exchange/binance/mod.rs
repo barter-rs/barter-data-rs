@@ -1,4 +1,4 @@
-use super::epoch_ms_to_datetime_utc;
+use super::{de_str, epoch_ms_to_datetime_utc};
 use crate::{ExchangeTransformerId, Validator, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
 use barter_integration::{Instrument, socket::error::SocketError};
 use serde::{Deserialize, Serialize};
@@ -64,9 +64,9 @@ pub struct BinanceTrade {
     trade_ts: u64,
     #[serde(rename = "a")]
     id: u64,
-    #[serde(rename = "p")]
+    #[serde(rename = "p", deserialize_with = "de_str")]
     price: f64,
-    #[serde(rename = "q")]
+    #[serde(rename = "q", deserialize_with = "de_str")]
     quantity: f64,
     #[serde(rename = "m")]
     buyer_is_maker: bool,
