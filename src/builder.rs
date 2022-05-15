@@ -78,6 +78,21 @@ impl StreamBuilder {
         self
     }
 
+    pub async fn subscribe_all<SubIter, Sub>(mut self, exchange_subscriptions: Vec<(ExchangeTransformerId, SubIter)>) -> Self
+    where
+        SubIter: IntoIterator<Item = Sub>,
+        Sub: Into<Subscription>,
+    {
+        exchange_subscriptions
+            .into_iter()
+            .for_each(|(exchange, subscriptions)| {
+                self.subscriptions
+                    .insert(exchange, subscriptions.into_iter().map(Sub::into).collect());
+            });
+
+        self
+    }
+
     /// Spawn a [`MarketData`] consumer loop for each exchange that distributes events to the
     /// returned [`Streams`] `HashMap`.
     pub async fn init(mut self) -> Result<Streams, SocketError> {
