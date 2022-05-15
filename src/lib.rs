@@ -15,7 +15,7 @@ use barter_integration::{
     socket::{
         Event, ExchangeSocket, Transformer,
         error::SocketError,
-        protocol::websocket::{WebSocket, WebSocketParser, connect},
+        protocol::websocket::{WebSocket, WsMessage, WebSocketParser, connect},
     }
 };
 use std::{
@@ -27,7 +27,7 @@ use serde::{
     de::DeserializeOwned
 };
 use async_trait::async_trait;
-use futures::{SinkExt, Stream};
+use futures::{SinkExt, Stream, StreamExt};
 
 // Todo:
 //  - Add Identifiable into ExchangeMessage bounds for ExchangeSocket & do most of transform for free
@@ -110,7 +110,51 @@ pub trait Subscriber {
     /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), SocketError> {
-        Ok(())
+        // Establish time limit in which we expect to validate all the Subscriptions
+        let timeout = Self::subscription_timeout();
+
+        // Parameter to keep track of successful Subscription outcomes
+        let mut success_responses = 0usize;
+
+        loop {
+            // Break if all Subscriptions were a success
+            if success_responses == expected_responses {
+                break Ok(());
+            }
+
+            tokio::select! {
+                // If timeout reached, return SubscribeError
+                _ = tokio::time::sleep(timeout) => {
+                    break Err(SocketError::Subscribe(
+                        format!("subscription validation timeout reached: {:?}", timeout))
+                    )
+                },
+
+                // Parse incoming messages and determine subscription outcomes
+                message = websocket.next() => match message {
+                    Some(Ok(WsMessage::Text(payload))) => {
+                        if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
+                            match response.validate() {
+                                // Subscription success
+                                Ok(_) => { success_responses += 1; }
+
+                                // Subscription failure
+                                Err(err) => break Err(err)
+                            }
+                        } else {
+                            // Some already active Subscriptions may start coming through
+                            continue;
+                        }
+                    },
+                    Some(Ok(WsMessage::Close(close_frame))) => {
+                        break Err(SocketError::Subscribe(
+                            format!("received WebSocket CloseFrame: {:?}", close_frame))
+                        )
+                    },
+                    _ => continue,
+                }
+            }
+        }
     }
 
     /// Return the expected `Duration` in which the exchange will respond to all actioned

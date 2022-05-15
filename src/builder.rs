@@ -1,17 +1,19 @@
-use crate::{ExchangeTransformerId, ExchangeWebSocket, MarketStream, Subscription, Validator, exchange::binance::futures::BinanceFutures, MarketData};
-use barter_integration::socket::error::SocketError;
+use crate::{
+    ExchangeTransformerId, ExchangeWebSocket, MarketStream, MarketData, Subscription, Validator,
+    exchange::{
+        binance::futures::BinanceFutures,
+        ftx::Ftx,
+    }
+};
+use barter_integration::socket::{Event, error::SocketError};
 use std::{
     time::Duration,
     collections::HashMap
 };
 use futures::StreamExt;
 use tokio::sync::mpsc;
-use tokio_stream::{
-    StreamMap, wrappers::UnboundedReceiverStream
-};
+use tokio_stream::{StreamMap, wrappers::UnboundedReceiverStream};
 use tracing::{error, info, warn};
-use barter_integration::socket::Event;
-use crate::exchange::ftx::Ftx;
 
 /// Initial duration that the [`consume`] function should wait before attempting to re-initialise
 /// a [`MarketStream`]. This duration will increase exponentially as a result of continued
