@@ -91,10 +91,10 @@ impl Ftx {
         // Determine Ftx channel using the Subscription StreamKind
         let channel = match &sub.kind {
             StreamKind::Trades => "trades",
-            other => Err(SocketError::Unsupported {
+            other => return Err(SocketError::Unsupported {
                 entity: Self::EXCHANGE.as_str(),
                 item: other.to_string(),
-            })?,
+            }),
         };
 
         // Determine Ftx market using the InstrumentKind
