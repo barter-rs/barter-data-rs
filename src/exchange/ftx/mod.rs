@@ -90,7 +90,7 @@ impl Ftx {
     fn get_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription StreamKind
         let channel = match &sub.kind {
-            StreamKind::Trades => "trades",
+            StreamKind::Trade => "trades",
             other => return Err(SocketError::Unsupported {
                 entity: Self::EXCHANGE.as_str(),
                 item: other.to_string(),

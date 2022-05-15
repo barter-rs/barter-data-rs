@@ -32,6 +32,8 @@ pub struct Trade {
 /// Direction of a [`Trade`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub enum Direction {
+    #[serde(alias = "buy")]
     Buy,
+    #[serde(alias = "sell")]
     Sell
 }

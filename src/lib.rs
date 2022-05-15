@@ -29,15 +29,6 @@ use serde::{
 use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
 
-// Todo:
-//  - Add Identifiable into ExchangeMessage bounds for ExchangeSocket & do most of transform for free
-//    '--> Keep concept of ExchangeTransformer so we don't have to add From<(ExchangeId, instrument)>
-//      '--> It can be a method eg/ transform<T>(&self, T) where T: Into<MarketData>
-//      '--> May be able to create a generic mapper to go from X -> Transformer::OutputIter to handle 1 -> many eg/ ftx
-//  - Create a clear separation between DataError & SocketError, eg/ inside builder.rs and main traits?
-//  - Remove StreamKind & Interval from barter-integration since it's barter-data specific
-//    '--> causes knock on effects... use Subscription<Kind>?
-
 
 /// Core data structures to support consuming `MarketStream`s.
 ///

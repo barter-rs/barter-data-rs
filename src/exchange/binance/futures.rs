@@ -72,7 +72,7 @@ impl BinanceFutures {
     /// Determine the Binance channel identifier associated with an input Barter [`Subscription`].
     fn get_channel_id(sub: &Subscription) -> Result<String, SocketError> {
         match &sub.kind {
-            StreamKind::Trades => Ok(format!("{}{}@aggTrade", sub.instrument.base, sub.instrument.quote)),
+            StreamKind::Trade => Ok(format!("{}{}@aggTrade", sub.instrument.base, sub.instrument.quote)),
             other =>  Err(SocketError::Unsupported {
                 entity: BinanceFutures::EXCHANGE.as_str(),
                 item: other.to_string()

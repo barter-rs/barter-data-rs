@@ -1,12 +1,12 @@
 # Barter-Data
-A high-performance WebSocket integration library for streaming public data from leading cryptocurrency 
+A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency 
 exchanges - batteries included. It is:
+* **Easy**: Barter-Data's simple StreamBuilder interface allows for easy & quick setup (see example below!).
 * **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
 * **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
-* **Easy**: Barter-Data's simple ExchangeClient interface allows for easy & quick setup.
-* **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to via new integrations!
+* **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to with coding new integrations!
 
-**Note: Barter-Data is recommended for use with the [`Barter`].**
+**See: [`Barter`], [`Barter-Integration`]**
 
 [![Crates.io][crates-badge]][crates-url]
 [![MIT licensed][mit-badge]][mit-url]
@@ -29,45 +29,59 @@ exchanges - batteries included. It is:
 [Chat]
 
 [`Barter`]: https://crates.io/crates/barter
+[`Barter-Integration`]: https://crates.io/crates/barter-integration
 [API Documentation]: https://docs.rs/barter-data/latest/barter_data
 [Chat]: https://discord.gg/wE7RqhnQMV
 
 ## Overview
-Barter-Data is a high-performance WebSocket integration library for streaming public data from leading cryptocurrency 
-exchanges. It presents an easy to use, extensible, interface that can deliver normalised exchange data in real-time.
-At a high level, it provides a few major components:
-* ConnectionHandler that manages the WebSocket connection (ping-pongs, re-connections, rate-limiting) and actions subscription
-  requests on behalf of an Exchange Client implementation (eg/ Binance Exchange Client).
-* Unified ExchangeClient trait that enables easy extensibility, ease of use, and the delivery of a normalised data model
-  to downstream consumers.
+Barter-Data is a high-performance WebSocket integration library for streaming public market data from leading cryptocurrency 
+exchanges. It presents an easy-to-use and extensible set of interfaces that can deliver normalised exchange data in real-time.
+
+From a user perspective, it's major component is the `StreamBuilder` structures that assists in initialising an 
+arbitrary number of exchange `MarketStreams` using an input `Subscription`. Simply build your dream set of 
+`MarketStreams` and `Barter-Data` will do the rest!
 
 ## Example
-Binance tick-by-tick Trade consumer with Barter-Data.
+`StreamBuilder` subscribing to Binance Futures, Ftx and Ftx Futures Trades for several `Instruments`.
 
 ```rust,no_run
-use barter_data::client::binance::Binance;
-use barter_data::client::ClientConfig;
-use barter_data::ExchangeClient;
-use tokio_stream::StreamExt;
+use barter_data::{
+    ExchangeTransformerId,
+    builder::Streams
+};
+use barter_integration::{InstrumentKind, StreamKind};
+use futures::StreamExt;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialise new Binance Exchange Client
-    let mut binance = Binance::init().await?;
-    
-    // Subscribe & consume normalised Trade stream
-    let mut trade_stream = binance
-        .consume_trades(String::from("btcusdt"))
-        .await?;
-    
-    // Loop over arriving Trades
-    while let Some(trade) = trade_stream.next().await {
-        // Do something with normalised Trade
-        println!("{:?}", trade);
+async fn main() {
+    // Initialise `Trade` `MarketStreams` for `BinanceFutures` & `Ftx`
+    let mut streams = Streams::builder()
+        .subscribe(ExchangeTransformerId::BinanceFutures, [
+            ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+            ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+            ("xrp", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+        ])
+        .subscribe(ExchangeTransformerId::Ftx, [
+            ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+            ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+            ("xrp", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+            ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+            ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+            ("xrp", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
+        ])
+        .init()
+        .await
+        .unwrap();
+
+    // Join all exchange streams into a StreamMap
+    // Note: Use `streams.select(ExchangeTransformerId)` to interact with individual streams!
+    let mut joined_stream = streams.join().await;
+
+    while let Some((exchange, event)) = joined_stream.next().await {
+        println!("Exchange: {}, MarketData: {:?}", exchange, event);
     }
 }
 ```
-**For a larger, "real world" example, see the [`Barter`] repository.**
 
 ## Getting Help
 Firstly, see if the answer to your question can be found in the [API Documentation]. If the answer is not there, I'd be 
@@ -75,12 +89,16 @@ happy to help to [Chat] and try answer your question via Discord.
 
 ## Contributing
 Thanks for your help in improving the Barter ecosystem! Please do get in touch on the discord to discuss 
-development, new features, and the future roadmap. 
+development, new features, and the future roadmap.
+In order to integration a new exchange or endpoint, the following main traits will have to be implemented:
+* **Subscriber**
+* **ExchangeTransformer**
 
 ## Related Projects
 In addition to the Barter-Data crate, the Barter project also maintains:
 * [`Barter`]: High-performance, extensible & modular trading components with batteries-included. Contains a 
 pre-built trading Engine that can serve as a live-trading or backtesting system.
+* [`Barter-Integration`]: High-performance, low-level framework for composing flexible web integrations.
 
 ## Roadmap
 * Extend the existing integrations scope to include more endpoints.
