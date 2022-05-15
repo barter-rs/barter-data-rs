@@ -1,5 +1,5 @@
 use barter_integration::{
-    Instrument, Sequence,
+    Instrument,
 };
 use std::{
     fmt::Debug,
@@ -7,24 +7,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-/// Normalised Barter `MarketEvent` containing a [`MarketData`] variant, and the associated
-/// `timestamp` and `sequence` number metadata.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
-    pub sequence: Sequence,
-    pub data: MarketData,
-}
-
-impl MarketEvent {
-    pub fn new(sequence: Sequence, data: MarketData) -> Self {
-        Self {
-            sequence,
-            data
-        }
-    }
-}
-
-/// Possible public market data types.
+/// Normalised Barter market data types.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum MarketData {
     Trade(Trade),
@@ -52,4 +35,3 @@ pub enum Direction {
     Buy,
     Sell
 }
-

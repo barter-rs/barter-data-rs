@@ -6,6 +6,7 @@ use barter_integration::{
         Transformer, error::SocketError
     }
 };
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
@@ -19,7 +20,16 @@ impl Subscriber for BinanceFutures {
     fn base_url() -> &'static str { "wss://fstream.binance.com/ws" }
 
     fn build_subscription_meta(subscriptions: &[Subscription]) -> Result<SubscriptionMeta, SocketError> {
-        todo!()
+        // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
+        let mut ids = SubscriptionIds(HashMap::with_capacity(subscriptions.len()));
+
+        // Todo:
+
+        Ok(SubscriptionMeta {
+            ids,
+            expected_responses: 0,
+            subscriptions: vec![]
+        })
     }
 }
 

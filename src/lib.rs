@@ -13,7 +13,7 @@ use crate::{
 use barter_integration::{
     Subscription, SubscriptionMeta, SubscriptionIds, SubscriptionId, InstrumentKind,
     socket::{
-        ExchangeSocket, Transformer,
+        Event, ExchangeSocket, Transformer,
         error::SocketError,
         protocol::websocket::{WebSocket, WebSocketParser, connect},
     }
@@ -33,13 +33,14 @@ use futures::{SinkExt, Stream};
 //  - Add Identifiable into ExchangeMessage bounds for ExchangeSocket & do most of transform for free
 //    '--> Keep concept of ExchangeTransformer so we don't have to add From<(ExchangeId, instrument)>
 //      '--> It can be a method eg/ transform<T>(&self, T) where T: Into<MarketData>
+//  - Create a clear seperation between DataError & SocketError, eg/ inside builder.rs and main traits?
 //  - Remove StreamKind & Interval from barter-integration since it's barter-data specific
 //    '--> causes knock on effects... use Subscription<Kind>?
 
 
 /// Core data structures to support consuming `MarketStream`s.
 ///
-/// eg/ `MarketEvent`, `Trade`, `Subscription`, `SubscriptionId`, etc.
+/// eg/ `MarketData`, `Trade`, `Subscription`, `SubscriptionId`, etc.
 pub mod model;
 
 /// Contains `Subscriber` & `ExchangeMapper` implementations for specific exchanges.
@@ -54,11 +55,11 @@ pub mod error;
 /// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWebSocket<Exchange> = ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketData>;
 
-/// `Stream` supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
+/// `Stream` supertrait for streams that yield [`MarketData`]s. Provides an entry-point abstraction
 /// for an [`ExchangeWebSocket`].
 #[async_trait]
-pub trait MarketStream: Stream<Item = Result<MarketData, SocketError>> + Sized + Unpin {
-    /// Initialises a new [`MarketEvent`] stream using the provided subscriptions.
+pub trait MarketStream: Stream<Item = Result<Event<MarketData>, SocketError>> + Sized + Unpin {
+    /// Initialises a new [`MarketData`] stream using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
 }
 
@@ -85,7 +86,7 @@ pub trait Subscriber {
         } = Self::build_subscription_meta(subscriptions)?;
 
         for subscription in subscriptions {
-            websocket.send(subscription).await.map_err(SocketError::WebSocket)?;
+            websocket.send(subscription).await?;
         }
 
         // Validate subscriptions
