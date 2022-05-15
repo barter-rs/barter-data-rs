@@ -65,7 +65,7 @@ impl StreamBuilder {
     }
 
     /// Add a set of [`Subscription`]s for an exchange to the [`StreamBuilder`]. Note
-    /// that provided [`Subscription`]s are not actioned until the [`StreamBuilder::init()`](init)
+    /// that provided [`Subscription`]s are not actioned until the [`init()`](StreamBuilder::init())
     /// method is invoked.
     pub fn subscribe<SubIter, Sub>(mut self, exchange: ExchangeTransformerId, subscriptions: SubIter) -> Self
     where

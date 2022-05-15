@@ -1,5 +1,7 @@
-/// Todo:
+/// Binance `ExchangeTransformer` & `Subscriber` implementations.
 pub mod binance;
+
+/// Ftx `ExchangeTransformer` & `Subscriber` implementations.
 pub mod ftx;
 
 use std::{

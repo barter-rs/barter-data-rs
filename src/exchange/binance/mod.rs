@@ -4,7 +4,7 @@ use barter_integration::{Instrument, socket::error::SocketError};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
-/// Todo:
+/// `BinanceFutures` specific `ExchangeTransformer` & `Subscriber` implementations.
 pub mod futures;
 
 
@@ -30,7 +30,7 @@ impl Validator for BinanceSubResponse {
     }
 }
 
-/// Binance Message variants that could be received over [`WebSocket`].
+/// Binance Message variants that could be received over `WebSocket`.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum BinanceMessage {

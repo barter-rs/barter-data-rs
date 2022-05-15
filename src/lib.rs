@@ -190,7 +190,9 @@ where
     fn new(ids: SubscriptionIds) -> Self;
 }
 
-/// Todo:
+/// `Identifiable` structures are capable of determining their associated [`SubscriptionId`]. Used
+/// by [`ExchangeTransformer`] implementations to determine the original Barter [`Subscription`]
+/// associated with an incoming exchange message.
 pub trait Identifiable {
     fn id(&self) -> SubscriptionId;
 }
@@ -302,58 +304,5 @@ impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
                 transformer_id
             ))),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::builder::Streams;
-    use barter_integration::{InstrumentKind, StreamKind};
-
-    // Todo: Maybe OutputIter will become an Option<OutputIter>?
-    // Todo: Do I want to keep the name trait Exchange? Do I like the generic ExTransformer, etc.
-
-    #[tokio::test]
-    async fn stream_builder_works() -> Result<(), Box<dyn std::error::Error>> {
-
-        let mut streams = Streams::builder()
-            .subscribe(ExchangeTransformerId::BinanceFutures, [
-                ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
-                ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trades),
-            ])
-            .subscribe(ExchangeTransformerId::Ftx, [
-                ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-                ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
-            ])
-            .init()
-            .await;
-
-        println!("{:?}", streams);
-        let mut streams = streams.unwrap();
-
-
-        // Select individual exchange streams
-        let mut futures_stream = streams
-            .select(ExchangeTransformerId::BinanceFutures)
-            .unwrap();
-
-        while let Some(event) = futures_stream.recv().await {
-            println!("{:?}", event);
-        }
-
-        // let mut ftx_stream = streams
-        //     .select(ExchangeId::Ftx)
-        //     .ok_or(SocketError::Unidentifiable("".to_owned()))?; // Todo:
-
-        // Join the remaining exchange streams into one
-        // let mut joined_stream = streams.join().await;
-
-
-
-
-
-
-        Ok(())
     }
 }
