@@ -78,7 +78,7 @@ impl StreamBuilder {
         self
     }
 
-    pub async fn subscribe_all<SubIter, Sub>(mut self, exchange_subscriptions: Vec<(ExchangeTransformerId, SubIter)>) -> Self
+    pub fn subscribe_all<SubIter, Sub>(mut self, exchange_subscriptions: Vec<(ExchangeTransformerId, SubIter)>) -> Self
     where
         SubIter: IntoIterator<Item = Sub>,
         Sub: Into<Subscription>,
