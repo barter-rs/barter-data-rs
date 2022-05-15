@@ -1,9 +1,6 @@
 use super::epoch_ms_to_datetime_utc;
 use crate::{ExchangeTransformerId, Validator, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
-use barter_integration::{
-    Instrument,
-    socket::error::SocketError,
-};
+use barter_integration::{Instrument, socket::error::SocketError};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
@@ -44,6 +41,14 @@ impl Identifiable for BinanceMessage {
     fn id(&self) -> SubscriptionId {
         match self {
             BinanceMessage::Trade(trade) => SubscriptionId::from(trade)
+        }
+    }
+}
+
+impl From<(ExchangeTransformerId, Instrument, BinanceMessage)> for MarketData {
+    fn from((exchange, instrument, message): (ExchangeTransformerId, Instrument, BinanceMessage)) -> Self {
+        match message {
+            BinanceMessage::Trade(trade) => MarketData::from((exchange, instrument, trade))
         }
     }
 }

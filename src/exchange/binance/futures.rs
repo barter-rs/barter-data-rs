@@ -1,8 +1,5 @@
 use super::{BinanceSubResponse, BinanceMessage};
-use crate::{
-    ExchangeTransformerId, Subscriber, ExchangeTransformer, Subscription, SubscriptionMeta, SubscriptionIds,
-    model::MarketData,
-};
+use crate::{ExchangeTransformerId, Subscriber, ExchangeTransformer, Subscription, SubscriptionMeta, SubscriptionIds, model::MarketData, Identifiable};
 use barter_integration::{
     StreamKind,
     socket::{
@@ -28,7 +25,6 @@ impl Subscriber for BinanceFutures {
 
 impl ExchangeTransformer for BinanceFutures {
     const EXCHANGE: ExchangeTransformerId = ExchangeTransformerId::BinanceFutures;
-
     fn new(ids: SubscriptionIds) -> Self { Self { ids } }
 }
 
@@ -37,15 +33,12 @@ impl Transformer<MarketData> for BinanceFutures {
     type OutputIter = Vec<Result<MarketData, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let market_data = match input {
-            BinanceMessage::Trade(trade) => {
-                self.ids
-                    .find_instrument(&trade)
-                    .map(|instrument| MarketData::from(
-                        (BinanceFutures::EXCHANGE, instrument, trade)
-                    ))
-            },
-        };
+        let market_data = self
+            .ids
+            .find_instrument(input.id())
+            .map(|instrument| {
+                MarketData::from((BinanceFutures::EXCHANGE, instrument, input))
+            });
 
         vec![market_data]
     }
