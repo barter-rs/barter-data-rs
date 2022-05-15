@@ -1,6 +1,9 @@
 use super::epoch_ms_to_datetime_utc;
-use crate::{ExchangeTransformerId, Validator, error::DataError, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
-use barter_integration::Instrument;
+use crate::{ExchangeTransformerId, Validator, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
+use barter_integration::{
+    Instrument,
+    socket::error::SocketError,
+};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
@@ -16,14 +19,14 @@ pub struct BinanceSubResponse {
 }
 
 impl Validator for BinanceSubResponse {
-    fn validate(self) -> Result<Self, DataError>
+    fn validate(self) -> Result<Self, SocketError>
     where
         Self: Sized,
     {
         if self.result.is_none() {
             Ok(self)
         } else {
-            Err(DataError::Subscribe(
+            Err(SocketError::Subscribe(
                 "received failure subscription response".to_owned(),
             ))
         }

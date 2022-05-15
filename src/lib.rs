@@ -8,11 +8,10 @@
 ///! # Barter-Data
 
 use crate::{
-    error::DataError,
-    model::{MarketEvent, Subscription, SubscriptionId, SubscriptionIds, SubscriptionMeta}
+    model::MarketData
 };
 use barter_integration::{
-    InstrumentKind,
+    Subscription, SubscriptionMeta, SubscriptionIds, SubscriptionId, InstrumentKind,
     socket::{
         ExchangeSocket, Transformer,
         error::SocketError,
@@ -29,7 +28,10 @@ use serde::{
 };
 use async_trait::async_trait;
 use futures::{SinkExt, Stream};
-use crate::model::MarketData;
+
+// Todo:
+//  - Remove StreamKind & Interval from barter-integration since it's barter-data specific
+//    '--> causes knock on effects... use Subscription<Kind>?
 
 /// Core data structures to support consuming `MarketStream`s.
 ///
@@ -53,7 +55,7 @@ pub type ExchangeWebSocket<Exchange> = ExchangeSocket<WebSocketParser, WebSocket
 #[async_trait]
 pub trait MarketStream: Stream<Item = Result<MarketData, SocketError>> + Sized + Unpin {
     /// Initialises a new [`MarketEvent`] stream using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError>;
+    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
 }
 
 /// Trait that defines how a subscriber will establish a [`WebSocket`] connection with an exchange,
@@ -67,7 +69,7 @@ pub trait Subscriber {
 
     /// Initialises a [`WebSocket`] connection, actions the provided collection of Barter
     /// [`Subscription`]s, and validates that the [`Subscription`] were accepted by the exchange.
-    async fn subscribe(subscriptions: &[Subscription]) -> Result<(WebSocket, SubscriptionIds), DataError> {
+    async fn subscribe(subscriptions: &[Subscription]) -> Result<(WebSocket, SubscriptionIds), SocketError> {
         // Connect to exchange
         let mut websocket = connect(Self::base_url()).await?;
 
@@ -96,12 +98,12 @@ pub trait Subscriber {
     /// to identify the Barter [`Subscription`]s associated with received messages.
     fn build_subscription_meta(
         subscriptions: &[Subscription],
-    ) -> Result<SubscriptionMeta, DataError>;
+    ) -> Result<SubscriptionMeta, SocketError>;
 
 
     /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
     /// validate their outcomes.
-    async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), DataError> {
+    async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), SocketError> {
         todo!()
     }
 
@@ -118,7 +120,7 @@ pub trait Subscriber {
 /// use case defined by the implementor.
 pub trait Validator {
     /// Check if `Self` is valid for some use case.
-    fn validate(self) -> Result<Self, DataError>
+    fn validate(self) -> Result<Self, SocketError>
     where
         Self: Sized;
 }
@@ -148,7 +150,7 @@ where
     Exchange: Subscriber + ExchangeTransformer + Send,
     <Exchange as Transformer<MarketData>>::Input: Identifiable
 {
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, DataError> {
+    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
         // Connect & subscribe
         let (websocket, ids) = Exchange::subscribe(subscriptions).await?;
 
@@ -216,7 +218,7 @@ impl ExchangeTransformerId {
 }
 
 impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
-    fn validate(self) -> Result<Self, DataError>
+    fn validate(self) -> Result<Self, SocketError>
     where
         Self: Sized
     {
@@ -243,7 +245,7 @@ impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
             // ExchangeTransformer supports InstrumentKind::Future*, and therefore provided Subscriptions
             (false, true, false, true) => Ok(self),
             // ExchangeTransformer cannot support configured Subscriptions
-            _ => Err(DataError::Subscribe(format!(
+            _ => Err(SocketError::Subscribe(format!(
                 "ExchangeTransformer {} does not support InstrumentKinds of provided Subscriptions",
                 transformer_id
             ))),
@@ -257,7 +259,7 @@ mod tests {
     use super::*;
     use crate::builder::Streams;
     use crate::model::{Interval, StreamKind};
-    use barter_integration::InstrumentKind;
+    use barter_integration::{InstrumentKind, StreamKind};
 
     // Todo: Maybe OutputIter will become an Option<OutputIter>?
     // Todo: Do I want to keep the name trait Exchange? Do I like the generic ExTransformer, etc.
