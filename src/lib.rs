@@ -210,6 +210,7 @@ where
 /// (eg/ binance, binance_futures), therefore there is a many-to-one relationship between
 /// an `ExchangeId` and an exchange name.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[serde(alias = "exchange", rename_all = "snake_case")]
 pub enum ExchangeTransformerId {
     BinanceFutures,
     Binance,
