@@ -47,7 +47,8 @@ pub mod model;
 /// Contains `Subscriber` & `ExchangeMapper` implementations for specific exchanges.
 pub mod exchange;
 
-/// Todo:
+/// Initialises [`MarketStream`]s for an arbitrary number of exchanges using generic Barter
+/// [`Subscription`]s.
 pub mod builder;
 
 /// Custom `DataError`s generated in `barter-data`.
