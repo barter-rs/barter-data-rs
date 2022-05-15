@@ -13,10 +13,10 @@ use chrono::{DateTime, Utc};
 
 /// Deserialize a string as the desired type.
 pub fn de_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
-    where
-        D: de::Deserializer<'de>,
-        T: FromStr,
-        T::Err: std::fmt::Display,
+where
+    D: de::Deserializer<'de>,
+    T: FromStr,
+    T::Err: std::fmt::Display,
 {
     let data: String = de::Deserialize::deserialize(deserializer)?;
     data.parse::<T>().map_err(de::Error::custom)
