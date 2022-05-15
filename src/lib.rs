@@ -218,6 +218,7 @@ impl ExchangeTransformerId {
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeTransformerId::BinanceFutures => true,
+            ExchangeTransformerId::Ftx => true,
             _ => false,
         }
     }
@@ -237,7 +238,7 @@ impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
             .iter()
             .for_each(|subscription| match subscription.instrument.kind {
                 InstrumentKind::Spot => spot_subs = true,
-                _ => future_subs = true,
+                InstrumentKind::FuturePerpetual => future_subs = true,
             });
 
         // Ensure ExchangeTransformer supports those InstrumentKinds
@@ -281,11 +282,10 @@ mod tests {
                 ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trades),
             ])
             .init()
-            .await?;
+            .await;
 
-        // println!("{:?}", streams);
-        //
-        // let streams = streams.unwrap();
+        println!("{:?}", streams);
+        let mut streams = streams.unwrap();
 
 
         // Select individual exchange streams

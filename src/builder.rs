@@ -11,6 +11,7 @@ use tokio_stream::{
 };
 use tracing::{error, info, warn};
 use barter_integration::socket::Event;
+use crate::exchange::ftx::Ftx;
 
 /// Initial duration that the [`consume`] function should wait before attempting to re-initialise
 /// a [`MarketStream`]. This duration will increase exponentially as a result of continued
@@ -95,8 +96,11 @@ impl StreamBuilder {
                 ExchangeTransformerId::BinanceFutures => {
                     tokio::spawn(consume::<ExchangeWebSocket<BinanceFutures>>(exchange, subscriptions, exchange_tx));
                 }
+                ExchangeTransformerId::Ftx => {
+                    tokio::spawn(consume::<ExchangeWebSocket<Ftx>>(exchange, subscriptions, exchange_tx));
+                }
                 not_supported => {
-                    return Err(SocketError::Subscribe(not_supported.to_string()))
+                    return Err(SocketError::Subscribe(format!("Streams::init() does not support: {}", not_supported)))
                 }
             }
 
