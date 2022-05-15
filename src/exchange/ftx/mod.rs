@@ -31,7 +31,7 @@ impl Subscriber for Ftx {
         let subscriptions = subscriptions
             .iter()
             .map(|subscription| {
-                // Determine the Ftx specific channel & market for this Keyrock Subscription
+                // Determine the Ftx specific channel & market for this Barter Subscription
                 let (channel, market) = Self::get_channel_meta(subscription)?;
 
                 // Construct Ftx specific subscription message

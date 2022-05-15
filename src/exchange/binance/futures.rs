@@ -26,7 +26,7 @@ impl Subscriber for BinanceFutures {
         let channels = subscriptions
             .iter()
             .map(|subscription| {
-                // Determine the BinanceFutures specific channel for this Keyrock Subscription
+                // Determine the BinanceFutures specific channel for this Barter Subscription
                 let channel = Self::get_channel_id(subscription)?;
 
                 // Use channel as the SubscriptionId key in the SubscriptionIds
