@@ -1,12 +1,14 @@
 use super::{de_str, epoch_ms_to_datetime_utc};
-use crate::{ExchangeTransformerId, Validator, model::{Direction, MarketData, Trade}, SubscriptionId, Identifiable};
-use barter_integration::{Instrument, socket::error::SocketError};
-use serde::{Deserialize, Serialize};
+use crate::{
+    model::{Direction, MarketData, Trade},
+    ExchangeTransformerId, Identifiable, SubscriptionId, Validator,
+};
+use barter_integration::{socket::error::SocketError, Instrument};
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 /// `BinanceFutures` specific `ExchangeTransformer` & `Subscriber` implementations.
 pub mod futures;
-
 
 /// `Binance` & `BinanceFutures` `Subscription` response message.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -34,21 +36,23 @@ impl Validator for BinanceSubResponse {
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum BinanceMessage {
-    Trade(BinanceTrade)
+    Trade(BinanceTrade),
 }
 
 impl Identifiable for BinanceMessage {
     fn id(&self) -> SubscriptionId {
         match self {
-            BinanceMessage::Trade(trade) => SubscriptionId::from(trade)
+            BinanceMessage::Trade(trade) => SubscriptionId::from(trade),
         }
     }
 }
 
 impl From<(ExchangeTransformerId, Instrument, BinanceMessage)> for MarketData {
-    fn from((exchange, instrument, message): (ExchangeTransformerId, Instrument, BinanceMessage)) -> Self {
+    fn from(
+        (exchange, instrument, message): (ExchangeTransformerId, Instrument, BinanceMessage),
+    ) -> Self {
         match message {
-            BinanceMessage::Trade(trade) => MarketData::from((exchange, instrument, trade))
+            BinanceMessage::Trade(trade) => MarketData::from((exchange, instrument, trade)),
         }
     }
 }
@@ -83,7 +87,9 @@ impl From<&BinanceTrade> for SubscriptionId {
 }
 
 impl From<(ExchangeTransformerId, Instrument, BinanceTrade)> for MarketData {
-    fn from((exchange, instrument, trade): (ExchangeTransformerId, Instrument, BinanceTrade)) -> Self {
+    fn from(
+        (exchange, instrument, trade): (ExchangeTransformerId, Instrument, BinanceTrade),
+    ) -> Self {
         Self::Trade(Trade {
             id: trade.id.to_string(),
             exchange: exchange.exchange().to_string(),
@@ -96,7 +102,7 @@ impl From<(ExchangeTransformerId, Instrument, BinanceTrade)> for MarketData {
                 Direction::Sell
             } else {
                 Direction::Buy
-            }
+            },
         })
     }
 }

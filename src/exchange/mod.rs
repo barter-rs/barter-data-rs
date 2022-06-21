@@ -4,12 +4,9 @@ pub mod binance;
 /// Ftx `ExchangeTransformer` & `Subscriber` implementations.
 pub mod ftx;
 
-use std::{
-    time::Duration,
-    str::FromStr
-};
-use serde::de;
 use chrono::{DateTime, Utc};
+use serde::de;
+use std::{str::FromStr, time::Duration};
 
 /// Deserialize a string as the desired type.
 pub fn de_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>

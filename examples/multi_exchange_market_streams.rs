@@ -1,7 +1,4 @@
-use barter_data::{
-    ExchangeTransformerId,
-    builder::Streams
-};
+use barter_data::{builder::Streams, ExchangeTransformerId};
 use barter_integration::{InstrumentKind, StreamKind};
 use futures::StreamExt;
 
@@ -11,19 +8,55 @@ use futures::StreamExt;
 async fn main() {
     // Initialise `Trade` `MarketStreams` for `BinanceFutures` & `Ftx`
     let streams = Streams::builder()
-        .subscribe(ExchangeTransformerId::BinanceFutures, [
-            ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-            ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-            ("xrp", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-        ])
-        .subscribe(ExchangeTransformerId::Ftx, [
-            ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trade),
-            ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trade),
-            ("xrp", "usdt", InstrumentKind::Spot, StreamKind::Trade),
-            ("btc", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-            ("eth", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-            ("xrp", "usdt", InstrumentKind::FuturePerpetual, StreamKind::Trade),
-        ])
+        .subscribe(
+            ExchangeTransformerId::BinanceFutures,
+            [
+                (
+                    "btc",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+                (
+                    "eth",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+                (
+                    "xrp",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+            ],
+        )
+        .subscribe(
+            ExchangeTransformerId::Ftx,
+            [
+                ("btc", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+                ("eth", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+                ("xrp", "usdt", InstrumentKind::Spot, StreamKind::Trade),
+                (
+                    "btc",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+                (
+                    "eth",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+                (
+                    "xrp",
+                    "usdt",
+                    InstrumentKind::FuturePerpetual,
+                    StreamKind::Trade,
+                ),
+            ],
+        )
         .init()
         .await
         .unwrap();

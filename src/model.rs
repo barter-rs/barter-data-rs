@@ -1,11 +1,7 @@
-use barter_integration::{
-    Instrument,
-};
-use std::{
-    fmt::Debug,
-};
-use serde::{Deserialize, Serialize};
+use barter_integration::Instrument;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 /// Normalised Barter market data types.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -35,5 +31,5 @@ pub enum Direction {
     #[serde(alias = "buy")]
     Buy,
     #[serde(alias = "sell")]
-    Sell
+    Sell,
 }

@@ -6,29 +6,22 @@
 )]
 
 ///! # Barter-Data
-
-use crate::{
-    model::MarketData
-};
-use barter_integration::{
-    Subscription, SubscriptionMeta, SubscriptionIds, SubscriptionId, InstrumentKind,
-    socket::{
-        Event, ExchangeSocket, Transformer,
-        error::SocketError,
-        protocol::websocket::{WebSocket, WsMessage, WebSocketParser, connect},
-    }
-};
-use std::{
-    time::Duration,
-    fmt::{Display, Formatter},
-};
-use serde::{
-    Deserialize, Serialize,
-    de::DeserializeOwned
-};
+use crate::model::MarketData;
 use async_trait::async_trait;
+use barter_integration::{
+    socket::{
+        error::SocketError,
+        protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage},
+        Event, ExchangeSocket, Transformer,
+    },
+    InstrumentKind, Subscription, SubscriptionId, SubscriptionIds, SubscriptionMeta,
+};
 use futures::{SinkExt, Stream, StreamExt};
-
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use std::{
+    fmt::{Display, Formatter},
+    time::Duration,
+};
 
 /// Core data structures to support consuming `MarketStream`s.
 ///
@@ -46,12 +39,15 @@ pub mod builder;
 pub mod error;
 
 /// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWebSocket<Exchange> = ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketData>;
+pub type ExchangeWebSocket<Exchange> =
+    ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketData>;
 
 /// `Stream` supertrait for streams that yield [`MarketData`]s. Provides an entry-point abstraction
 /// for an [`ExchangeWebSocket`].
 #[async_trait]
-pub trait MarketStream: Stream<Item = Result<Event<MarketData>, SocketError>> + Sized + Unpin {
+pub trait MarketStream:
+    Stream<Item = Result<Event<MarketData>, SocketError>> + Sized + Unpin
+{
     /// Initialises a new [`MarketData`] stream using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
 }
@@ -67,7 +63,9 @@ pub trait Subscriber {
 
     /// Initialises a [`WebSocket`] connection, actions the provided collection of Barter
     /// [`Subscription`]s, and validates that the [`Subscription`] were accepted by the exchange.
-    async fn subscribe(subscriptions: &[Subscription]) -> Result<(WebSocket, SubscriptionIds), SocketError> {
+    async fn subscribe(
+        subscriptions: &[Subscription],
+    ) -> Result<(WebSocket, SubscriptionIds), SocketError> {
         // Connect to exchange
         let mut websocket = connect(Self::base_url()).await?;
 
@@ -98,10 +96,12 @@ pub trait Subscriber {
         subscriptions: &[Subscription],
     ) -> Result<SubscriptionMeta, SocketError>;
 
-
     /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
     /// validate their outcomes.
-    async fn validate(websocket: &mut WebSocket, expected_responses: usize) -> Result<(), SocketError> {
+    async fn validate(
+        websocket: &mut WebSocket,
+        expected_responses: usize,
+    ) -> Result<(), SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
@@ -171,7 +171,7 @@ pub trait Validator {
 /// structures. This must be implemented when integrating a new exchange.
 pub trait ExchangeTransformer: Transformer<MarketData> + Sized
 where
-    <Self as Transformer<MarketData>>::Input: Identifiable
+    <Self as Transformer<MarketData>>::Input: Identifiable,
 {
     /// Unique identifier for an `ExchangeTransformer`.
     const EXCHANGE: ExchangeTransformerId;
@@ -192,7 +192,7 @@ pub trait Identifiable {
 impl<Exchange> MarketStream for ExchangeWebSocket<Exchange>
 where
     Exchange: Subscriber + ExchangeTransformer + Send,
-    <Exchange as Transformer<MarketData>>::Input: Identifiable
+    <Exchange as Transformer<MarketData>>::Input: Identifiable,
 {
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
         // Connect & subscribe
@@ -266,7 +266,7 @@ impl ExchangeTransformerId {
 impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
     fn validate(self) -> Result<Self, SocketError>
     where
-        Self: Sized
+        Self: Sized,
     {
         let (transformer_id, subscriptions) = self;
 
