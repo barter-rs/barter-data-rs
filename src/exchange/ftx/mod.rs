@@ -13,7 +13,7 @@ use std::collections::HashMap;
 mod model;
 
 /// `Ftx` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
-/// of Spot & Futures data.
+/// of `Spot` & `Futures` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Ftx {
     pub ids: SubscriptionIds,

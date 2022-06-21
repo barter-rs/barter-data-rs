@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 ///
 /// eg/ FtxResponse::Subscribed {"type": "subscribed", "channel": "trades", "market": "BTC/USDT"}
 /// eg/ FtxResponse::Error {"type": "error", "code": 400, "msg": "Missing parameter \"channel\""}
+///
+/// See docs: <https://docs.ftx.com/#response-format>
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum FtxSubResponse {
@@ -30,7 +32,9 @@ impl Validator for FtxSubResponse {
     }
 }
 
-/// `Ftx` Message variants that can be received over [`WebSocket`].
+/// `Ftx` message variants that can be received over [`WebSocket`].
+///
+/// See docs: <https://docs.ftx.com/#public-channels>
 #[derive(Clone, PartialEq, Debug, Deserialize)]
 #[serde(tag = "channel", rename_all = "lowercase")]
 pub enum FtxMessage {
@@ -53,6 +57,8 @@ impl Identifiable for FtxMessage {
 }
 
 /// `Ftx` trade message.
+///
+/// See docs: <https://docs.ftx.com/#trades>
 #[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
 pub struct FtxTrade {
     pub id: u64,
