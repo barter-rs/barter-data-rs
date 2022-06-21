@@ -3,14 +3,13 @@ use crate::{
     model::MarketData, ExchangeTransformer, ExchangeTransformerId, Identifiable, Subscriber,
     Subscription, SubscriptionIds, SubscriptionMeta,
 };
-use barter_integration::socket::protocol::websocket::WsMessage;
 use barter_integration::{
-    socket::{error::SocketError, Transformer},
+    socket::{error::SocketError, protocol::websocket::WsMessage, Transformer},
     StreamKind, SubscriptionId,
 };
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::collections::HashMap;
 
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct BinanceFutures {
