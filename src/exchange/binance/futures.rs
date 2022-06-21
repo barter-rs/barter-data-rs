@@ -11,6 +11,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+/// `BinanceFutures` [`Subscriber`] & [`ExchangeMapper`] implementor for the collection
+/// of futures data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct BinanceFutures {
     pub ids: SubscriptionIds,

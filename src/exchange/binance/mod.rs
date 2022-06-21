@@ -7,7 +7,8 @@ use barter_integration::{socket::error::SocketError, Instrument};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-/// `BinanceFutures` specific `ExchangeTransformer` & `Subscriber` implementations.
+/// `BinanceFutures` specific [`Subscriber`] & [`ExchangeTransformer`] implementor for the
+/// collection of Futures data.
 pub mod futures;
 
 /// `Binance` & `BinanceFutures` `Subscription` response message.
