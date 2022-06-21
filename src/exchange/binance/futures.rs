@@ -7,9 +7,9 @@ use barter_integration::{
     socket::{error::SocketError, protocol::websocket::WsMessage, Transformer},
     StreamKind, SubscriptionId,
 };
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 
 /// `BinanceFutures` [`Subscriber`] & [`ExchangeMapper`] implementor for the collection
 /// of `Futures` data.
