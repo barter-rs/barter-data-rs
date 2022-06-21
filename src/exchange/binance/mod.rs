@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 pub mod futures;
 
 /// `Binance` & `BinanceFutures` `Subscription` response message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#live-subscribing-unsubscribing-to-streams>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BinanceSubResponse {
     result: Option<Vec<String>>,
@@ -32,7 +34,7 @@ impl Validator for BinanceSubResponse {
     }
 }
 
-/// Binance Message variants that could be received over `WebSocket`.
+/// `Binance` message variants that could be received over [`WebSocket`].
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum BinanceMessage {
@@ -57,7 +59,9 @@ impl From<(ExchangeTransformerId, Instrument, BinanceMessage)> for MarketData {
     }
 }
 
-/// Binance specific Trade message.
+/// `Binance` real-time trade message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {
     #[serde(rename = "e")]
