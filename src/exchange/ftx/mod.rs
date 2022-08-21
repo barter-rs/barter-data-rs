@@ -1,18 +1,23 @@
-use crate::{ExchangeTransformer, ExchangeTransformerId, MarketData, Subscriber, exchange::ftx::model::{FtxSubResponse, FtxMessage}, Identifiable};
-use barter_integration::{
-    StreamKind, Subscription, InstrumentKind, SubscriptionId, SubscriptionIds, SubscriptionMeta,
-    socket::{
-        Transformer,
-        error::SocketError,
-        protocol::websocket::WsMessage,
-    }
+use crate::{
+    model::SubKind, ExchangeId, ExchangeTransformer, Identifiable, MarketEvent, Subscriber,
+    Subscription, SubscriptionIds, SubscriptionMeta,
 };
-use std::collections::HashMap;
+use barter_integration::{
+    error::SocketError,
+    model::{InstrumentKind, SubscriptionId},
+    protocol::websocket::WsMessage,
+    Transformer,
+};
+use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 
+/// [`Ftx`] specific data structures.
 mod model;
 
+/// `Ftx` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
+/// of `Spot` & `Futures` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Ftx {
     pub ids: SubscriptionIds,
@@ -21,9 +26,13 @@ pub struct Ftx {
 impl Subscriber for Ftx {
     type SubResponse = FtxSubResponse;
 
-    fn base_url() -> &'static str { "wss://ftx.com/ws/" }
+    fn base_url() -> &'static str {
+        "wss://ftx.com/ws/"
+    }
 
-    fn build_subscription_meta(subscriptions: &[Subscription]) -> Result<SubscriptionMeta, SocketError> {
+    fn build_subscription_meta(
+        subscriptions: &[Subscription],
+    ) -> Result<SubscriptionMeta, SocketError> {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut ids = SubscriptionIds(HashMap::with_capacity(subscriptions.len()));
 
@@ -53,29 +62,33 @@ impl Subscriber for Ftx {
 }
 
 impl ExchangeTransformer for Ftx {
-    const EXCHANGE: ExchangeTransformerId = ExchangeTransformerId::Ftx;
-    fn new(ids: SubscriptionIds) -> Self { Self { ids } }
+    const EXCHANGE: ExchangeId = ExchangeId::Ftx;
+    fn new(ids: SubscriptionIds) -> Self {
+        Self { ids }
+    }
 }
 
-impl Transformer<MarketData> for Ftx {
+impl Transformer<MarketEvent> for Ftx {
     type Input = FtxMessage;
-    type OutputIter = Vec<Result<MarketData, SocketError>>;
+    type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         let instrument = match self.ids.find_instrument(input.id()) {
             Ok(instrument) => instrument,
-            Err(error) => return vec![Err(error)]
+            Err(error) => return vec![Err(error)],
         };
 
         match input {
-            FtxMessage::Trades { trades, .. } => {
-                trades
-                    .into_iter()
-                    .map(|trade| Ok(MarketData::from(
-                        (Ftx::EXCHANGE, instrument.clone(), trade)
+            FtxMessage::Trades { trades, .. } => trades
+                .into_iter()
+                .map(|trade| {
+                    Ok(MarketEvent::from((
+                        Ftx::EXCHANGE,
+                        instrument.clone(),
+                        trade,
                     )))
-                    .collect()
-            }
+                })
+                .collect(),
         }
     }
 }
@@ -90,17 +103,23 @@ impl Ftx {
     fn get_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription StreamKind
         let channel = match &sub.kind {
-            StreamKind::Trade => "trades",
-            other => return Err(SocketError::Unsupported {
-                entity: Self::EXCHANGE.as_str(),
-                item: other.to_string(),
-            }),
+            SubKind::Trade => "trades",
+            other => {
+                return Err(SocketError::Unsupported {
+                    entity: Self::EXCHANGE.as_str(),
+                    item: other.to_string(),
+                })
+            }
         };
 
         // Determine Ftx market using the InstrumentKind
         let market = match &sub.instrument.kind {
-            InstrumentKind::Spot => format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
-            InstrumentKind::FuturePerpetual => format!("{}-PERP", sub.instrument.base).to_uppercase(),
+            InstrumentKind::Spot => {
+                format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
+            }
+            InstrumentKind::FuturePerpetual => {
+                format!("{}-PERP", sub.instrument.base).to_uppercase()
+            }
         };
 
         Ok((channel, market))
@@ -113,7 +132,8 @@ impl Ftx {
                 "op": "subscribe",
                 "channel": channel,
                 "market": market,
-            }).to_string(),
+            })
+            .to_string(),
         )
     }
 }

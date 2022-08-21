@@ -1,123 +1,185 @@
 use crate::{
-    ExchangeTransformerId, ExchangeWebSocket, MarketStream, MarketData, Subscription, Validator,
-    exchange::{
-        binance::futures::BinanceFutures,
-        ftx::Ftx,
-    }
+    exchange::{binance::futures::BinanceFuturesUsd, ftx::Ftx},
+    model::SubKind,
+    ExchangeId, ExchangeWebSocket, MarketEvent, MarketStream, Subscription, Validator,
 };
-use barter_integration::socket::{Event, error::SocketError};
-use std::{
-    time::Duration,
-    collections::HashMap
+use barter_integration::{
+    error::SocketError,
+    model::{InstrumentKind, Symbol},
+    Event,
 };
-use futures::StreamExt;
+use futures::{stream::Map, StreamExt};
+use std::{collections::HashMap, time::Duration};
 use tokio::sync::mpsc;
-use tokio_stream::{StreamMap, wrappers::UnboundedReceiverStream};
+use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
 use tracing::{error, info, warn};
 
 /// Initial duration that the [`consume`] function should wait before attempting to re-initialise
-/// a [`MarketStream`]. This duration will increase exponentially as a result of continued
-/// disconnections.
+/// a [`MarketStream`]. This duration will increase exponentially as a result of repeated
+/// disconnections with re-initialisation failures.
 const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 
-/// Collection of exchange [`MarketData`] streams.
+/// Collection of exchange [`MarketEvent`] streams.
 #[derive(Debug)]
 pub struct Streams {
-    pub streams: HashMap<ExchangeTransformerId, mpsc::UnboundedReceiver<Event<MarketData>>>
+    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<Event<MarketEvent>>>,
 }
 
 impl Streams {
-    /// Construct a [`StreamBuilder`] for configuring new [`MarketData`] [`Streams`].
+    /// Construct a [`StreamBuilder`] for configuring new [`MarketEvent`] [`Streams`].
     pub fn builder() -> StreamBuilder {
         StreamBuilder::new()
     }
 
-    /// Remove an exchange [`MarketData`] stream from the [`Streams`] `HashMap`.
-    pub fn select(&mut self, exchange: ExchangeTransformerId) -> Option<mpsc::UnboundedReceiver<Event<MarketData>>> {
-        self.streams
-            .remove(&exchange)
+    /// Remove an exchange [`MarketEvent`] stream from the [`Streams`] `HashMap`.
+    pub fn select(
+        &mut self,
+        exchange: ExchangeId,
+    ) -> Option<mpsc::UnboundedReceiver<Event<MarketEvent>>> {
+        self.streams.remove(&exchange)
     }
 
-    /// Join all exchange [`MarketData`] streams into a unified stream.
-    pub async fn join(self) -> StreamMap<ExchangeTransformerId, UnboundedReceiverStream<Event<MarketData>>> {
+    /// Join all exchange [`MarketEvent`] streams into a unified [`mpsc::UnboundedReceiver`].
+    pub async fn join<Output>(self) -> mpsc::UnboundedReceiver<Output>
+    where
+        Output: From<Event<MarketEvent>> + Send + 'static,
+    {
+        let (output_tx, output_rx) = mpsc::unbounded_channel();
+
+        for mut exchange_rx in self.streams.into_values() {
+            let output_tx = output_tx.clone();
+            tokio::spawn(async move {
+                while let Some(event) = exchange_rx.recv().await {
+                    let _ = output_tx.send(Output::from(event));
+                }
+            });
+        }
+
+        output_rx
+    }
+
+    /// Join all exchange [`MarketEvent`] streams into a unified [`StreamMap`].
+    pub async fn join_map<Output>(
+        self,
+    ) -> StreamMap<
+        ExchangeId,
+        Map<UnboundedReceiverStream<Event<MarketEvent>>, fn(Event<MarketEvent>) -> Output>,
+    >
+    where
+        Output: From<Event<MarketEvent>> + Send + 'static,
+    {
         self.streams
             .into_iter()
-            .fold(
-                StreamMap::new(),
-                |mut map, (exchange, rx)| {
-                    map.insert(exchange, UnboundedReceiverStream::new(rx));
-                    map
-                }
-            )
+            .fold(StreamMap::new(), |mut map, (exchange, rx)| {
+                map.insert(exchange, UnboundedReceiverStream::new(rx).map(Output::from));
+                map
+            })
     }
 }
 
 /// Builder to configure and initialise [`Streams`] instances.
 #[derive(Debug)]
 pub struct StreamBuilder {
-    subscriptions: HashMap<ExchangeTransformerId, Vec<Subscription>>,
+    pub exchange_subscriptions: HashMap<ExchangeId, Vec<Subscription>>,
 }
 
 impl StreamBuilder {
     /// Construct a new [`StreamBuilder`] instance.
     fn new() -> Self {
-        Self { subscriptions: HashMap::new() }
+        Self {
+            exchange_subscriptions: HashMap::new(),
+        }
     }
 
-    /// Add a set of [`Subscription`]s for an exchange to the [`StreamBuilder`]. Note
-    /// that provided [`Subscription`]s are not actioned until the [`init()`](StreamBuilder::init())
-    /// method is invoked.
-    pub fn subscribe<SubIter, Sub>(mut self, exchange: ExchangeTransformerId, subscriptions: SubIter) -> Self
+    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`]. Note that the provided
+    /// [`Subscription`]s are not actioned until the [`init()`](StreamBuilder::init()) method
+    /// is invoked.
+    pub fn subscribe<SubIter, Sub>(mut self, subscriptions: SubIter) -> Self
     where
         SubIter: IntoIterator<Item = Sub>,
         Sub: Into<Subscription>,
     {
-        self.subscriptions
-            .insert(exchange, subscriptions.into_iter().map(Sub::into).collect());
-
-        self
-    }
-
-    pub fn subscribe_all<SubIter, Sub>(mut self, exchange_subscriptions: Vec<(ExchangeTransformerId, SubIter)>) -> Self
-    where
-        SubIter: IntoIterator<Item = Sub>,
-        Sub: Into<Subscription>,
-    {
-        exchange_subscriptions
+        subscriptions
             .into_iter()
-            .for_each(|(exchange, subscriptions)| {
-                self.subscriptions
-                    .insert(exchange, subscriptions.into_iter().map(Sub::into).collect());
+            .map(Sub::into)
+            .for_each(|subscription| {
+                self.exchange_subscriptions
+                    .entry(subscription.exchange)
+                    .or_default()
+                    .push(subscription)
             });
 
         self
     }
 
-    /// Spawn a [`MarketData`] consumer loop for each exchange that distributes events to the
-    /// returned [`Streams`] `HashMap`.
+    /// Add a set of [`Subscription`]s for an exchange to the [`StreamBuilder`]. Note that the
+    /// provided [`Subscription`]s are not actioned until the [`init()`](StreamBuilder::init())
+    /// method is invoked.
+    pub fn subscribe_exchange<SubIter, S>(
+        mut self,
+        exchange: ExchangeId,
+        subscriptions: SubIter,
+    ) -> Self
+    where
+        SubIter: IntoIterator<Item = (S, S, InstrumentKind, SubKind)>,
+        S: Into<Symbol>,
+    {
+        // Construct Subscriptions from components
+        let subscriptions =
+            subscriptions
+                .into_iter()
+                .map(|(base, quote, instrument_kind, kind)| {
+                    Subscription::from((exchange, base, quote, instrument_kind, kind))
+                });
+
+        // Extend collection of Subscriptions associated with the ExchangeId
+        self.exchange_subscriptions
+            .entry(exchange)
+            .or_default()
+            .extend(subscriptions);
+
+        self
+    }
+
+    /// Spawn a [`MarketEvent`] consumer loop for each exchange. Each consumer loop distributes
+    /// consumed [`MarketEvent`]s to the [`Streams`] `HashMap` (returned by this method).
     pub async fn init(mut self) -> Result<Streams, SocketError> {
-        // Validate exchange Subscriptions provided to the StreamBuilder
+        // Validate Subscriptions provided to the StreamBuilder are supported
         self = self.validate()?;
 
-        // Construct Hashmap containing each Exchange's stream receiver
-        let num_exchanges = self.subscriptions.len();
+        // Construct HashMap containing a stream receiver for each ExchangeId
+        let num_exchanges = self.exchange_subscriptions.len();
         let mut exchange_streams = HashMap::with_capacity(num_exchanges);
 
-        for (exchange, subscriptions) in self.subscriptions {
+        for (exchange, mut subscriptions) in self.exchange_subscriptions {
+            // Remove duplicate Subscriptions for this ExchangeId
+            subscriptions.sort();
+            subscriptions.dedup();
 
-            // Create channel for this exchange stream
+            // Create channel for this ExchangeId stream
             let (exchange_tx, exchange_rx) = mpsc::unbounded_channel();
 
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
-                ExchangeTransformerId::BinanceFutures => {
-                    tokio::spawn(consume::<ExchangeWebSocket<BinanceFutures>>(exchange, subscriptions, exchange_tx));
+                ExchangeId::BinanceFuturesUsd => {
+                    tokio::spawn(consume::<ExchangeWebSocket<BinanceFuturesUsd>>(
+                        exchange,
+                        subscriptions,
+                        exchange_tx,
+                    ));
                 }
-                ExchangeTransformerId::Ftx => {
-                    tokio::spawn(consume::<ExchangeWebSocket<Ftx>>(exchange, subscriptions, exchange_tx));
+                ExchangeId::Ftx => {
+                    tokio::spawn(consume::<ExchangeWebSocket<Ftx>>(
+                        exchange,
+                        subscriptions,
+                        exchange_tx,
+                    ));
                 }
                 not_supported => {
-                    return Err(SocketError::Subscribe(format!("Streams::init() does not support: {}", not_supported)))
+                    return Err(SocketError::Subscribe(format!(
+                        "Streams::init() does not support: {}",
+                        not_supported
+                    )))
                 }
             }
 
@@ -125,40 +187,43 @@ impl StreamBuilder {
             exchange_streams.insert(exchange, exchange_rx);
         }
 
-        Ok(Streams { streams: exchange_streams })
+        Ok(Streams {
+            streams: exchange_streams,
+        })
     }
 }
 
 impl Validator for StreamBuilder {
     fn validate(self) -> Result<Self, SocketError>
     where
-        Self: Sized
+        Self: Sized,
     {
         // Ensure at least one exchange Subscription has been provided
-        if self.subscriptions.is_empty() {
+        if self.exchange_subscriptions.is_empty() {
             return Err(SocketError::Subscribe(
-                "StreamBuilder contains no Subscription to action".to_owned())
-            )
+                "StreamBuilder contains no Subscription to action".to_owned(),
+            ));
         }
 
-        // Ensure each ExchangeTransformer supports the provided Subscriptions
-        self.subscriptions
-            .iter()
-            .map(|exchange_subs| exchange_subs.validate())
+        // Validate each Subscription ExchangeId supports the associated Subscription kind
+        self.exchange_subscriptions
+            .values()
+            .flatten()
+            .map(|subscription| subscription.validate())
             .collect::<Result<Vec<_>, SocketError>>()?;
 
         Ok(self)
     }
 }
 
-/// Central [`MarketData`] consumer loop. Initialises an exchange [`MarketStream`] using a
+/// Central [`MarketEvent`] consumer loop. Initialises an exchange [`MarketStream`] using a
 /// collection of [`Subscription`]s. Consumed events are distributed downstream via the
 /// `exchange_tx mpsc::UnboundedSender`. A re-connection mechanism with an exponential backoff
 /// policy is utilised to ensure maximum up-time.
 pub async fn consume<Stream>(
-    exchange: ExchangeTransformerId,
+    exchange: ExchangeId,
     subscriptions: Vec<Subscription>,
-    exchange_tx: mpsc::UnboundedSender<Event<MarketData>>
+    exchange_tx: mpsc::UnboundedSender<Event<MarketEvent>>,
 ) -> SocketError
 where
     Stream: MarketStream,
@@ -187,15 +252,15 @@ where
                 attempt = 0;
                 backoff_ms = STARTING_RECONNECT_BACKOFF_MS;
                 stream
-            },
+            }
             Err(error) => {
                 error!(%exchange, attempt, ?error, "failed to initialise MarketStream");
 
                 // Exit function function if Stream::init failed the first attempt, else retry
                 if attempt == 1 {
-                    return error
+                    return error;
                 } else {
-                    continue
+                    continue;
                 }
             }
         };
@@ -205,15 +270,13 @@ where
             match event_result {
                 // If Ok: send Event<MarketData> to exchange receiver
                 Ok(market_event) => {
-                    let _ = exchange_tx
-                        .send(market_event)
-                        .map_err(|err| {
-                            error!(
-                                payload = ?err.0,
-                                why = "receiver dropped",
-                                "failed to send Event<MarketData> to Exchange receiver"
-                            );
-                        });
+                    let _ = exchange_tx.send(market_event).map_err(|err| {
+                        error!(
+                            payload = ?err.0,
+                            why = "receiver dropped",
+                            "failed to send Event<MarketData> to Exchange receiver"
+                        );
+                    });
                 }
                 // If SocketError: log & continue to next Result<Event<MarketData>, SocketError>
                 Err(error) => {
@@ -236,5 +299,70 @@ where
             "exchange MarketStream unexpectedly ended"
         );
         tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use barter_integration::model::Instrument;
+
+    fn stream_builder(subscription: Subscription) -> StreamBuilder {
+        StreamBuilder::new().subscribe([subscription])
+    }
+
+    #[test]
+    fn test_stream_builder_validate() {
+        struct TestCase {
+            input: StreamBuilder,
+            expected: Result<StreamBuilder, SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: Invalid StreamBuilder w/ empty subscriptions
+                input: StreamBuilder::new(),
+                expected: Err(SocketError::Subscribe("".to_string())),
+            },
+            TestCase {
+                // TC1: Valid StreamBuilder w/ valid Binance Spot sub
+                input: stream_builder(Subscription {
+                    exchange: ExchangeId::Binance,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                }),
+                expected: Ok(stream_builder(Subscription {
+                    exchange: ExchangeId::Binance,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                })),
+            },
+            TestCase {
+                // TC1: Invalid StreamBuilder w/ invalid Binance FuturePerpetual sub
+                input: stream_builder(Subscription {
+                    exchange: ExchangeId::Binance,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Trade,
+                }),
+                expected: Err(SocketError::Subscribe("".to_string())),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = test.input.validate();
+
+            match (actual, test.expected) {
+                (Ok(_), Ok(_)) => {
+                    // Test passed
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.4.4"
+version = "0.5.0"
 authors = ["keirbailey <keirinvestment@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -15,24 +15,26 @@ categories = ["accessibility", "simulation"]
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.2.2"
+barter-integration = "0.3.0"
 
 # Logging
-tracing = "0.1.29"
+tracing = "0.1.36"
 
 # Async
-tokio = { version = "1.17.0", features = ["sync", "macros", "rt-multi-thread"] }
-tokio-stream = { version = "0.1.7", features = ["sync"] }
-futures = "0.3.19"
-async-trait = "0.1.52"
+tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1.9", features = ["sync"] }
+futures = "0.3.21"
+async-trait = "0.1.57"
+
+# Error
+thiserror = "1.0.32"
 
 # SerDe
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.68"
+serde = { version = "1.0.143", features = ["derive"] }
+serde_json = "1.0.83"
 
 # Strategy
-ta = "0.4.0"
+ta = "0.5.0"
 
 # Misc
-chrono = {version = "0.4.19", features = ["serde"]}
-thiserror = "1.0.31"
+chrono = {version = "0.4.21", features = ["serde"]}
