@@ -5,27 +5,26 @@
     // missing_docs
 )]
 
-///! # Barter-Data
-use crate::model::MarketData;
+use crate::model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta};
 use async_trait::async_trait;
 use barter_integration::{
-    socket::{
-        error::SocketError,
-        protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage},
-        Event, ExchangeSocket, Transformer,
-    },
-    InstrumentKind, Subscription, SubscriptionId, SubscriptionIds, SubscriptionMeta,
+    error::SocketError,
+    model::{Exchange, SubscriptionId},
+    protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage},
+    Event, ExchangeSocket, Transformer,
 };
 use futures::{SinkExt, Stream, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
-    fmt::{Display, Formatter},
+    fmt::{Debug, Display, Formatter},
     time::Duration,
 };
 
-/// Core data structures to support consuming `MarketStream`s.
+///! # Barter-Data
+
+/// Core data structures to support consuming [`MarketStream`]s.
 ///
-/// eg/ `MarketData`, `Trade`, `Subscription`, `SubscriptionId`, etc.
+/// eg/ `MarketEvent`, `PublicTrade`, etc.
 pub mod model;
 
 /// Contains `Subscriber` & `ExchangeMapper` implementations for specific exchanges.
@@ -35,20 +34,17 @@ pub mod exchange;
 /// [`Subscription`]s.
 pub mod builder;
 
-/// Custom `DataError`s generated in `barter-data`.
-pub mod error;
-
 /// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWebSocket<Exchange> =
-    ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketData>;
+    ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketEvent>;
 
-/// `Stream` supertrait for streams that yield [`MarketData`]s. Provides an entry-point abstraction
-/// for an [`ExchangeWebSocket`].
+/// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point
+/// abstraction for an [`ExchangeSocket`].
 #[async_trait]
 pub trait MarketStream:
-    Stream<Item = Result<Event<MarketData>, SocketError>> + Sized + Unpin
+    Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
 {
-    /// Initialises a new [`MarketData`] stream using the provided subscriptions.
+    /// Initialises a new [`MarketStream`] using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
 }
 
@@ -96,7 +92,7 @@ pub trait Subscriber {
         subscriptions: &[Subscription],
     ) -> Result<SubscriptionMeta, SocketError>;
 
-    /// Uses the provided WebSocket connection to consume [`Subscription`] responses and
+    /// Uses the provided [`WebSocket`] connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(
         websocket: &mut WebSocket,
@@ -158,8 +154,8 @@ pub trait Subscriber {
     }
 }
 
-/// `Validator`s are capable of determining if their internal state is satisfactory to fulfill some
-/// use case defined by the implementor.
+/// [`Validator`]s are capable of determining if their internal state is satisfactory to fulfill
+/// some use case defined by the implementor.
 pub trait Validator {
     /// Check if `Self` is valid for some use case.
     fn validate(self) -> Result<Self, SocketError>
@@ -167,21 +163,21 @@ pub trait Validator {
         Self: Sized;
 }
 
-/// Trait that defines how to translate between exchange specific data structures & Barter data
+/// defines how to translate between exchange specific data structures & Barter data
 /// structures. This must be implemented when integrating a new exchange.
-pub trait ExchangeTransformer: Transformer<MarketData> + Sized
+pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized
 where
-    <Self as Transformer<MarketData>>::Input: Identifiable,
+    <Self as Transformer<MarketEvent>>::Input: Identifiable,
 {
-    /// Unique identifier for an `ExchangeTransformer`.
-    const EXCHANGE: ExchangeTransformerId;
+    /// Unique identifier for an [`ExchangeTransformer`].
+    const EXCHANGE: ExchangeId;
 
-    /// Construct a new `ExchangeTransformer` using a `HashMap` containing the relationship between
+    /// Construct a new [`ExchangeTransformer`] using a `HashMap` containing the relationship between
     /// all active Barter [`Subscription`]s and their associated exchange specific identifiers.
     fn new(ids: SubscriptionIds) -> Self;
 }
 
-/// `Identifiable` structures are capable of determining their associated [`SubscriptionId`]. Used
+/// [`Identifiable`] structures are capable of determining their associated [`SubscriptionId`]. Used
 /// by [`ExchangeTransformer`] implementations to determine the original Barter [`Subscription`]
 /// associated with an incoming exchange message.
 pub trait Identifiable {
@@ -192,7 +188,7 @@ pub trait Identifiable {
 impl<Exchange> MarketStream for ExchangeWebSocket<Exchange>
 where
     Exchange: Subscriber + ExchangeTransformer + Send,
-    <Exchange as Transformer<MarketData>>::Input: Identifiable,
+    <Exchange as Transformer<MarketEvent>>::Input: Identifiable,
 {
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
         // Connect & subscribe
@@ -205,96 +201,91 @@ where
     }
 }
 
-/// Used to uniquely identify an `ExchangeTransformer` implementation. Each variant represents an
+/// Used to uniquely identify an [`ExchangeTransformer`] implementation. Each variant represents an
 /// exchange server which can be subscribed to. Note that an exchange may have multiple servers
-/// (eg/ binance, binance_futures), therefore there is a many-to-one relationship between
-/// an `ExchangeId` and an exchange name.
+/// (eg/ binance, binance_futures), therefore there could be a many-to-one relationship between
+/// an [`ExchangeId`] and an [`Exchange`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename = "exchange", rename_all = "snake_case")]
-pub enum ExchangeTransformerId {
-    BinanceFutures,
+pub enum ExchangeId {
+    BinanceFuturesUsd,
     Binance,
     Ftx,
 }
 
-impl Display for ExchangeTransformerId {
+impl From<ExchangeId> for Exchange {
+    fn from(exchange_id: ExchangeId) -> Self {
+        Exchange::from(exchange_id.as_str())
+    }
+}
+
+impl Display for ExchangeId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-impl ExchangeTransformerId {
-    /// Return the exchange name this `ExchangeTransformerId` is associated with.
+impl ExchangeId {
+    /// Return the exchange name associated with this [`ExchangeId`].
     ///
-    /// eg/ ExchangeTransformerId::BinanceFutures => "binance"
-    pub fn exchange(&self) -> &'static str {
+    /// eg/ ExchangeId::BinanceFuturesUsd => "binance"
+    pub fn name(&self) -> &'static str {
         match self {
-            ExchangeTransformerId::Binance | ExchangeTransformerId::BinanceFutures => "binance",
-            ExchangeTransformerId::Ftx => "ftx",
+            ExchangeId::Binance | ExchangeId::BinanceFuturesUsd => "binance",
+            ExchangeId::Ftx => "ftx",
         }
     }
 
-    /// Return the &str representation this `ExchangeTransformerId` is associated with.
+    /// Return the &str representation this [`ExchangeId`] is associated with.
     pub fn as_str(&self) -> &'static str {
         match self {
-            ExchangeTransformerId::Binance => "binance",
-            ExchangeTransformerId::BinanceFutures => "binance_futures",
-            ExchangeTransformerId::Ftx => "ftx",
+            ExchangeId::Binance => "binance",
+            ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
+            ExchangeId::Ftx => "ftx",
         }
     }
 
-    /// Determines whether this `ExchangeTransformerId` supports the ingestion of
-    /// [`InstrumentKind::Spot`](InstrumentKind) market data.
+    /// Determines whether this [`ExchangeId`] supports the ingestion of
+    /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
     pub fn supports_spot(&self) -> bool {
         match self {
-            ExchangeTransformerId::BinanceFutures => false,
+            ExchangeId::BinanceFuturesUsd => false,
             _ => true,
         }
     }
 
-    /// Determines whether this `ExchangeTransformerId` supports the collection of
-    /// [`InstrumentKind::Future**`](InstrumentKind) market data.
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
     pub fn supports_futures(&self) -> bool {
         match self {
-            ExchangeTransformerId::BinanceFutures => true,
-            ExchangeTransformerId::Ftx => true,
+            ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::Ftx => true,
             _ => false,
         }
     }
 }
 
-impl Validator for (&ExchangeTransformerId, &Vec<Subscription>) {
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized,
-    {
-        let (transformer_id, subscriptions) = self;
+/// Test utilities for conveniently generating public [`MarketEvent`] types.
+pub mod test_util {
+    use crate::{
+        model::{DataKind, MarketEvent, PublicTrade},
+        ExchangeId,
+    };
+    use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
+    use chrono::Utc;
 
-        // Check type of InstrumentKinds associated with this ExchangeTransformer's Subscriptions
-        let mut spot_subs = false;
-        let mut future_subs = false;
-        subscriptions
-            .iter()
-            .for_each(|subscription| match subscription.instrument.kind {
-                InstrumentKind::Spot => spot_subs = true,
-                InstrumentKind::FuturePerpetual => future_subs = true,
-            });
-
-        // Ensure ExchangeTransformer supports those InstrumentKinds
-        let supports_spot = transformer_id.supports_spot();
-        let supports_futures = transformer_id.supports_futures();
-        match (supports_spot, supports_futures, spot_subs, future_subs) {
-            // ExchangeTransformer has full support for all Subscription InstrumentKinds
-            (true, true, _, _) => Ok(self),
-            // ExchangeTransformer supports InstrumentKind::Spot, and therefore provided Subscriptions
-            (true, false, true, false) => Ok(self),
-            // ExchangeTransformer supports InstrumentKind::Future*, and therefore provided Subscriptions
-            (false, true, false, true) => Ok(self),
-            // ExchangeTransformer cannot support configured Subscriptions
-            _ => Err(SocketError::Subscribe(format!(
-                "ExchangeTransformer {} does not support InstrumentKinds of provided Subscriptions",
-                transformer_id
-            ))),
+    pub fn market_trade(side: Side) -> MarketEvent {
+        MarketEvent {
+            exchange_time: Utc::now(),
+            received_time: Utc::now(),
+            exchange: Exchange::from(ExchangeId::Binance),
+            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+            kind: DataKind::Trade(PublicTrade {
+                id: "trade_id".to_string(),
+                price: 1000.0,
+                quantity: 1.0,
+                side,
+            }),
         }
     }
 }

@@ -1,14 +1,14 @@
+use chrono::{DateTime, Utc};
+use serde::de;
+use std::{str::FromStr, time::Duration};
+
 /// Binance `ExchangeTransformer` & `Subscriber` implementations.
 pub mod binance;
 
 /// Ftx `ExchangeTransformer` & `Subscriber` implementations.
 pub mod ftx;
 
-use chrono::{DateTime, Utc};
-use serde::de;
-use std::{str::FromStr, time::Duration};
-
-/// Deserialize a string as the desired type.
+/// Deserialize a `String` as the desired type.
 pub fn de_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: de::Deserializer<'de>,

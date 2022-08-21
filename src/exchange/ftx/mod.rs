@@ -1,15 +1,19 @@
 use crate::{
-    exchange::ftx::model::{FtxMessage, FtxSubResponse},
-    ExchangeTransformer, ExchangeTransformerId, Identifiable, MarketData, Subscriber,
+    model::SubKind, ExchangeId, ExchangeTransformer, Identifiable, MarketEvent, Subscriber,
+    Subscription, SubscriptionIds, SubscriptionMeta,
 };
 use barter_integration::{
-    socket::{error::SocketError, protocol::websocket::WsMessage, Transformer},
-    InstrumentKind, StreamKind, Subscription, SubscriptionId, SubscriptionIds, SubscriptionMeta,
+    error::SocketError,
+    model::{InstrumentKind, SubscriptionId},
+    protocol::websocket::WsMessage,
+    Transformer,
 };
+use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 
+/// [`Ftx`] specific data structures.
 mod model;
 
 /// `Ftx` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
@@ -58,15 +62,15 @@ impl Subscriber for Ftx {
 }
 
 impl ExchangeTransformer for Ftx {
-    const EXCHANGE: ExchangeTransformerId = ExchangeTransformerId::Ftx;
+    const EXCHANGE: ExchangeId = ExchangeId::Ftx;
     fn new(ids: SubscriptionIds) -> Self {
         Self { ids }
     }
 }
 
-impl Transformer<MarketData> for Ftx {
+impl Transformer<MarketEvent> for Ftx {
     type Input = FtxMessage;
-    type OutputIter = Vec<Result<MarketData, SocketError>>;
+    type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         let instrument = match self.ids.find_instrument(input.id()) {
@@ -77,7 +81,13 @@ impl Transformer<MarketData> for Ftx {
         match input {
             FtxMessage::Trades { trades, .. } => trades
                 .into_iter()
-                .map(|trade| Ok(MarketData::from((Ftx::EXCHANGE, instrument.clone(), trade))))
+                .map(|trade| {
+                    Ok(MarketEvent::from((
+                        Ftx::EXCHANGE,
+                        instrument.clone(),
+                        trade,
+                    )))
+                })
                 .collect(),
         }
     }
@@ -93,7 +103,7 @@ impl Ftx {
     fn get_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription StreamKind
         let channel = match &sub.kind {
-            StreamKind::Trade => "trades",
+            SubKind::Trade => "trades",
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -123,7 +133,7 @@ impl Ftx {
                 "channel": channel,
                 "market": market,
             })
-            .to_string(),
+                .to_string(),
         )
     }
 }

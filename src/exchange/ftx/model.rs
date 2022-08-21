@@ -1,6 +1,11 @@
-use crate::model::{Direction, Trade};
-use crate::{ExchangeTransformerId, Identifiable, MarketData, Validator};
-use barter_integration::{socket::error::SocketError, Instrument, SubscriptionId};
+use crate::{
+    model::{DataKind, PublicTrade},
+    ExchangeId, Identifiable, MarketEvent, Validator,
+};
+use barter_integration::{
+    error::SocketError,
+    model::{Exchange, Instrument, Side, SubscriptionId},
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -19,8 +24,8 @@ pub enum FtxSubResponse {
 
 impl Validator for FtxSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized,
+        where
+            Self: Sized,
     {
         match &self {
             FtxSubResponse::Subscribed { .. } => Ok(self),
@@ -64,22 +69,23 @@ pub struct FtxTrade {
     pub id: u64,
     pub price: f64,
     pub size: f64,
-    #[serde(rename = "side")]
-    pub direction: Direction,
+    pub side: Side,
     pub time: DateTime<Utc>,
 }
 
-impl From<(ExchangeTransformerId, Instrument, FtxTrade)> for MarketData {
-    fn from((exchange, instrument, trade): (ExchangeTransformerId, Instrument, FtxTrade)) -> Self {
-        Self::Trade(Trade {
-            id: trade.id.to_string(),
-            exchange: exchange.exchange().to_string(),
+impl From<(ExchangeId, Instrument, FtxTrade)> for MarketEvent {
+    fn from((exchange, instrument, trade): (ExchangeId, Instrument, FtxTrade)) -> Self {
+        Self {
+            exchange_time: trade.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange.as_str()),
             instrument,
-            received_timestamp: Utc::now(),
-            exchange_timestamp: trade.time,
-            price: trade.price,
-            quantity: trade.size,
-            direction: trade.direction,
-        })
+            kind: DataKind::Trade(PublicTrade {
+                id: trade.id.to_string(),
+                price: trade.price,
+                quantity: trade.size,
+                side: trade.side,
+            }),
+        }
     }
 }
