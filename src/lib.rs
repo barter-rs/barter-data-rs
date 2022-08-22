@@ -273,10 +273,7 @@ pub mod test_util {
     };
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
-    use std::{
-        ops::{Add, Sub},
-        time::Duration,
-    };
+    use std::ops::{Add, Sub};
 
     /// Build a [`MarketEvent`] of [`DataKind::PublicTrade`] with the provided [`Side`].
     pub fn market_trade(side: Side) -> MarketEvent {
@@ -295,11 +292,11 @@ pub mod test_util {
     }
 
     /// Build a [`MarketEvent`] of [`DataKind::Candle`] with the provided time interval.
-    pub fn market_candle(interval: Duration) -> MarketEvent {
+    pub fn market_candle(interval: chrono::Duration) -> MarketEvent {
         let now = Utc::now();
         MarketEvent {
             exchange_time: now,
-            received_time: now.add(Duration::from_millis(200)),
+            received_time: now.add(chrono::Duration::milliseconds(200)),
             exchange: Exchange::from(ExchangeId::Binance),
             instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
             kind: DataKind::Candle(Candle {
