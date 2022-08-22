@@ -268,12 +268,17 @@ impl ExchangeId {
 /// Test utilities for conveniently generating public [`MarketEvent`] types.
 pub mod test_util {
     use crate::{
-        model::{DataKind, MarketEvent, PublicTrade},
+        model::{Candle, DataKind, MarketEvent, PublicTrade},
         ExchangeId,
     };
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
+    use std::{
+        ops::{Add, Sub},
+        time::Duration,
+    };
     use chrono::Utc;
 
+    /// Build a [`MarketEvent`] of [`DataKind::PublicTrade`] with the provided [`Side`].
     pub fn market_trade(side: Side) -> MarketEvent {
         MarketEvent {
             exchange_time: Utc::now(),
@@ -285,6 +290,27 @@ pub mod test_util {
                 price: 1000.0,
                 quantity: 1.0,
                 side,
+            }),
+        }
+    }
+
+    /// Build a [`MarketEvent`] of [`DataKind::Candle`] with the provided time interval.
+    pub fn market_candle(interval: Duration) -> MarketEvent {
+        let now = Utc::now();
+        MarketEvent {
+            exchange_time: now,
+            received_time: now.add(Duration::from_millis(200)),
+            exchange: Exchange::from(ExchangeId::Binance),
+            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+            kind: DataKind::Candle(Candle {
+                start_time: now.sub(interval),
+                end_time: now,
+                open: 960.0,
+                high: 1100.0,
+                low: 950.0,
+                close: 1000.0,
+                volume: 100000.0,
+                trade_count: 1000
             }),
         }
     }
