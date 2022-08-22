@@ -272,11 +272,11 @@ pub mod test_util {
         ExchangeId,
     };
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
+    use chrono::Utc;
     use std::{
         ops::{Add, Sub},
         time::Duration,
     };
-    use chrono::Utc;
 
     /// Build a [`MarketEvent`] of [`DataKind::PublicTrade`] with the provided [`Side`].
     pub fn market_trade(side: Side) -> MarketEvent {
@@ -310,7 +310,7 @@ pub mod test_util {
                 low: 950.0,
                 close: 1000.0,
                 volume: 100000.0,
-                trade_count: 1000
+                trade_count: 1000,
             }),
         }
     }

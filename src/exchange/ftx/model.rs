@@ -24,8 +24,8 @@ pub enum FtxSubResponse {
 
 impl Validator for FtxSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         match &self {
             FtxSubResponse::Subscribed { .. } => Ok(self),

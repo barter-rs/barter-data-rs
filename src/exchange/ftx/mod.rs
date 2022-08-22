@@ -133,7 +133,7 @@ impl Ftx {
                 "channel": channel,
                 "market": market,
             })
-                .to_string(),
+            .to_string(),
         )
     }
 }
