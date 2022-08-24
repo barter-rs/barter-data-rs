@@ -125,14 +125,14 @@ impl From<Subscription> for Market {
 
 impl Subscription {
     /// Constructs a new [`Subscription`] using the provided configuration.
-    pub fn new<I>(exchange: ExchangeId, instrument: I, stream: SubKind) -> Self
+    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: SubKind) -> Self
     where
         I: Into<Instrument>,
     {
         Self {
             exchange,
             instrument: instrument.into(),
-            kind: stream,
+            kind,
         }
     }
 }
