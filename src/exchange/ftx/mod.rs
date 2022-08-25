@@ -47,7 +47,7 @@ impl Subscriber for Ftx {
                 let ftx_subscription = Self::subscription(channel, &market);
 
                 // Use market as the SubscriptionId key in the SubscriptionIds
-                ids.0.insert(SubscriptionId(market), subscription.clone());
+                ids.insert(SubscriptionId(market), subscription.clone());
 
                 Ok(ftx_subscription)
             })

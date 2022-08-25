@@ -40,8 +40,7 @@ impl Subscriber for BinanceFuturesUsd {
                 let channel = Self::get_channel_id(subscription)?;
 
                 // Use channel as the SubscriptionId key in the SubscriptionIds
-                ids.0
-                    .insert(SubscriptionId(channel.clone()), subscription.clone());
+                ids.insert(SubscriptionId(channel.clone()), subscription.clone());
 
                 Ok(channel)
             })
