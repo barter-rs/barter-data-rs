@@ -19,7 +19,7 @@ where
     data.parse::<T>().map_err(de::Error::custom)
 }
 
-/// Determine the `DateTime<Utc>` from the provided `u64` milliseconds since the epoch.
-pub fn epoch_ms_to_datetime_utc(epoch_ms: u64) -> DateTime<Utc> {
-    DateTime::<Utc>::from(std::time::UNIX_EPOCH + Duration::from_millis(epoch_ms))
+/// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
+pub fn datetime_utc_from_duration(duration: Duration) -> DateTime<Utc> {
+    DateTime::<Utc>::from(std::time::UNIX_EPOCH) + duration
 }

@@ -1,4 +1,4 @@
-use super::{de_str, epoch_ms_to_datetime_utc};
+use super::{datetime_utc_from_duration, de_str};
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, Identifiable, MarketEvent, Validator,
@@ -9,6 +9,7 @@ use barter_integration::{
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 /// `BinanceFuturesUsd` specific [`Subscriber`](crate::Subscriber) &
 /// [`ExchangeTransformer`](crate::ExchangeTransformer) implementor for the collection of
@@ -96,7 +97,7 @@ impl From<&BinanceTrade> for SubscriptionId {
 impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
         Self {
-            exchange_time: epoch_ms_to_datetime_utc(trade.trade_ts),
+            exchange_time: datetime_utc_from_duration(Duration::from_millis(trade.trade_ts)),
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
