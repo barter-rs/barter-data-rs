@@ -10,8 +10,8 @@ use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::{Exchange, SubscriptionId},
-    protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage},
-    Event, ExchangeSocket, Transformer,
+    protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage, WsSink, WsStream},
+    Event, ExchangeStream, Transformer,
 };
 use futures::{SinkExt, Stream, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -19,6 +19,8 @@ use std::{
     fmt::{Debug, Display, Formatter},
     time::Duration,
 };
+use tokio::sync::mpsc;
+use tracing::error;
 
 ///! # Barter-Data
 
@@ -34,12 +36,12 @@ pub mod exchange;
 /// [`Subscription`]s.
 pub mod builder;
 
-/// Convenient type alias for an [`ExchangeSocket`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWebSocket<Exchange> =
-    ExchangeSocket<WebSocketParser, WebSocket, Exchange, MarketEvent>;
+/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
+pub type ExchangeWsStream<Exchange> =
+    ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
 
-/// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point
-/// abstraction for an [`ExchangeSocket`].
+/// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
+/// for an [`ExchangeStream`].
 #[async_trait]
 pub trait MarketStream:
     Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
@@ -163,7 +165,7 @@ pub trait Validator {
         Self: Sized;
 }
 
-/// defines how to translate between exchange specific data structures & Barter data
+/// Defines how to translate between exchange specific data structures & Barter data
 /// structures. This must be implemented when integrating a new exchange.
 pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized
 where
@@ -172,9 +174,12 @@ where
     /// Unique identifier for an [`ExchangeTransformer`].
     const EXCHANGE: ExchangeId;
 
-    /// Construct a new [`ExchangeTransformer`] using a `HashMap` containing the relationship between
-    /// all active Barter [`Subscription`]s and their associated exchange specific identifiers.
-    fn new(ids: SubscriptionIds) -> Self;
+    /// Constructs a new [`ExchangeTransformer`] using a transmitter to the [`WsSink`] and the
+    /// [`SubscriptionIds`] `HashMap`.
+    ///
+    /// Note:
+    ///  - If required, the [`WsSink`] transmitter may be used to send messages to the exchange.
+    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self;
 }
 
 /// [`Identifiable`] structures are capable of determining their associated [`SubscriptionId`]. Used
@@ -185,7 +190,7 @@ pub trait Identifiable {
 }
 
 #[async_trait]
-impl<Exchange> MarketStream for ExchangeWebSocket<Exchange>
+impl<Exchange> MarketStream for ExchangeWsStream<Exchange>
 where
     Exchange: Subscriber + ExchangeTransformer + Send,
     <Exchange as Transformer<MarketEvent>>::Input: Identifiable,
@@ -194,10 +199,24 @@ where
         // Connect & subscribe
         let (websocket, ids) = Exchange::subscribe(subscriptions).await?;
 
-        // Construct ExchangeTransformer
-        let transformer = Exchange::new(ids);
+        // Split WebSocket into WsStream & WsSink components
+        let (ws_sink, ws_stream) = websocket.split();
 
-        Ok(ExchangeSocket::new(websocket, transformer))
+        // Task to distribute ExchangeTransformer outgoing messages (eg/ custom pongs) to exchange
+        // --> ExchangeTransformer is operating in a synchronous trait context
+        // --> ExchangeTransformer sends messages sync via channel to async distribution task
+        // --> Async distribution tasks forwards the messages to the exchange via the ws_sink
+        let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
+        tokio::spawn(distribute_responses_to_the_exchange(
+            Exchange::EXCHANGE,
+            ws_sink,
+            ws_sink_rx,
+        ));
+
+        // Construct ExchangeTransformer w/ transmitter to WsSink
+        let transformer = Exchange::new(ws_sink_tx, ids);
+
+        Ok(ExchangeWsStream::new(ws_stream, transformer))
     }
 }
 
@@ -261,6 +280,35 @@ impl ExchangeId {
             ExchangeId::BinanceFuturesUsd => true,
             ExchangeId::Ftx => true,
             _ => false,
+        }
+    }
+}
+
+/// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the
+/// exchange via the [`WsSink`].
+///
+/// If an [`ExchangeTransformer`] is required to send responses to the exchange (eg/ custom pongs),
+/// it can so by transmitting the responses to the  `mpsc::UnboundedReceiver<WsMessage>` owned by
+/// this asynchronous distribution task. These are then sent to the exchange via the [`WsSink`].
+/// This is required because an [`ExchangeTransformer`] is operating in a synchronous trait context,
+/// and therefore cannot flush the [`WsSink`] without the [`futures:task::context`].
+async fn distribute_responses_to_the_exchange(
+    exchange: ExchangeId,
+    mut ws_sink: WsSink,
+    mut ws_sink_rx: mpsc::UnboundedReceiver<WsMessage>,
+) {
+    while let Some(message) = ws_sink_rx.recv().await {
+        if let Err(error) = ws_sink.send(message).await {
+            if barter_integration::protocol::websocket::is_websocket_disconnected(&error) {
+                break;
+            }
+
+            // Log error only if WsMessage failed to send over a connected WebSocket
+            error!(
+                %exchange,
+                %error,
+                "failed to send ExchangeTransformer output message to the exchange via WsSink"
+            );
         }
     }
 }

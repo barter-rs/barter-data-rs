@@ -1,7 +1,7 @@
 use crate::{
     exchange::{binance::futures::BinanceFuturesUsd, ftx::Ftx},
     model::SubKind,
-    ExchangeId, ExchangeWebSocket, MarketEvent, MarketStream, Subscription, Validator,
+    ExchangeId, ExchangeWsStream, MarketEvent, MarketStream, Subscription, Validator,
 };
 use barter_integration::{
     error::SocketError,
@@ -162,14 +162,14 @@ impl StreamBuilder {
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
                 ExchangeId::BinanceFuturesUsd => {
-                    tokio::spawn(consume::<ExchangeWebSocket<BinanceFuturesUsd>>(
+                    tokio::spawn(consume::<ExchangeWsStream<BinanceFuturesUsd>>(
                         exchange,
                         subscriptions,
                         exchange_tx,
                     ));
                 }
                 ExchangeId::Ftx => {
-                    tokio::spawn(consume::<ExchangeWebSocket<Ftx>>(
+                    tokio::spawn(consume::<ExchangeWsStream<Ftx>>(
                         exchange,
                         subscriptions,
                         exchange_tx,

@@ -10,6 +10,7 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 
 /// `BinanceFuturesUsd` [`Subscriber`](crate::Subscriber) &
 /// [`ExchangeTransformer`](crate::ExchangeTransformer) implementor for the collection
@@ -40,8 +41,7 @@ impl Subscriber for BinanceFuturesUsd {
                 let channel = Self::get_channel_id(subscription)?;
 
                 // Use channel as the SubscriptionId key in the SubscriptionIds
-                ids.0
-                    .insert(SubscriptionId(channel.clone()), subscription.clone());
+                ids.insert(SubscriptionId(channel.clone()), subscription.clone());
 
                 Ok(channel)
             })
@@ -60,7 +60,7 @@ impl Subscriber for BinanceFuturesUsd {
 
 impl ExchangeTransformer for BinanceFuturesUsd {
     const EXCHANGE: ExchangeId = ExchangeId::BinanceFuturesUsd;
-    fn new(ids: SubscriptionIds) -> Self {
+    fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
         Self { ids }
     }
 }
