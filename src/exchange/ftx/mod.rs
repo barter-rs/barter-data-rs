@@ -12,6 +12,7 @@ use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 
 /// [`Ftx`] specific data structures.
 mod model;
@@ -63,7 +64,7 @@ impl Subscriber for Ftx {
 
 impl ExchangeTransformer for Ftx {
     const EXCHANGE: ExchangeId = ExchangeId::Ftx;
-    fn new(ids: SubscriptionIds) -> Self {
+    fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
         Self { ids }
     }
 }
