@@ -12,6 +12,7 @@ use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
+use tokio::sync::mpsc;
 
 /// [`Ftx`] specific data structures.
 mod model;
@@ -47,7 +48,7 @@ impl Subscriber for Ftx {
                 let ftx_subscription = Self::subscription(channel, &market);
 
                 // Use market as the SubscriptionId key in the SubscriptionIds
-                ids.0.insert(SubscriptionId(market), subscription.clone());
+                ids.insert(SubscriptionId(market), subscription.clone());
 
                 Ok(ftx_subscription)
             })
@@ -63,7 +64,7 @@ impl Subscriber for Ftx {
 
 impl ExchangeTransformer for Ftx {
     const EXCHANGE: ExchangeId = ExchangeId::Ftx;
-    fn new(ids: SubscriptionIds) -> Self {
+    fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
         Self { ids }
     }
 }
@@ -100,9 +101,9 @@ impl Ftx {
     ///
     /// Example Ok Return: Ok("trades", "BTC/USDT")
     /// where channel == "trades" & market == "BTC/USDT".
-    fn get_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
+    fn get_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription StreamKind
-        let channel = match &sub.kind {
+        let channel = match &subscription.kind {
             SubKind::Trade => "trades",
             other => {
                 return Err(SocketError::Unsupported {
@@ -113,12 +114,14 @@ impl Ftx {
         };
 
         // Determine Ftx market using the InstrumentKind
-        let market = match &sub.instrument.kind {
-            InstrumentKind::Spot => {
-                format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
-            }
+        let market = match &subscription.instrument.kind {
+            InstrumentKind::Spot => format!(
+                "{}/{}",
+                subscription.instrument.base, subscription.instrument.quote
+            )
+            .to_uppercase(),
             InstrumentKind::FuturePerpetual => {
-                format!("{}-PERP", sub.instrument.base).to_uppercase()
+                format!("{}-PERP", subscription.instrument.base).to_uppercase()
             }
         };
 
@@ -135,5 +138,267 @@ impl Ftx {
             })
             .to_string(),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::exchange::ftx::model::FtxTrade;
+    use crate::model::{DataKind, PublicTrade};
+    use barter_integration::model::{Exchange, Instrument, Side};
+    use chrono::Utc;
+
+    fn ftx(subscriptions: Vec<Subscription>) -> Ftx {
+        let ids = SubscriptionIds(
+            subscriptions
+                .into_iter()
+                .map(|sub| {
+                    let subscription_id = match (&sub.kind, &sub.instrument.kind) {
+                        (SubKind::Trade, InstrumentKind::Spot) => {
+                            format!("{}/{}", sub.instrument.base, sub.instrument.quote)
+                                .to_uppercase()
+                        }
+                        (SubKind::Trade, InstrumentKind::FuturePerpetual) => {
+                            format!("{}-PERP", sub.instrument.base).to_uppercase()
+                        }
+                        (_, _) => {
+                            panic!("not supported")
+                        }
+                    };
+
+                    (subscription_id.into(), sub)
+                })
+                .collect(),
+        );
+
+        Ftx { ids }
+    }
+
+    #[test]
+    fn test_get_channel_meta() {
+        struct TestCase {
+            input: Subscription,
+            expected: Result<(&'static str, String), SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: InstrumentKind::Spot is supported
+                input: Subscription::new(
+                    ExchangeId::Ftx,
+                    ("btc", "usdt", InstrumentKind::Spot),
+                    SubKind::Trade,
+                ),
+                expected: Ok(("trades", "BTC/USDT".to_owned())),
+            },
+            TestCase {
+                // TC1: InstrumentKind::FuturePerpetual is supported
+                input: Subscription::new(
+                    ExchangeId::Ftx,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::Trade,
+                ),
+                expected: Ok(("trades", "BTC-PERP".to_owned())),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = Ftx::get_channel_meta(&test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_ftx_transform() {
+        let mut transformer = ftx(vec![
+            Subscription::from((
+                ExchangeId::Ftx,
+                "btc",
+                "usdt",
+                InstrumentKind::Spot,
+                SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::Ftx,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Trade,
+            )),
+        ]);
+
+        let time = Utc::now();
+
+        struct TestCase {
+            input: FtxMessage,
+            expected: Vec<Result<MarketEvent, SocketError>>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: FtxMessage with unknown SubscriptionId
+                input: FtxMessage::Trades {
+                    market: SubscriptionId::from("unknown"),
+                    trades: vec![],
+                },
+                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
+                    "unknown",
+                )))],
+            },
+            TestCase {
+                // TC1: FtxMessage Spot trades w/ known SubscriptionId
+                input: FtxMessage::Trades {
+                    market: SubscriptionId::from("BTC/USDT"),
+                    trades: vec![
+                        FtxTrade {
+                            id: 1,
+                            price: 1.0,
+                            size: 1.0,
+                            side: Side::Buy,
+                            time: time,
+                        },
+                        FtxTrade {
+                            id: 2,
+                            price: 1.0,
+                            size: 1.0,
+                            side: Side::Sell,
+                            time: time,
+                        },
+                    ],
+                },
+                expected: vec![
+                    Ok(MarketEvent {
+                        exchange_time: time,
+                        received_time: time,
+                        exchange: Exchange::from(ExchangeId::Ftx),
+                        instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+                        kind: DataKind::Trade(PublicTrade {
+                            id: "1".to_string(),
+                            price: 1.0,
+                            quantity: 1.0,
+                            side: Side::Buy,
+                        }),
+                    }),
+                    Ok(MarketEvent {
+                        exchange_time: time,
+                        received_time: time,
+                        exchange: Exchange::from(ExchangeId::Ftx),
+                        instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+                        kind: DataKind::Trade(PublicTrade {
+                            id: "2".to_string(),
+                            price: 1.0,
+                            quantity: 1.0,
+                            side: Side::Sell,
+                        }),
+                    }),
+                ],
+            },
+            TestCase {
+                // TC1: FtxMessage FuturePerpetual trades w/ known SubscriptionId
+                input: FtxMessage::Trades {
+                    market: SubscriptionId::from("BTC-PERP"),
+                    trades: vec![
+                        FtxTrade {
+                            id: 1,
+                            price: 1.0,
+                            size: 1.0,
+                            side: Side::Buy,
+                            time: time,
+                        },
+                        FtxTrade {
+                            id: 2,
+                            price: 1.0,
+                            size: 1.0,
+                            side: Side::Sell,
+                            time: time,
+                        },
+                    ],
+                },
+                expected: vec![
+                    Ok(MarketEvent {
+                        exchange_time: time,
+                        received_time: time,
+                        exchange: Exchange::from(ExchangeId::Ftx),
+                        instrument: Instrument::from((
+                            "btc",
+                            "usdt",
+                            InstrumentKind::FuturePerpetual,
+                        )),
+                        kind: DataKind::Trade(PublicTrade {
+                            id: "1".to_string(),
+                            price: 1.0,
+                            quantity: 1.0,
+                            side: Side::Buy,
+                        }),
+                    }),
+                    Ok(MarketEvent {
+                        exchange_time: time,
+                        received_time: time,
+                        exchange: Exchange::from(ExchangeId::Ftx),
+                        instrument: Instrument::from((
+                            "btc",
+                            "usdt",
+                            InstrumentKind::FuturePerpetual,
+                        )),
+                        kind: DataKind::Trade(PublicTrade {
+                            id: "2".to_string(),
+                            price: 1.0,
+                            quantity: 1.0,
+                            side: Side::Sell,
+                        }),
+                    }),
+                ],
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = transformer.transform(test.input);
+            assert_eq!(
+                actual.len(),
+                test.expected.len(),
+                "TestCase {} failed",
+                index
+            );
+
+            for (vector_index, (actual, expected)) in actual
+                .into_iter()
+                .zip(test.expected.into_iter())
+                .enumerate()
+            {
+                match (actual, expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        // Scrub Utc::now() timestamps to allow comparison
+                        let actual = MarketEvent {
+                            received_time: time,
+                            ..actual
+                        };
+                        assert_eq!(
+                            actual, expected,
+                            "TC{} failed at vector index {}",
+                            index, vector_index
+                        )
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed at vector index {vector_index} because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
     }
 }

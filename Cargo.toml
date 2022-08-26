@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["keirbailey <keirinvestment@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -15,7 +15,7 @@ categories = ["accessibility", "simulation"]
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.3.0"
+barter-integration = "0.3.1"
 
 # Logging
 tracing = "0.1.36"
