@@ -9,7 +9,7 @@ use crate::model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta}
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::{Exchange, SubscriptionId},
+    model::Exchange,
     protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage, WsSink, WsStream},
     Event, ExchangeStream, Transformer,
 };
@@ -167,10 +167,7 @@ pub trait Validator {
 
 /// Defines how to translate between exchange specific data structures & Barter data
 /// structures. This must be implemented when integrating a new exchange.
-pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized
-where
-    <Self as Transformer<MarketEvent>>::Input: Identifiable,
-{
+pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized {
     /// Unique identifier for an [`ExchangeTransformer`].
     const EXCHANGE: ExchangeId;
 
@@ -182,18 +179,10 @@ where
     fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self;
 }
 
-/// [`Identifiable`] structures are capable of determining their associated [`SubscriptionId`]. Used
-/// by [`ExchangeTransformer`] implementations to determine the original Barter [`Subscription`]
-/// associated with an incoming exchange message.
-pub trait Identifiable {
-    fn id(&self) -> SubscriptionId;
-}
-
 #[async_trait]
 impl<Exchange> MarketStream for ExchangeWsStream<Exchange>
 where
     Exchange: Subscriber + ExchangeTransformer + Send,
-    <Exchange as Transformer<MarketEvent>>::Input: Identifiable,
 {
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
         // Connect & subscribe
