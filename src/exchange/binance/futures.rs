@@ -1,8 +1,7 @@
 use super::{BinanceMessage, BinanceSubResponse};
 use crate::{
     model::{MarketEvent, SubKind},
-    ExchangeId, ExchangeTransformer, Identifiable, Subscriber, Subscription, SubscriptionIds,
-    SubscriptionMeta,
+    ExchangeId, ExchangeTransformer, Subscriber, Subscription, SubscriptionIds, SubscriptionMeta,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
@@ -72,7 +71,7 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         let market_event = self
             .ids
-            .find_instrument(input.id())
+            .find_instrument(&input)
             .map(|instrument| MarketEvent::from((BinanceFuturesUsd::EXCHANGE, instrument, input)));
 
         vec![market_event]

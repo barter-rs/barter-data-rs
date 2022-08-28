@@ -1,6 +1,6 @@
 use crate::{
     model::{DataKind, PublicTrade},
-    ExchangeId, Identifiable, MarketEvent, Validator,
+    ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
     error::SocketError,
@@ -50,9 +50,9 @@ pub enum FtxMessage {
     },
 }
 
-impl Identifiable for FtxMessage {
-    fn id(&self) -> SubscriptionId {
-        match self {
+impl From<&FtxMessage> for SubscriptionId {
+    fn from(message: &FtxMessage) -> Self {
+        match message {
             FtxMessage::Trades {
                 market: subscription_id,
                 ..

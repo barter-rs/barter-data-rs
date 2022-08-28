@@ -1,7 +1,7 @@
 use super::{datetime_utc_from_epoch_duration, de_str};
 use crate::{
     model::{DataKind, PublicTrade},
-    ExchangeId, Identifiable, MarketEvent, Validator,
+    ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
     error::SocketError,
@@ -47,9 +47,9 @@ pub enum BinanceMessage {
     Trade(BinanceTrade),
 }
 
-impl Identifiable for BinanceMessage {
-    fn id(&self) -> SubscriptionId {
-        match self {
+impl From<&BinanceMessage> for SubscriptionId {
+    fn from(message: &BinanceMessage) -> Self {
+        match message {
             BinanceMessage::Trade(trade) => SubscriptionId::from(trade),
         }
     }
