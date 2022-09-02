@@ -1,5 +1,5 @@
 use crate::{
-    exchange::{binance::futures::BinanceFuturesUsd, ftx::Ftx},
+    exchange::{binance::futures::BinanceFuturesUsd, ftx::Ftx, kraken::Kraken},
     model::SubKind,
     ExchangeId, ExchangeWsStream, MarketEvent, MarketStream, Subscription, Validator,
 };
@@ -170,6 +170,13 @@ impl StreamBuilder {
                 }
                 ExchangeId::Ftx => {
                     tokio::spawn(consume::<ExchangeWsStream<Ftx>>(
+                        exchange,
+                        subscriptions,
+                        exchange_tx,
+                    ));
+                }
+                ExchangeId::Kraken => {
+                    tokio::spawn(consume::<ExchangeWsStream<Kraken>>(
                         exchange,
                         subscriptions,
                         exchange_tx,

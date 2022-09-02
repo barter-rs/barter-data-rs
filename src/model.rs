@@ -486,6 +486,19 @@ mod tests {
                     kind: SubKind::Trade,
                 }),
             },
+            TestCase {
+                // TC4: Valid Subscription w/ Ftx Spot
+                input: Subscription {
+                    exchange: ExchangeId::Kraken,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Kraken,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                }),
+            },
         ];
 
         for (index, test) in cases.into_iter().enumerate() {

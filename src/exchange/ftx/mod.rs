@@ -102,7 +102,7 @@ impl Ftx {
     /// Example Ok Return: Ok("trades", "BTC/USDT")
     /// where channel == "trades" & market == "BTC/USDT".
     fn get_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
-        // Determine Ftx channel using the Subscription StreamKind
+        // Determine Ftx channel using the Subscription SubKind
         let channel = match &subscription.kind {
             SubKind::Trade => "trades",
             other => {
@@ -113,7 +113,7 @@ impl Ftx {
             }
         };
 
-        // Determine Ftx market using the InstrumentKind
+        // Determine Ftx market using the Instrument
         let market = match &subscription.instrument.kind {
             InstrumentKind::Spot => format!(
                 "{}/{}",
@@ -250,7 +250,7 @@ mod tests {
             TestCase {
                 // TC0: FtxMessage with unknown SubscriptionId
                 input: FtxMessage::Trades {
-                    market: SubscriptionId::from("unknown"),
+                    subscription_id: SubscriptionId::from("unknown"),
                     trades: vec![],
                 },
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
@@ -260,7 +260,7 @@ mod tests {
             TestCase {
                 // TC1: FtxMessage Spot trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    market: SubscriptionId::from("BTC/USDT"),
+                    subscription_id: SubscriptionId::from("BTC/USDT"),
                     trades: vec![
                         FtxTrade {
                             id: 1,
@@ -308,7 +308,7 @@ mod tests {
             TestCase {
                 // TC1: FtxMessage FuturePerpetual trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    market: SubscriptionId::from("BTC-PERP"),
+                    subscription_id: SubscriptionId::from("BTC-PERP"),
                     trades: vec![
                         FtxTrade {
                             id: 1,

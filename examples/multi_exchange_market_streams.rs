@@ -21,6 +21,13 @@ async fn main() {
                 ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
             ],
         )
+        .subscribe_exchange(
+            ExchangeId::Kraken,
+            [
+                ("xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
+                ("eth", "usd", InstrumentKind::Spot, SubKind::Trade),
+            ],
+        )
         .subscribe([
             (ExchangeId::Ftx, "xrp", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
