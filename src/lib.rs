@@ -123,6 +123,7 @@ pub trait Subscriber {
                 // Parse incoming messages and determine subscription outcomes
                 message = websocket.next() => match message {
                     Some(Ok(WsMessage::Text(payload))) => {
+                        println!("{payload}");
                         if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
                             match response.validate() {
                                 // Subscription success
@@ -219,6 +220,7 @@ pub enum ExchangeId {
     BinanceFuturesUsd,
     Binance,
     Ftx,
+    Kraken,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -241,6 +243,7 @@ impl ExchangeId {
         match self {
             ExchangeId::Binance | ExchangeId::BinanceFuturesUsd => "binance",
             ExchangeId::Ftx => "ftx",
+            ExchangeId::Kraken => "kraken",
         }
     }
 
@@ -250,6 +253,7 @@ impl ExchangeId {
             ExchangeId::Binance => "binance",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::Ftx => "ftx",
+            ExchangeId::Kraken => "kraken",
         }
     }
 
@@ -312,7 +316,7 @@ pub mod test_util {
     use chrono::Utc;
     use std::ops::{Add, Sub};
 
-    /// Build a [`MarketEvent`] of [`DataKind::PublicTrade`] with the provided [`Side`].
+    /// Build a [`MarketEvent`] of [`DataKind::Trade`] with the provided [`Side`].
     pub fn market_trade(side: Side) -> MarketEvent {
         MarketEvent {
             exchange_time: Utc::now(),

@@ -44,7 +44,8 @@ impl Validator for FtxSubResponse {
 #[serde(tag = "channel", rename_all = "lowercase")]
 pub enum FtxMessage {
     Trades {
-        market: SubscriptionId,
+        #[serde(rename = "market")]
+        subscription_id: SubscriptionId,
         #[serde(rename = "data")]
         trades: Vec<FtxTrade>,
     },
@@ -54,8 +55,7 @@ impl From<&FtxMessage> for SubscriptionId {
     fn from(message: &FtxMessage) -> Self {
         match message {
             FtxMessage::Trades {
-                market: subscription_id,
-                ..
+                subscription_id, ..
             } => subscription_id.clone(),
         }
     }
@@ -192,7 +192,7 @@ mod tests {
                 [{"id": 3689226514, "price": 10000.0, "size": 1.0, "side": "buy", "liquidation": false,
                 "time": "2022-04-06T15:38:16.182802+00:00"}]}"#,
                 expected: Ok(FtxMessage::Trades {
-                    market: SubscriptionId::from("BTC/USDT"),
+                    subscription_id: SubscriptionId::from("BTC/USDT"),
                     trades: vec![FtxTrade {
                         id: 3689226514,
                         price: 10000.0,
