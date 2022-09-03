@@ -1,12 +1,12 @@
 use crate::{
     exchange::{binance::futures::BinanceFuturesUsd, ftx::Ftx, kraken::Kraken},
     model::SubKind,
-    ExchangeId, ExchangeWsStream, MarketEvent, MarketStream, Subscription, Validator,
+    ExchangeId, ExchangeWsStream, MarketEvent, MarketStream, Subscription,
 };
 use barter_integration::{
     error::SocketError,
     model::{InstrumentKind, Symbol},
-    Event,
+    Event, Validator,
 };
 use futures::{stream::Map, StreamExt};
 use std::{collections::HashMap, time::Duration};

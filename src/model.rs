@@ -1,9 +1,9 @@
-use crate::{ExchangeId, Validator};
+use crate::ExchangeId;
 use barter_integration::{
     error::SocketError,
     model::{Exchange, Instrument, InstrumentKind, Market, Side, SubscriptionId, Symbol},
     protocol::websocket::WsMessage,
-    Event,
+    Event, Validator,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -138,7 +138,7 @@ impl Subscription {
 }
 
 /// Possible Barter [`Subscription`] types.
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubKind {
     Trade,
@@ -164,52 +164,67 @@ impl Display for SubKind {
     }
 }
 
-/// Barter new type representing a time interval as a `String` identifier.
-///
-/// eg/ "1m", "1h", "12h", "1d", "1w", "1M", etc
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
-pub struct Interval(pub String);
-
-impl Debug for Interval {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+/// Barter time interval used for specifying the interval of a [`SubKind::Candle`].
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum Interval {
+    #[serde(alias = "1m")]
+    Minute1,
+    #[serde(alias = "3m")]
+    Minute3,
+    #[serde(alias = "5m")]
+    Minute5,
+    #[serde(alias = "15m")]
+    Minute15,
+    #[serde(alias = "30m")]
+    Minute30,
+    #[serde(alias = "1h")]
+    Hour1,
+    #[serde(alias = "2h")]
+    Hour2,
+    #[serde(alias = "4h")]
+    Hour4,
+    #[serde(alias = "6h")]
+    Hour6,
+    #[serde(alias = "8h")]
+    Hour8,
+    #[serde(alias = "12h")]
+    Hour12,
+    #[serde(alias = "1d")]
+    Day1,
+    #[serde(alias = "3d")]
+    Day3,
+    #[serde(alias = "1w")]
+    Week1,
+    #[serde(alias = "1M")]
+    Month1,
+    #[serde(alias = "3M")]
+    Month3,
 }
 
 impl Display for Interval {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl AsRef<str> for Interval {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for Interval {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer).map(Interval::new)
-    }
-}
-
-impl<S> From<S> for Interval
-where
-    S: Into<String>,
-{
-    fn from(input: S) -> Self {
-        Self(input.into())
-    }
-}
-
-impl Interval {
-    /// Construct an [`Interval`] new type using the provided `Into<Interval>` value.
-    pub fn new<S>(input: S) -> Self
-    where
-        S: Into<Interval>,
-    {
-        input.into()
+        write!(
+            f,
+            "{}",
+            match self {
+                Interval::Minute1 => "1m",
+                Interval::Minute3 => "3m",
+                Interval::Minute5 => "5m",
+                Interval::Minute15 => "15m",
+                Interval::Minute30 => "30m",
+                Interval::Hour1 => "1h",
+                Interval::Hour2 => "2h",
+                Interval::Hour4 => "4h",
+                Interval::Hour6 => "6h",
+                Interval::Hour8 => "8h",
+                Interval::Hour12 => "12h",
+                Interval::Day1 => "1d",
+                Interval::Day3 => "3d",
+                Interval::Week1 => "1w",
+                Interval::Month1 => "1M",
+                Interval::Month3 => "3M",
+            }
+        )
     }
 }
 
@@ -307,7 +322,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::Candle(Interval::from("5m")),
+                    kind: SubKind::Candle(Interval::Minute5),
                 }),
             },
             TestCase {
@@ -316,7 +331,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::Candle(Interval::from("5m")),
+                    kind: SubKind::Candle(Interval::Minute5),
                 }),
             },
             TestCase {
@@ -325,7 +340,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::Kline(Interval::from("5m")),
+                    kind: SubKind::Kline(Interval::Minute5),
                 }),
             },
             TestCase {
@@ -334,7 +349,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::Kline(Interval::from("5m")),
+                    kind: SubKind::Kline(Interval::Minute5),
                 }),
             },
             TestCase {

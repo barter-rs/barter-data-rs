@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 
 /// [`Ftx`] specific data structures.
-mod model;
+pub mod model;
 
 /// `Ftx` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` & `Futures` data.
@@ -42,7 +42,7 @@ impl Subscriber for Ftx {
             .iter()
             .map(|subscription| {
                 // Determine the Ftx specific channel & market for this Barter Subscription
-                let (channel, market) = Self::get_channel_meta(subscription)?;
+                let (channel, market) = Self::build_channel_meta(subscription)?;
 
                 // Construct Ftx specific subscription message
                 let ftx_subscription = Self::subscription(channel, &market);
@@ -101,7 +101,7 @@ impl Ftx {
     ///
     /// Example Ok Return: Ok("trades", "BTC/USDT")
     /// where channel == "trades" & market == "BTC/USDT".
-    fn get_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
+    fn build_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription SubKind
         let channel = match &subscription.kind {
             SubKind::Trade => "trades",
@@ -204,7 +204,7 @@ mod tests {
         ];
 
         for (index, test) in cases.into_iter().enumerate() {
-            let actual = Ftx::get_channel_meta(&test.input);
+            let actual = Ftx::build_channel_meta(&test.input);
             match (actual, test.expected) {
                 (Ok(actual), Ok(expected)) => {
                     assert_eq!(actual, expected, "TC{} failed", index)

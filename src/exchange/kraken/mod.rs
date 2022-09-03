@@ -1,19 +1,18 @@
 use crate::{
-    model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
-    SubscriptionIds, SubscriptionMeta,
+    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription, SubscriptionIds,
+    SubscriptionMeta,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
 };
-use model::{KrakenEvent, KrakenMessage, KrakenSubResponse};
+use model::{KrakenEvent, KrakenMessage, KrakenSubKind, KrakenSubResponse, KrakenSubscription};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tracing::debug;
 
 /// [`Kraken`] specific data structures.
-mod model;
+pub mod model;
 
 /// `Kraken` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` data.
@@ -39,19 +38,17 @@ impl Subscriber for Kraken {
         let subscriptions = subscriptions
             .iter()
             .map(|subscription| {
-                // Determine the Kraken specific channel & market for this Barter Subscription
-                let (channel, market) = Self::get_channel_meta(subscription)?;
+                // Translate Barter Subscription to the associated KrakenSubscription
+                let kraken_subscription = Kraken::subscription(subscription)?;
 
-                // Construct Kraken specific subscription message
-                let kraken_subscription = Self::subscription(channel, &market);
+                // Determine the SubscriptionId ("{channel}|{market} ")for this KrakenSubscription
+                // eg/ SubscriptionId("ohlc-5|XBT/USD")
+                let subscription_id = SubscriptionId::from(&kraken_subscription);
 
-                // Use "channel|market" as the SubscriptionId key in SubscriptionIds HashMap
-                ids.insert(
-                    Kraken::subscription_id(channel, market),
-                    subscription.clone(),
-                );
+                // Insert SubscriptionId to Barter Subscription Entry in SubscriptionIds HashMap
+                ids.insert(subscription_id, subscription.clone());
 
-                Ok(kraken_subscription)
+                WsMessage::try_from(&kraken_subscription)
             })
             .collect::<Result<Vec<_>, SocketError>>()?;
 
@@ -76,89 +73,72 @@ impl Transformer<MarketEvent> for Kraken {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let trades = match input {
-            KrakenMessage::Trades(trades) => trades,
+        match input {
+            KrakenMessage::Trades(trades) => {
+                // Determine Instrument associated with this KrakenTrades message
+                let instrument = match self.ids.find_instrument(trades.subscription_id) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error)],
+                };
+
+                // Map to MarketEvents
+                trades
+                    .trades
+                    .into_iter()
+                    .map(|trade| {
+                        Ok(MarketEvent::from((
+                            Kraken::EXCHANGE,
+                            instrument.clone(),
+                            trade,
+                        )))
+                    })
+                    .collect()
+            }
+            KrakenMessage::Candle(candle) => {
+                // Determine Instrument associated with this KrakenCandle message
+                let instrument = match self.ids.find_instrument(candle.subscription_id) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error)],
+                };
+
+                // Map to MarketEvent
+                vec![Ok(MarketEvent::from((
+                    Kraken::EXCHANGE,
+                    instrument,
+                    candle.candle,
+                )))]
+            }
             KrakenMessage::KrakenEvent(KrakenEvent::Heartbeat) => {
                 debug!(exchange_id = %Kraken::EXCHANGE, "received heartbeat");
-                return vec![];
+                vec![]
             }
             KrakenMessage::KrakenEvent(KrakenEvent::Error(error)) => {
-                return vec![Err(SocketError::Exchange(error.message))]
+                vec![Err(SocketError::Exchange(error.message))]
             }
-        };
-
-        let instrument = match self.ids.find_instrument(trades.subscription_id) {
-            Ok(instrument) => instrument,
-            Err(error) => return vec![Err(error)],
-        };
-
-        trades
-            .trades
-            .into_iter()
-            .map(|trade| {
-                Ok(MarketEvent::from((
-                    Kraken::EXCHANGE,
-                    instrument.clone(),
-                    trade,
-                )))
-            })
-            .collect()
+        }
     }
 }
 
 impl Kraken {
-    /// Determine the `Kraken` channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the `Kraken` &str channel, and a `String` market identifier. Both are used to
-    /// build an `Kraken` subscription payload, as well as the associated [`SubscriptionId`] via
-    /// [`Self::subscription_id`].
-    ///
-    /// Example Ok Return: Ok("trade", "XBT/USD")
-    /// where channel == "trade" & market == "XBT/USD".
-    fn get_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
-        // Determine Kraken channel using the Subscription SubKind
-        let channel = match &sub.kind {
-            SubKind::Trade => "trade",
-            other => {
-                return Err(SocketError::Unsupported {
-                    entity: Self::EXCHANGE.as_str(),
-                    item: other.to_string(),
-                })
-            }
-        };
+    /// Translate a Barter [`Subscription`] into a [`Kraken`] compatible subscription message.
+    fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
+        // Determine Kraken pair using the Instrument
+        let pair = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
 
-        // Determine Kraken market using the Instrument
-        let market = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
+        // Determine the KrakenSubKind from the Barter SubKind
+        let kind = KrakenSubKind::try_from(&sub.kind)?;
 
-        Ok((channel, market))
-    }
-
-    /// Build a `Kraken` compatible [`SubscriptionId`] using the channel & market provided. This is
-    /// used to associate `Kraken` data structures received over the WebSocket with their original
-    /// Barter [`Subscription`].
-    fn subscription_id(channel: &str, market: String) -> SubscriptionId {
-        SubscriptionId::from(format!("{channel}|{market}"))
-    }
-
-    /// Build a `Kraken` compatible subscription message using the channel & market provided.
-    fn subscription(channel: &str, market: &str) -> WsMessage {
-        WsMessage::Text(
-            json!({
-                "event": "subscribe",
-                "pair": [market],
-                "subscription": {
-                    "name": channel
-                }
-            })
-            .to_string(),
-        )
+        Ok(KrakenSubscription::new(pair, kind))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::kraken::model::{KrakenError, KrakenTrade, KrakenTrades};
-    use crate::model::{DataKind, PublicTrade};
+    use crate::exchange::kraken::model::{
+        KrakenCandle, KrakenCandleData, KrakenError, KrakenInterval, KrakenTrade, KrakenTrades,
+    };
+    use crate::model::{Candle, DataKind, Interval, PublicTrade, SubKind};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::{DateTime, Utc};
 
@@ -171,15 +151,22 @@ mod tests {
                         panic!("non spot InstrumentKinds not supported by Kraken exchange")
                     }
 
+                    let market =
+                        format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
+
                     let subscription_id = match &sub.kind {
                         SubKind::Trade => {
-                            format!(
-                                "trade|{}",
-                                format!("{}/{}", sub.instrument.base, sub.instrument.quote)
-                                    .to_uppercase()
-                            )
+                            format!("trade|{market}")
                         }
-                        _ => panic!("non trade Subscriptions not implemented yet"),
+                        SubKind::Candle(interval) => {
+                            let interval = KrakenInterval::try_from(interval)
+                                .expect("interval not supports by kraken");
+
+                            format!("ohlc-{}|{market}", u32::from(interval))
+                        }
+                        _ => panic!(
+                            "subscription type not implemented in mod tests kraken() builder"
+                        ),
                     };
 
                     (SubscriptionId(subscription_id), sub)
@@ -195,24 +182,58 @@ mod tests {
     }
 
     #[test]
-    fn test_get_channel_meta() {
+    fn test_subscription() {
         struct TestCase {
             input: Subscription,
-            expected: Result<(&'static str, String), SocketError>,
+            expected: Result<KrakenSubscription, SocketError>,
         }
 
-        let cases = vec![TestCase {
-            // TC0: InstrumentKind::Spot is supported
-            input: Subscription::new(
-                ExchangeId::Kraken,
-                ("xbt", "USD", InstrumentKind::Spot),
-                SubKind::Trade,
-            ),
-            expected: Ok(("trade", "XBT/USD".to_owned())),
-        }];
+        let cases = vec![
+            TestCase {
+                // TC0: Valid InstrumentKind::Spot Trade Subscription
+                input: Subscription::new(
+                    ExchangeId::Kraken,
+                    ("xbt", "usd", InstrumentKind::Spot),
+                    SubKind::Trade,
+                ),
+                expected: Ok(KrakenSubscription {
+                    event: "subscribe",
+                    pair: "XBT/USD".to_string(),
+                    kind: KrakenSubKind::Trade { channel: "trade" },
+                }),
+            },
+            TestCase {
+                // TC1: Valid InstrumentKind::Spot Candle Subscription
+                input: Subscription::new(
+                    ExchangeId::Kraken,
+                    ("xbt", "usd", InstrumentKind::Spot),
+                    SubKind::Candle(Interval::Minute5),
+                ),
+                expected: Ok(KrakenSubscription {
+                    event: "subscribe",
+                    pair: "XBT/USD".to_string(),
+                    kind: KrakenSubKind::Candle {
+                        channel: "ohlc",
+                        interval: 5,
+                    },
+                }),
+            },
+            TestCase {
+                // TC2: Invalid InstrumentKind::Spot Candle Subscription w/ unsupported interval
+                input: Subscription::new(
+                    ExchangeId::Kraken,
+                    ("xbt", "usd", InstrumentKind::Spot),
+                    SubKind::Candle(Interval::Month3),
+                ),
+                expected: Err(SocketError::Unsupported {
+                    entity: "kraken",
+                    item: Interval::Month3.to_string(),
+                }),
+            },
+        ];
 
         for (index, test) in cases.into_iter().enumerate() {
-            let actual = Kraken::get_channel_meta(&test.input);
+            let actual = Kraken::subscription(&test.input);
             match (actual, test.expected) {
                 (Ok(actual), Ok(expected)) => {
                     assert_eq!(actual, expected, "TC{} failed", index)
@@ -230,13 +251,22 @@ mod tests {
 
     #[test]
     fn test_kraken_transform() {
-        let mut transformer = kraken(vec![Subscription::from((
-            ExchangeId::Kraken,
-            "XBT",
-            "USD",
-            InstrumentKind::Spot,
-            SubKind::Trade,
-        ))]);
+        let mut transformer = kraken(vec![
+            Subscription::from((
+                ExchangeId::Kraken,
+                "XBT",
+                "USD",
+                InstrumentKind::Spot,
+                SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::Kraken,
+                "XBT",
+                "USD",
+                InstrumentKind::Spot,
+                SubKind::Candle(Interval::Minute5),
+            )),
+        ]);
 
         let timestamp = Utc::now();
 
@@ -308,12 +338,69 @@ mod tests {
                 )))],
             },
             TestCase {
-                // TC2: KrakenMessage Heartbeat returns empty vector
+                // TC2: KrakenMessage Spot candles-5 w/ known SubscriptionId
+                input: KrakenMessage::Candle(KrakenCandle {
+                    subscription_id: SubscriptionId::from("ohlc-5|XBT/USD"),
+                    candle: KrakenCandleData {
+                        start_time: timestamp
+                            .checked_sub_signed(chrono::Duration::minutes(5))
+                            .unwrap(),
+                        end_time: timestamp,
+                        open: 7000.70000,
+                        high: 7000.70000,
+                        low: 1000.60000,
+                        close: 3586.60000,
+                        volume: 0.03373000,
+                        trade_count: 50000,
+                    },
+                }),
+                expected: vec![Ok(MarketEvent {
+                    exchange_time: timestamp,
+                    received_time: timestamp,
+                    exchange: Exchange::from(ExchangeId::Kraken),
+                    instrument: Instrument::from(("xbt", "usd", InstrumentKind::Spot)),
+                    kind: DataKind::Candle(Candle {
+                        start_time: timestamp
+                            .checked_sub_signed(chrono::Duration::minutes(5))
+                            .unwrap(),
+                        end_time: timestamp,
+                        open: 7000.70000,
+                        high: 7000.70000,
+                        low: 1000.60000,
+                        close: 3586.60000,
+                        volume: 0.03373000,
+                        trade_count: 50000,
+                    }),
+                })],
+            },
+            TestCase {
+                // TC3: KrakenMessage Spot candles-5 w/ unknown SubscriptionId
+                input: KrakenMessage::Candle(KrakenCandle {
+                    subscription_id: SubscriptionId::from("unknown"),
+                    candle: KrakenCandleData {
+                        start_time: timestamp,
+                        end_time: timestamp
+                            .checked_add_signed(chrono::Duration::minutes(5))
+                            .unwrap(),
+                        open: 7000.70000,
+                        high: 7000.70000,
+                        low: 1000.60000,
+                        close: 3586.60000,
+                        volume: 0.03373000,
+                        trade_count: 50000,
+                    },
+                }),
+                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
+                    "unknown",
+                )))],
+            },
+            TestCase {
+                // TC4: KrakenMessage Heartbeat returns empty vector
                 input: KrakenMessage::KrakenEvent(KrakenEvent::Heartbeat),
                 expected: vec![],
             },
             TestCase {
-                // TC3: KrakenMessage Error returns empty vector
+                // TC5: KrakenMessage Error returns empty vector
                 input: KrakenMessage::KrakenEvent(KrakenEvent::Error(KrakenError {
                     message: "error message".to_string(),
                 })),

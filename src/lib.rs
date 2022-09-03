@@ -11,7 +11,7 @@ use barter_integration::{
     error::SocketError,
     model::Exchange,
     protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage, WsSink, WsStream},
-    Event, ExchangeStream, Transformer,
+    Event, ExchangeStream, Transformer, Validator,
 };
 use futures::{SinkExt, Stream, StreamExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -154,15 +154,6 @@ pub trait Subscriber {
     fn subscription_timeout() -> Duration {
         Duration::from_secs(10)
     }
-}
-
-/// [`Validator`]s are capable of determining if their internal state is satisfactory to fulfill
-/// some use case defined by the implementor.
-pub trait Validator {
-    /// Check if `Self` is valid for some use case.
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized;
 }
 
 /// Defines how to translate between exchange specific data structures & Barter data
