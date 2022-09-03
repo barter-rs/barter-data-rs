@@ -37,7 +37,7 @@ impl Subscriber for BinanceFuturesUsd {
             .iter()
             .map(|subscription| {
                 // Determine the BinanceFuturesUsd specific channel for this Barter Subscription
-                let channel = Self::get_channel_id(subscription)?;
+                let channel = Self::build_channel_id(subscription)?;
 
                 // Use channel as the SubscriptionId key in the SubscriptionIds
                 ids.insert(SubscriptionId(channel.clone()), subscription.clone());
@@ -80,7 +80,7 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
 
 impl BinanceFuturesUsd {
     /// Determine the Binance channel identifier associated with an input Barter [`Subscription`].
-    fn get_channel_id(sub: &Subscription) -> Result<String, SocketError> {
+    fn build_channel_id(sub: &Subscription) -> Result<String, SocketError> {
         match &sub.kind {
             SubKind::Trade => Ok(format!(
                 "{}{}@aggTrade",

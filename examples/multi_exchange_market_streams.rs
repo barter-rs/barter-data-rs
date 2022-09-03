@@ -1,6 +1,6 @@
 use barter_data::{
     builder::Streams,
-    model::{MarketEvent, SubKind},
+    model::{Interval, MarketEvent, SubKind},
     ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
@@ -25,7 +25,7 @@ async fn main() {
             ExchangeId::Kraken,
             [
                 ("xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-                ("eth", "usd", InstrumentKind::Spot, SubKind::Trade),
+                ("xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
             ],
         )
         .subscribe([

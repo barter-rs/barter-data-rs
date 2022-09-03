@@ -1,15 +1,179 @@
+use super::Kraken;
 use crate::{
-    exchange::{datetime_utc_from_epoch_duration, extract_next},
-    model::{DataKind, PublicTrade},
-    ExchangeId, MarketEvent, Validator,
+    exchange::{datetime_utc_from_epoch_duration, extract_next, se_element_to_vector},
+    model::{Candle, DataKind, Interval, PublicTrade, SubKind},
+    ExchangeId, ExchangeTransformer, MarketEvent,
 };
 use barter_integration::{
     error::SocketError,
     model::{Exchange, Instrument, Side, SubscriptionId},
+    protocol::websocket::WsMessage,
+    Validator,
 };
 use chrono::{DateTime, Utc};
 use serde::{de, Deserialize, Deserializer, Serialize};
 use std::time::Duration;
+
+/// [`Kraken`] compatible subscription messaged translated from a Barter
+/// [`Subscription`](crate::Subscription).
+///
+/// eg/ KrakenSubscription {
+///     "event": subscribe,
+///     "pair": "XBT/USD"
+///     "subscription": {
+///         "channel": "ohlc",
+///         "interval": "5",
+///     }
+/// }
+/// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
+pub struct KrakenSubscription {
+    pub event: &'static str,
+    #[serde(serialize_with = "se_element_to_vector")]
+    pub pair: String,
+    #[serde(rename = "subscription")]
+    pub kind: KrakenSubKind,
+}
+
+impl From<&KrakenSubscription> for SubscriptionId {
+    fn from(kraken_subscription: &KrakenSubscription) -> Self {
+        match kraken_subscription.kind {
+            KrakenSubKind::Trade { channel } => {
+                // eg/ SubscriptionId::from("trade|XBT/USD")
+                SubscriptionId::from(format!("{channel}|{}", kraken_subscription.pair))
+            }
+            KrakenSubKind::Candle { channel, interval } => {
+                // eg/ SubscriptionId::from("ohlc-5|XBT/USD"),
+                SubscriptionId::from(format!("{channel}-{interval}|{}", kraken_subscription.pair))
+            }
+        }
+    }
+}
+
+impl TryFrom<&KrakenSubscription> for WsMessage {
+    type Error = SocketError;
+
+    fn try_from(kraken_sub: &KrakenSubscription) -> Result<Self, Self::Error> {
+        serde_json::to_string(&kraken_sub)
+            .map(WsMessage::text)
+            .map_err(|error| SocketError::Serde {
+                error,
+                payload: format!("{kraken_sub:?}"),
+            })
+    }
+}
+
+impl KrakenSubscription {
+    const EVENT: &'static str = "subscribe";
+
+    /// Construct a new [`KrakenSubscription`] from the provided pair (eg/ "XBT/USD") and
+    /// [`KrakenSubKind`].
+    pub fn new(pair: String, kind: KrakenSubKind) -> Self {
+        Self {
+            event: Self::EVENT,
+            pair,
+            kind,
+        }
+    }
+}
+
+/// Possible [`KrakenSubscription`] variants.
+///
+/// eg/ KrakenSubKind::Candle {
+///         "channel": "ohlc",
+///         "interval": "5",
+/// }
+/// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
+#[serde(untagged)]
+pub enum KrakenSubKind {
+    Trade {
+        #[serde(rename = "name")]
+        channel: &'static str,
+    },
+    Candle {
+        #[serde(rename = "name")]
+        channel: &'static str,
+        interval: u32,
+    },
+}
+
+impl KrakenSubKind {
+    const TRADE: &'static str = "trade";
+    const CANDLE: &'static str = "ohlc";
+}
+
+impl TryFrom<&SubKind> for KrakenSubKind {
+    type Error = SocketError;
+
+    fn try_from(kind: &SubKind) -> Result<Self, Self::Error> {
+        match kind {
+            SubKind::Trade => Ok(KrakenSubKind::Trade {
+                channel: KrakenSubKind::TRADE,
+            }),
+            SubKind::Candle(interval) => Ok(KrakenSubKind::Candle {
+                channel: KrakenSubKind::CANDLE,
+                interval: u32::from(KrakenInterval::try_from(interval)?),
+            }),
+            other => Err(SocketError::Unsupported {
+                entity: Kraken::EXCHANGE.as_str(),
+                item: other.to_string(),
+            }),
+        }
+    }
+}
+
+/// Kraken time interval used for specifying the interval of a [`KrakenSubKind::Candle`].
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum KrakenInterval {
+    Minute1,
+    Minute5,
+    Minute15,
+    Minute30,
+    Hour1,
+    Hour4,
+    Hour12,
+    Day1,
+    Week1,
+}
+
+impl TryFrom<&Interval> for KrakenInterval {
+    type Error = SocketError;
+
+    fn try_from(interval: &Interval) -> Result<Self, Self::Error> {
+        match interval {
+            Interval::Minute1 => Ok(KrakenInterval::Minute1),
+            Interval::Minute5 => Ok(KrakenInterval::Minute5),
+            Interval::Minute15 => Ok(KrakenInterval::Minute15),
+            Interval::Minute30 => Ok(KrakenInterval::Minute30),
+            Interval::Hour1 => Ok(KrakenInterval::Hour1),
+            Interval::Hour4 => Ok(KrakenInterval::Hour4),
+            Interval::Hour12 => Ok(KrakenInterval::Hour12),
+            Interval::Day1 => Ok(KrakenInterval::Day1),
+            Interval::Week1 => Ok(KrakenInterval::Week1),
+            other => Err(SocketError::Unsupported {
+                entity: Kraken::EXCHANGE.as_str(),
+                item: other.to_string(),
+            }),
+        }
+    }
+}
+
+impl From<KrakenInterval> for u32 {
+    fn from(interval: KrakenInterval) -> Self {
+        match interval {
+            KrakenInterval::Minute1 => 1,
+            KrakenInterval::Minute5 => 5,
+            KrakenInterval::Minute15 => 15,
+            KrakenInterval::Minute30 => 30,
+            KrakenInterval::Hour1 => 60,
+            KrakenInterval::Hour4 => 240,
+            KrakenInterval::Hour12 => 1440,
+            KrakenInterval::Day1 => 10080,
+            KrakenInterval::Week1 => 21600,
+        }
+    }
+}
 
 /// `Kraken` message received in response to WebSocket subscription requests.
 ///
@@ -30,7 +194,7 @@ use std::time::Duration;
 /// }
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-subscriptionStatus>
-#[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum KrakenSubResponse {
     Subscribed {
@@ -72,13 +236,14 @@ impl Validator for KrakenSubResponse {
     }
 }
 
-/// `Kraken` message variants that can be received over [`WebSocket`].
+/// `Kraken` message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
 /// See docs: <https://docs.kraken.com/websockets/#overview>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "snake_case")]
 pub enum KrakenMessage {
     Trades(KrakenTrades),
+    Candle(KrakenCandle),
     KrakenEvent(KrakenEvent),
 }
 
@@ -91,7 +256,7 @@ pub struct KrakenTrades {
     pub trades: Vec<KrakenTrade>,
 }
 
-/// `Kraken` trade message.
+/// `Kraken` trade.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
@@ -100,6 +265,31 @@ pub struct KrakenTrade {
     pub quantity: f64,
     pub time: DateTime<Utc>,
     pub side: Side,
+}
+
+/// `Kraken` candle containing OHLCV [`KrakenCandleData`] with an associated [`SubscriptionId`]
+/// (eg/ "candle|XBT/USD").
+///
+/// See docs: <https://docs.kraken.com/websockets/#message-ohlc>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize)]
+pub struct KrakenCandle {
+    pub subscription_id: SubscriptionId,
+    pub candle: KrakenCandleData,
+}
+
+/// `Kraken` OHLCV data.
+///
+/// See docs: <https://docs.kraken.com/websockets/#message-ohlc>
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
+pub struct KrakenCandleData {
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub trade_count: u64,
 }
 
 /// `Kraken` messages received over the WebSocket which are not subscription data.
@@ -133,6 +323,27 @@ impl From<(ExchangeId, Instrument, KrakenTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.quantity,
                 side: trade.side,
+            }),
+        }
+    }
+}
+
+impl From<(ExchangeId, Instrument, KrakenCandleData)> for MarketEvent {
+    fn from((exchange_id, instrument, candle): (ExchangeId, Instrument, KrakenCandleData)) -> Self {
+        Self {
+            exchange_time: candle.end_time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::Candle(Candle {
+                start_time: candle.start_time,
+                end_time: candle.end_time,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+                volume: candle.volume,
+                trade_count: candle.trade_count,
             }),
         }
     }
@@ -187,7 +398,7 @@ impl<'de> Deserialize<'de> for KrakenTrades {
             }
         }
 
-        // Use Visitor implementation to deserialise the KrakenTrades WebSocket message
+        // Use Visitor implementation to deserialise the KrakenTrades
         deserializer.deserialize_seq(SeqVisitor)
     }
 }
@@ -254,10 +465,252 @@ impl<'de> Deserialize<'de> for KrakenTrade {
     }
 }
 
+impl<'de> Deserialize<'de> for KrakenCandle {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SeqVisitor;
+
+        impl<'de> de::Visitor<'de> for SeqVisitor {
+            type Value = KrakenCandle;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("KrakenCandle struct from the Kraken WebSocket API")
+            }
+
+            fn visit_seq<SeqAccessor>(
+                self,
+                mut seq: SeqAccessor,
+            ) -> Result<Self::Value, SeqAccessor::Error>
+            where
+                SeqAccessor: de::SeqAccess<'de>,
+            {
+                // KrakenCandle Sequence Format:
+                // [channelID, [time, end_time, open, high, low, close, vwap, volume, count], channelName, pair]
+                // <https://docs.kraken.com/websockets/#message-ohlc>
+
+                // Extract deprecated channelID & ignore
+                let _: de::IgnoredAny = extract_next(&mut seq, "channelID")?;
+
+                // Extract OHLCV KrakenCandleData from inner sequence
+                let candle = extract_next(&mut seq, "KrakenCandleData")?;
+
+                // Extract channelName (eg/ "ohlc-5")
+                let channel: String = extract_next(&mut seq, "channelName")?;
+
+                // Extract pair (eg/ "XBT/USD") & map to SubscriptionId (eg/ "ohlc-5|XBT/USD")
+                let subscription_id = extract_next::<SeqAccessor, String>(&mut seq, "pair")
+                    .map(|pair| SubscriptionId::from(format!("{channel}|{pair}")))?;
+
+                // Ignore any additional elements or SerDe will fail
+                //  '--> Exchange may add fields without warning
+                while seq.next_element::<de::IgnoredAny>()?.is_some() {}
+
+                Ok(KrakenCandle {
+                    subscription_id,
+                    candle,
+                })
+            }
+        }
+
+        // Use Visitor implementation to deserialise the KrakenCandle
+        deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
+impl<'de> Deserialize<'de> for KrakenCandleData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct SeqVisitor;
+
+        impl<'de> de::Visitor<'de> for SeqVisitor {
+            type Value = KrakenCandleData;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("KrakenCandleData struct from the Kraken WebSocket API")
+            }
+
+            fn visit_seq<SeqAccessor>(
+                self,
+                mut seq: SeqAccessor,
+            ) -> Result<Self::Value, SeqAccessor::Error>
+            where
+                SeqAccessor: de::SeqAccess<'de>,
+            {
+                // KrakenCandleData Sequence Format:
+                // [time, end_time, open, high, low, close, vwap, volume, count]
+                // <https://docs.kraken.com/websockets/#message-ohlc>
+
+                // Extract String candle start time, parse to f64, map to DateTime<Utc>
+                let start_time = extract_next::<SeqAccessor, String>(&mut seq, "start_time")?
+                    .parse()
+                    .map(|time| datetime_utc_from_epoch_duration(Duration::from_secs_f64(time)))
+                    .map_err(de::Error::custom)?;
+
+                // Extract String candle end time, parse to f64, map to DateTime<Utc>
+                let end_time = extract_next::<SeqAccessor, String>(&mut seq, "end_time")?
+                    .parse()
+                    .map(|time| datetime_utc_from_epoch_duration(Duration::from_secs_f64(time)))
+                    .map_err(de::Error::custom)?;
+
+                // Extract String open
+                let open = extract_next::<SeqAccessor, String>(&mut seq, "open")?
+                    .parse()
+                    .map_err(de::Error::custom)?;
+
+                // Extract String high
+                let high = extract_next::<SeqAccessor, String>(&mut seq, "high")?
+                    .parse()
+                    .map_err(de::Error::custom)?;
+
+                // Extract String low
+                let low = extract_next::<SeqAccessor, String>(&mut seq, "low")?
+                    .parse()
+                    .map_err(de::Error::custom)?;
+
+                // Extract String close
+                let close = extract_next::<SeqAccessor, String>(&mut seq, "close")?
+                    .parse()
+                    .map_err(de::Error::custom)?;
+
+                // Extract String vwap & ignore
+                let _: de::IgnoredAny = extract_next(&mut seq, "vwap")?;
+
+                // Extract String volume
+                let volume = extract_next::<SeqAccessor, String>(&mut seq, "volume")?
+                    .parse()
+                    .map_err(de::Error::custom)?;
+
+                // Extract u64 count
+                let trade_count = extract_next(&mut seq, "count")?;
+
+                // Ignore any additional elements or SerDe will fail
+                //  '--> Exchange may add fields without warning
+                while seq.next_element::<de::IgnoredAny>()?.is_some() {}
+
+                Ok(KrakenCandleData {
+                    start_time,
+                    end_time,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                    trade_count,
+                })
+            }
+        }
+
+        // Use Visitor implementation to deserialise the KrakenCandleData
+        deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde::de::Error;
+
+    #[test]
+    fn test_try_from_sub_kind_for_kraken_sub_kind() {
+        struct TestCase {
+            input: SubKind,
+            expected: Result<KrakenSubKind, SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: Kraken supported SubKind::Trade
+                input: SubKind::Trade,
+                expected: Ok(KrakenSubKind::Trade {
+                    channel: KrakenSubKind::TRADE,
+                }),
+            },
+            TestCase {
+                // TC1: Kraken supported SubKind::Candle w/ supported Interval::Minute5
+                input: SubKind::Candle(Interval::Minute5),
+                expected: Ok(KrakenSubKind::Candle {
+                    channel: KrakenSubKind::CANDLE,
+                    interval: 5,
+                }),
+            },
+            TestCase {
+                // TC2: Kraken supported SubKind::Candle w/ unsupported Interval::Month3
+                input: SubKind::Candle(Interval::Month3),
+                expected: Err(SocketError::Unsupported {
+                    entity: "kraken",
+                    item: "3M".to_string(),
+                }),
+            },
+            TestCase {
+                // TC3: Kraken unsupported SubKind:: w/ unsupported Interval::Month3
+                input: SubKind::OrderBook,
+                expected: Err(SocketError::Unsupported {
+                    entity: "kraken",
+                    item: "order_books".to_string(),
+                }),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = KrakenSubKind::try_from(&test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_try_from_interval_for_kraken_interval() {
+        struct TestCase {
+            input: Interval,
+            expected: Result<KrakenInterval, SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: Kraken supported Interval::Minute5
+                input: Interval::Minute5,
+                expected: Ok(KrakenInterval::Minute5),
+            },
+            TestCase {
+                // TC1: Kraken unsupported Interval::Hour6
+                input: Interval::Hour6,
+                expected: Err(SocketError::Unsupported {
+                    entity: "kraken",
+                    item: "6h".to_string(),
+                }),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = KrakenInterval::try_from(&test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
 
     #[test]
     fn test_deserialise_kraken_subscription_response() {
@@ -391,12 +844,33 @@ mod tests {
                 })),
             },
             TestCase {
-                // TC2: valid KrakenMessage Heartbeat
+                // TC2: valid KrakenMessage Spot candles w/ unexpected extra array fields in outer & inner array
+                input: r#"[42, ["1542057314.748456","1542057360.435743","7000.70000","7000.70000","1000.60000","3586.60000","3586.68894","0.03373000",50000, ""], "ohlc-5", "XBT/USD", ""]"#,
+                expected: Ok(KrakenMessage::Candle(KrakenCandle {
+                    subscription_id: SubscriptionId::from("ohlc-5|XBT/USD"),
+                    candle: KrakenCandleData {
+                        start_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                            1542057314.748456,
+                        )),
+                        end_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                            1542057360.435743,
+                        )),
+                        open: 7000.70000,
+                        high: 7000.70000,
+                        low: 1000.60000,
+                        close: 3586.60000,
+                        volume: 0.03373000,
+                        trade_count: 50000,
+                    },
+                })),
+            },
+            TestCase {
+                // TC3: valid KrakenMessage Heartbeat
                 input: r#"{"event": "heartbeat"}"#,
                 expected: Ok(KrakenMessage::KrakenEvent(KrakenEvent::Heartbeat)),
             },
             TestCase {
-                // TC3: valid KrakenMessage Error
+                // TC4: valid KrakenMessage Error
                 input: r#"{"errorMessage": "Malformed request", "event": "error"}"#,
                 expected: Ok(KrakenMessage::KrakenEvent(KrakenEvent::Error(
                     KrakenError {
@@ -405,7 +879,7 @@ mod tests {
                 ))),
             },
             TestCase {
-                // TC4: invalid KrakenMessage gibberish
+                // TC5: invalid KrakenMessage gibberish
                 input: r#"{"type": "gibberish", "help": "please"}"#,
                 expected: Err(SocketError::Serde {
                     error: serde_json::Error::custom(""),
@@ -473,6 +947,77 @@ mod tests {
 
         for (index, test) in cases.into_iter().enumerate() {
             let actual = serde_json::from_str::<KrakenTrade>(test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_deserialise_kraken_candle_data() {
+        struct TestCase {
+            input: &'static str,
+            expected: Result<KrakenCandleData, SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: KrakenCandleData is valid
+                input: r#"["1542057314.748456","1542057360.435743","3586.70000","3586.70000","3586.60000","3586.60000","3586.68894","0.03373000",2]"#,
+                expected: Ok(KrakenCandleData {
+                    start_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                        1542057314.748456,
+                    )),
+                    end_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                        1542057360.435743,
+                    )),
+                    open: 3586.70000,
+                    high: 3586.70000,
+                    low: 3586.60000,
+                    close: 3586.60000,
+                    volume: 0.03373000,
+                    trade_count: 2,
+                }),
+            },
+            TestCase {
+                // TC1: KrakenCandleData is valid w/ unexpected additional sequence elements
+                input: r#"["1542057314.1","1542057360.2","7000.70000","7000.70000","1000.60000","3586.60000","3586.68894","0.03373000",50000, "", ""]"#,
+                expected: Ok(KrakenCandleData {
+                    start_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                        1542057314.1,
+                    )),
+                    end_time: datetime_utc_from_epoch_duration(Duration::from_secs_f64(
+                        1542057360.2,
+                    )),
+                    open: 7000.70000,
+                    high: 7000.70000,
+                    low: 1000.60000,
+                    close: 3586.60000,
+                    volume: 0.03373000,
+                    trade_count: 50000,
+                }),
+            },
+            TestCase {
+                // TC2: KrakenCandleData is invalid w/ f64 trade_count
+                input: r#"["1542057314.748456","1542057360.435743","3586.70000","3586.70000","3586.60000","3586.60000","3586.68894","0.03373000",2.0]"#,
+                expected: Err(SocketError::Serde {
+                    error: serde_json::Error::custom(""),
+                    payload: "".to_owned(),
+                }),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = serde_json::from_str::<KrakenCandleData>(test.input);
             match (actual, test.expected) {
                 (Ok(actual), Ok(expected)) => {
                     assert_eq!(actual, expected, "TC{} failed", index)

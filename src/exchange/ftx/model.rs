@@ -1,10 +1,11 @@
 use crate::{
     model::{DataKind, PublicTrade},
-    ExchangeId, MarketEvent, Validator,
+    ExchangeId, MarketEvent,
 };
 use barter_integration::{
     error::SocketError,
     model::{Exchange, Instrument, Side, SubscriptionId},
+    Validator,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -37,7 +38,7 @@ impl Validator for FtxSubResponse {
     }
 }
 
-/// `Ftx` message variants that can be received over [`WebSocket`].
+/// `Ftx` message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
 /// See docs: <https://docs.ftx.com/#public-channels>
 #[derive(Clone, PartialEq, Debug, Deserialize)]
