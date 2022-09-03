@@ -6,11 +6,10 @@ use barter_data::{
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 
-/// [`StreamBuilder`] subscribing to Binance Futures, Ftx and Ftx Futures PublicTrades for several
-/// market [`Instrument`]s.
+// StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken & BinanceFuturesUsd
 #[tokio::main]
 async fn main() {
-    // Initialise `PublicTrade` `MarketStreams` for `BinanceFuturesUsd` & `Ftx`
+    // Initialise `PublicTrade` & `Candle``MarketStream` for `BinanceFuturesUsd`, `Ftx` & `Kraken`
     let streams = Streams::builder()
         .subscribe_exchange(
             ExchangeId::Ftx,
@@ -21,15 +20,10 @@ async fn main() {
                 ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
             ],
         )
-        .subscribe_exchange(
-            ExchangeId::Kraken,
-            [
-                ("xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-                ("xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            ],
-        )
         .subscribe([
-            (ExchangeId::Ftx, "xrp", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
+            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
             (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
         ])
