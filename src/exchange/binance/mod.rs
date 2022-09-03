@@ -1,11 +1,12 @@
 use super::{datetime_utc_from_epoch_duration, de_str};
 use crate::{
     model::{DataKind, PublicTrade},
-    ExchangeId, MarketEvent, Validator,
+    ExchangeId, MarketEvent,
 };
 use barter_integration::{
     error::SocketError,
     model::{Exchange, Instrument, Side, SubscriptionId},
+    Validator,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};

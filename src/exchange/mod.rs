@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
-use serde::de;
+use serde::{de, Serialize};
 use std::{str::FromStr, time::Duration};
+use serde::ser::SerializeSeq;
 
 /// Binance `ExchangeTransformer` & `Subscriber` implementations.
 pub mod binance;
@@ -45,4 +46,15 @@ where
     sequence
         .next_element::<Target>()?
         .ok_or_else(|| de::Error::missing_field(name))
+}
+
+/// Serialize a generic element T as a `Vec<T>`.
+pub fn se_element_to_vector<T, S>(element: T, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    T: Serialize
+{
+    let mut sequence = serializer.serialize_seq(Some(1))?;
+    sequence.serialize_element(&element)?;
+    sequence.end()
 }
