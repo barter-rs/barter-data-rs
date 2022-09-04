@@ -107,8 +107,6 @@ pub trait Subscriber {
         // Parameter to keep track of successful Subscription outcomes
         let mut success_responses = 0usize;
 
-        expected_responses += 2; // Todo:
-
         loop {
             // Break if all Subscriptions were a success
             if success_responses == expected_responses {
@@ -126,8 +124,6 @@ pub trait Subscriber {
                 // Parse incoming messages and determine subscription outcomes
                 message = websocket.next() => match message {
                     Some(Ok(WsMessage::Text(payload))) => {
-                        println!("Validate: {payload}"); // Todo:
-
                         if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
                             match response.validate() {
                                 // Subscription success
@@ -138,7 +134,6 @@ pub trait Subscriber {
                             }
                         } else {
                             // Some already active Subscriptions may start coming through
-                            success_responses += 1; // Todo:
                             continue;
                         }
                     },

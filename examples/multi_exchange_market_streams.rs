@@ -11,21 +11,23 @@ use futures::StreamExt;
 async fn main() {
     // Initialise `PublicTrade` & `Candle``MarketStream` for `BinanceFuturesUsd`, `Ftx` & `Kraken`
     let streams = Streams::builder()
-        .subscribe_exchange(
-            ExchangeId::Ftx,
-            [
-                ("btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-                ("eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-                ("btc", "usdt", InstrumentKind::Spot, SubKind::Trade),
-                ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
-            ],
-        )
+        // .subscribe_exchange(
+        //     ExchangeId::Ftx,
+        //     [
+        //         ("btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+        //         ("eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+        //         ("btc", "usdt", InstrumentKind::Spot, SubKind::Trade),
+        //         ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
+        //     ],
+        // )
         .subscribe([
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
+            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            // (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::OrderBookL2),
+            // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
         ])
         .init()
         .await
