@@ -9,6 +9,7 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::exchange::ftx::Ftx;
 
 /// `Ftx` message received in response to WebSocket subscription requests.
 ///
@@ -45,8 +46,7 @@ impl Validator for FtxSubResponse {
 #[serde(tag = "channel", rename_all = "lowercase")]
 pub enum FtxMessage {
     Trades {
-        #[serde(rename = "market")]
-        subscription_id: SubscriptionId,
+        market: String,
         #[serde(rename = "data")]
         trades: Vec<FtxTrade>,
     },
@@ -55,9 +55,9 @@ pub enum FtxMessage {
 impl From<&FtxMessage> for SubscriptionId {
     fn from(message: &FtxMessage) -> Self {
         match message {
-            FtxMessage::Trades {
-                subscription_id, ..
-            } => subscription_id.clone(),
+            FtxMessage::Trades { market, .. } => {
+                Ftx::subscription_id(Ftx::CHANNEL_TRADES, market)
+            },
         }
     }
 }
@@ -193,7 +193,7 @@ mod tests {
                 [{"id": 3689226514, "price": 10000.0, "size": 1.0, "side": "buy", "liquidation": false,
                 "time": "2022-04-06T15:38:16.182802+00:00"}]}"#,
                 expected: Ok(FtxMessage::Trades {
-                    subscription_id: SubscriptionId::from("BTC/USDT"),
+                    market: String::from("BTC/USDT"),
                     trades: vec![FtxTrade {
                         id: 3689226514,
                         price: 10000.0,

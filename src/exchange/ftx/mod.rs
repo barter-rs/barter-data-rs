@@ -48,7 +48,7 @@ impl Subscriber for Ftx {
                 let ftx_subscription = Self::subscription(channel, &market);
 
                 // Use market as the SubscriptionId key in the SubscriptionIds
-                ids.insert(SubscriptionId(market), subscription.clone());
+                ids.insert(Ftx::subscription_id(channel, &market), subscription.clone());
 
                 Ok(ftx_subscription)
             })
@@ -95,16 +95,21 @@ impl Transformer<MarketEvent> for Ftx {
 }
 
 impl Ftx {
-    /// Determine the `Ftx` channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the `Ftx` &str channel, and a `String` market identifier. Both are used to
-    /// build an `Ftx` subscription payload.
+    /// [`Ftx`] trades channel name.
+    ///
+    /// See docs: <https://docs.ftx.com/#trades>
+    pub const CHANNEL_TRADES: &'static str = "trades";
+
+    /// Determine the [`Ftx`] channel metadata associated with an input Barter [`Subscription`].
+    /// This includes the [`Ftx`] &str channel, and a `String` market identifier. Both are used to
+    /// build an [`Ftx`] subscription payload.
     ///
     /// Example Ok Return: Ok("trades", "BTC/USDT")
     /// where channel == "trades" & market == "BTC/USDT".
     fn build_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
         // Determine Ftx channel using the Subscription SubKind
         let channel = match &subscription.kind {
-            SubKind::Trade => "trades",
+            SubKind::Trade => Self::CHANNEL_TRADES,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -128,7 +133,7 @@ impl Ftx {
         Ok((channel, market))
     }
 
-    /// Build a `Ftx` compatible subscription message using the channel & market provided.
+    /// Build a [`Ftx`] compatible subscription message using the channel & market provided.
     fn subscription(channel: &str, market: &str) -> WsMessage {
         WsMessage::Text(
             json!({
@@ -139,13 +144,22 @@ impl Ftx {
             .to_string(),
         )
     }
+
+    /// Build a [`Ftx`] compatible [`SubscriptionId`] using the channel & market provided.
+    /// This is used to associate [`Ftx`] data structures received over the WebSocket with it's
+    /// original Barter [`Subscription`].
+    ///
+    /// eg/ SubscriptionId("trades|BTC/USDT")
+    fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{channel}|{market}"))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::exchange::ftx::model::FtxTrade;
-    use crate::model::{DataKind, PublicTrade};
+    use crate::model::{DataKind, Interval, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, Side};
     use chrono::Utc;
 
@@ -156,18 +170,23 @@ mod tests {
                 .map(|sub| {
                     let subscription_id = match (&sub.kind, &sub.instrument.kind) {
                         (SubKind::Trade, InstrumentKind::Spot) => {
-                            format!("{}/{}", sub.instrument.base, sub.instrument.quote)
-                                .to_uppercase()
+                            Ftx::subscription_id(
+                                Ftx::CHANNEL_TRADES,
+                                &format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
+                            )
                         }
                         (SubKind::Trade, InstrumentKind::FuturePerpetual) => {
-                            format!("{}-PERP", sub.instrument.base).to_uppercase()
+                            Ftx::subscription_id(
+                                Ftx::CHANNEL_TRADES,
+                                &format!("{}-PERP", sub.instrument.base).to_uppercase()
+                            )
                         }
                         (_, _) => {
                             panic!("not supported")
                         }
                     };
 
-                    (subscription_id.into(), sub)
+                    (subscription_id, sub)
                 })
                 .collect(),
         );
@@ -176,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_channel_meta() {
+    fn test_build_channel_meta() {
         struct TestCase {
             input: Subscription,
             expected: Result<(&'static str, String), SocketError>,
@@ -184,7 +203,7 @@ mod tests {
 
         let cases = vec![
             TestCase {
-                // TC0: InstrumentKind::Spot is supported
+                // TC0: Supported InstrumentKind::Spot trades subscription
                 input: Subscription::new(
                     ExchangeId::Ftx,
                     ("btc", "usdt", InstrumentKind::Spot),
@@ -193,13 +212,25 @@ mod tests {
                 expected: Ok(("trades", "BTC/USDT".to_owned())),
             },
             TestCase {
-                // TC1: InstrumentKind::FuturePerpetual is supported
+                // TC1: Supported InstrumentKind::FuturePerpetual trades subscription
                 input: Subscription::new(
                     ExchangeId::Ftx,
                     ("btc", "usdt", InstrumentKind::FuturePerpetual),
                     SubKind::Trade,
                 ),
                 expected: Ok(("trades", "BTC-PERP".to_owned())),
+            },
+            TestCase {
+                // TC2: Unsupported InstrumentKind::FuturePerpetual candle subscription
+                input: Subscription::new(
+                    ExchangeId::Ftx,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::Candle(Interval::Minute5),
+                ),
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
             },
         ];
 
@@ -250,7 +281,7 @@ mod tests {
             TestCase {
                 // TC0: FtxMessage with unknown SubscriptionId
                 input: FtxMessage::Trades {
-                    subscription_id: SubscriptionId::from("unknown"),
+                    market: String::from("unknown"),
                     trades: vec![],
                 },
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
@@ -260,7 +291,7 @@ mod tests {
             TestCase {
                 // TC1: FtxMessage Spot trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    subscription_id: SubscriptionId::from("BTC/USDT"),
+                    market: String::from("BTC/USDT"),
                     trades: vec![
                         FtxTrade {
                             id: 1,
@@ -308,7 +339,7 @@ mod tests {
             TestCase {
                 // TC1: FtxMessage FuturePerpetual trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    subscription_id: SubscriptionId::from("BTC-PERP"),
+                    market: String::from("BTC-PERP"),
                     trades: vec![
                         FtxTrade {
                             id: 1,
@@ -368,8 +399,8 @@ mod tests {
             assert_eq!(
                 actual.len(),
                 test.expected.len(),
-                "TestCase {} failed",
-                index
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index, actual
             );
 
             for (vector_index, (actual, expected)) in actual
