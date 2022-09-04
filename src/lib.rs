@@ -79,7 +79,7 @@ pub trait Subscriber {
         }
 
         // Validate subscriptions
-        let ids = Self::validate(&mut websocket, expected_responses).await?;
+        let ids = Self::validate(ids, &mut websocket, expected_responses).await?;
 
         Ok((websocket, ids))
     }
