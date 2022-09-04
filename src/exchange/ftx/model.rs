@@ -10,7 +10,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// `Ftx` message received in response to WebSocket subscription requests.
+/// [`Ftx`](super::Ftx) message received in response to WebSocket subscription requests.
 ///
 /// eg/ FtxResponse::Subscribed {"type": "subscribed", "channel": "trades", "market": "BTC/USDT"}
 /// eg/ FtxResponse::Error {"type": "error", "code": 400, "msg": "Missing parameter \"channel\""}
@@ -38,7 +38,7 @@ impl Validator for FtxSubResponse {
     }
 }
 
-/// `Ftx` message variants that can be received over [`WebSocket`](crate::WebSocket).
+/// [`Ftx`](super::Ftx) message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
 /// See docs: <https://docs.ftx.com/#public-channels>
 #[derive(Clone, PartialEq, Debug, Deserialize)]
@@ -62,7 +62,7 @@ impl From<&FtxMessage> for SubscriptionId {
     }
 }
 
-/// `Ftx` trade message.
+/// [`Ftx`](super::Ftx) trade message.
 ///
 /// See docs: <https://docs.ftx.com/#trades>
 #[derive(Clone, Copy, PartialEq, Debug, Deserialize)]

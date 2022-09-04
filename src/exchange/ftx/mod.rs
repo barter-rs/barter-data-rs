@@ -17,7 +17,7 @@ use tokio::sync::mpsc;
 /// [`Ftx`] specific data structures.
 pub mod model;
 
-/// `Ftx` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
+/// [`Ftx`] [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` & `Futures` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Ftx {
@@ -95,9 +95,9 @@ impl Transformer<MarketEvent> for Ftx {
 }
 
 impl Ftx {
-    /// Determine the `Ftx` channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the `Ftx` &str channel, and a `String` market identifier. Both are used to
-    /// build an `Ftx` subscription payload.
+    /// Determine the [`Ftx`] channel metadata associated with an input Barter [`Subscription`].
+    /// This includes the [`Ftx`] &str channel, and a `String` market identifier. Both are used to
+    /// build an [`Ftx`] subscription payload.
     ///
     /// Example Ok Return: Ok("trades", "BTC/USDT")
     /// where channel == "trades" & market == "BTC/USDT".
@@ -128,7 +128,7 @@ impl Ftx {
         Ok((channel, market))
     }
 
-    /// Build a `Ftx` compatible subscription message using the channel & market provided.
+    /// Build a [`Ftx`] compatible subscription message using the channel & market provided.
     fn subscription(channel: &str, market: &str) -> WsMessage {
         WsMessage::Text(
             json!({

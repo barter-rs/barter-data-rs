@@ -1,6 +1,6 @@
 use crate::{
-    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription, SubscriptionIds,
-    SubscriptionMeta,
+    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
+    SubscriptionIds, SubscriptionMeta,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
@@ -14,7 +14,7 @@ use tracing::debug;
 /// [`Kraken`] specific data structures.
 pub mod model;
 
-/// `Kraken` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
+/// [`Kraken`] [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Kraken {

@@ -207,7 +207,7 @@ pub enum KrakenSubResponse {
     Error(KrakenError),
 }
 
-/// `Kraken` generic error message String received over the WebSocket.
+/// [`Kraken`] generic error message String received over the WebSocket.
 ///
 /// Note that since the [`KrakenError`] is only made up of a renamed message String field, it can
 /// be used flexible as a [`KrakenSubResponse::Error`](KrakenSubResponse) or as a generic error
@@ -294,7 +294,7 @@ pub struct KrakenCandleData {
 
 /// `Kraken` messages received over the WebSocket which are not subscription data.
 ///
-/// eg/ `Kraken` sends a `KrakenEvent::Heartbeat` if no subscription traffic has been sent
+/// eg/ [`Kraken`] sends a `KrakenEvent::Heartbeat` if no subscription traffic has been sent
 /// within the last second.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-heartbeat>

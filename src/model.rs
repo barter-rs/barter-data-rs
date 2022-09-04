@@ -77,10 +77,10 @@ impl Validator for &Subscription {
         match self.instrument.kind {
             InstrumentKind::Spot if self.exchange.supports_spot() => Ok(self),
             InstrumentKind::FuturePerpetual if self.exchange.supports_futures() => Ok(self),
-            _ => Err(SocketError::Subscribe(format!(
-                "{} ExchangeTransformer does not support InstrumentKinds of provided Subscriptions",
-                self.exchange
-            ))),
+            other => Err(SocketError::Unsupported {
+                entity: self.exchange.as_str(),
+                item: other.to_string(),
+            }),
         }
     }
 }
@@ -502,7 +502,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Subscription w/ Ftx Spot
+                // TC4: Valid Subscription w/ Kraken Spot
                 input: Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -513,6 +513,37 @@ mod tests {
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Trade,
                 }),
+            },
+            TestCase {
+                // TC5: Invalid Subscription w/ Kraken FuturePerpetual
+                input: Subscription {
+                    exchange: ExchangeId::Kraken,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Trade,
+                },
+                expected: Err(SocketError::Subscribe("".to_string())),
+            },
+            TestCase {
+                // TC6: Valid Subscription w/ Coinbase Spot
+                input: Subscription {
+                    exchange: ExchangeId::Coinbase,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Coinbase,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                }),
+            },
+            TestCase {
+                // TC6: Invalid Subscription w/ Coinbase FuturePerpetual
+                input: Subscription {
+                    exchange: ExchangeId::Coinbase,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Trade,
+                },
+                expected: Err(SocketError::Subscribe("".to_string())),
             },
         ];
 
