@@ -73,7 +73,7 @@ impl From<&CoinbaseMessage> for SubscriptionId {
     fn from(message: &CoinbaseMessage) -> Self {
         match message {
             CoinbaseMessage::Trade { product_id, .. } => {
-                Coinbase::subscription_id(Coinbase::CHANNEL_TRADE, product_id)
+                Coinbase::subscription_id(Coinbase::CHANNEL_TRADES, product_id)
             }
         }
     }

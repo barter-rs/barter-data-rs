@@ -103,7 +103,7 @@ impl Coinbase {
     /// [`Coinbase`] trades channel name.
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
-    const CHANNEL_TRADE: &'static str = "matches";
+    pub const CHANNEL_TRADES: &'static str = "matches";
 
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
     /// This includes the [`Coinbase`] &str channel, and a `String` product_id identifier. Both are
@@ -117,7 +117,7 @@ impl Coinbase {
 
         // Determine Coinbase channel using the Subscription StreamKind
         let channel = match &subscription.kind {
-            SubKind::Trade => Self::CHANNEL_TRADE,
+            SubKind::Trade => Self::CHANNEL_TRADES,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -319,8 +319,8 @@ mod tests {
             assert_eq!(
                 actual.len(),
                 test.expected.len(),
-                "TestCase {} failed",
-                index
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index, actual
             );
 
             for (vector_index, (actual, expected)) in actual

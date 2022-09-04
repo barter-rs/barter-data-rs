@@ -410,12 +410,11 @@ mod tests {
 
         for (index, test) in cases.into_iter().enumerate() {
             let actual = transformer.transform(test.input);
-
             assert_eq!(
                 actual.len(),
                 test.expected.len(),
-                "TestCase {} failed on vector length check",
-                index
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index, actual
             );
 
             for (vector_index, (actual, expected)) in actual
