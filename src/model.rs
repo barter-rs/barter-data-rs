@@ -28,6 +28,8 @@ pub struct MarketEvent {
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
+    OrderBook(OrderBook),
+    OrderBookDelta(OrderBookDelta),
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -50,6 +52,82 @@ pub struct Candle {
     pub close: f64,
     pub volume: f64,
     pub trade_count: u64,
+}
+
+/// Todo: Rust docs
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct OrderBook {
+    pub bids: Vec<Level>,
+    pub asks: Vec<Level>,
+}
+
+/// Todo: Rust docs
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct Level {
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+}
+
+impl<T> From<(T, T)> for Level
+where
+    T: Into<f64>,
+{
+    fn from((price, quantity): (T, T)) -> Self {
+        Self::new(price, quantity)
+    }
+}
+
+impl Level {
+    pub fn new<T>(price: T, quantity: T) -> Self
+    where
+        T: Into<f64>,
+    {
+        Self {
+            price: price.into(),
+            quantity: quantity.into()
+        }
+    }
+}
+
+/// Todo: Rust docs
+/// Todo: Should probably be bid_deltas & asks_deltas, while dev coinbase keep single vec for simplicity
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct OrderBookDelta {
+    pub deltas: Vec<LevelDelta>,
+}
+
+/// Todo: Rust docs
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct LevelDelta {
+    pub side: Side,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64
+}
+
+impl<T> From<(Side, T, T)> for LevelDelta
+where
+    T: Into<f64>,
+{
+    fn from((side, price, quantity): (Side, T, T)) -> Self {
+        Self::new(side, price, quantity)
+    }
+}
+
+impl LevelDelta {
+    pub fn new<T>(side: Side, price: T, quantity: T) -> Self
+    where
+        T: Into<f64>,
+    {
+        Self {
+            side,
+            price: price.into(),
+            quantity: quantity.into()
+        }
+    }
 }
 
 impl From<Event<MarketEvent>> for MarketEvent {

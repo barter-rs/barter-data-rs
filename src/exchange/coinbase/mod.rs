@@ -84,18 +84,25 @@ impl Transformer<MarketEvent> for Coinbase {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
+        // Todo: This is inefficient like it is
         let instrument = match self.ids.find_instrument(&input) {
             Ok(instrument) => instrument,
             Err(error) => return vec![Err(error)],
         };
 
-        match input {
-            CoinbaseMessage::Trade { trade, .. } => vec![Ok(MarketEvent::from((
-                Coinbase::EXCHANGE,
-                instrument,
-                trade,
-            )))],
-        }
+        let market_event = match input {
+            CoinbaseMessage::Trade(trade) => {
+                MarketEvent::from((Coinbase::EXCHANGE, instrument, trade))
+            }
+            CoinbaseMessage::OrderBookL2Snapshot(snapshot) => {
+                MarketEvent::from((Coinbase::EXCHANGE, instrument, snapshot))
+            }
+            CoinbaseMessage::OrderBookL2Update(update) => {
+                MarketEvent::from((Coinbase::EXCHANGE, instrument, update))
+            }
+        };
+
+        vec![Ok(market_event)]
     }
 }
 
@@ -104,6 +111,11 @@ impl Coinbase {
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
     pub const CHANNEL_TRADES: &'static str = "matches";
+
+    /// [`Coinbase`] L2 OrderBook channel name.
+    ///
+    /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
+    pub const CHANNEL_ORDER_BOOK_L2: &'static str = "level2";
 
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
     /// This includes the [`Coinbase`] &str channel, and a `String` product_id identifier. Both are
@@ -115,9 +127,10 @@ impl Coinbase {
         // Validate provided Subscription InstrumentKind is supported by Coinbase
         let subscription = subscription.validate()?;
 
-        // Determine Coinbase channel using the Subscription StreamKind
+        // Determine Coinbase channel using the Subscription SubKind
         let channel = match &subscription.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::OrderBookL2 => Self::CHANNEL_ORDER_BOOK_L2,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -271,17 +284,15 @@ mod tests {
         let cases = vec![
             TestCase {
                 // TC0: CoinbaseMessage Spot trades w/ known SubscriptionId
-                input: CoinbaseMessage::Trade {
+                input: CoinbaseMessage::Trade(CoinbaseTrade {
                     product_id: String::from("BTC-USD"),
-                    trade: CoinbaseTrade {
-                        id: 2,
-                        sequence: 2,
-                        price: 1.0,
-                        size: 1.0,
-                        side: Side::Buy,
-                        time,
-                    },
-                },
+                    id: 2,
+                    sequence: 2,
+                    price: 1.0,
+                    size: 1.0,
+                    side: Side::Buy,
+                    time,
+                }),
                 expected: vec![Ok(MarketEvent {
                     exchange_time: time,
                     received_time: time,
@@ -297,20 +308,16 @@ mod tests {
             },
             TestCase {
                 // TC1: CoinbaseMessage with unknown SubscriptionId
-                input: CoinbaseMessage::Trade {
+                input: CoinbaseMessage::Trade(CoinbaseTrade {
                     product_id: String::from("unknown"),
-                    trade: CoinbaseTrade {
-                        id: 1,
-                        sequence: 2,
-                        price: 1.0,
-                        size: 1.0,
-                        side: Side::Buy,
-                        time,
-                    },
-                },
-                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
-                    "unknown",
-                )))],
+                    id: 1,
+                    sequence: 2,
+                    price: 1.0,
+                    size: 1.0,
+                    side: Side::Buy,
+                    time,
+                }),
+                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from("unknown")))],
             },
         ];
 

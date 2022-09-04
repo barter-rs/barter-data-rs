@@ -99,13 +99,15 @@ pub trait Subscriber {
     async fn validate(
         ids: SubscriptionIds,
         websocket: &mut WebSocket,
-        expected_responses: usize,
+        mut expected_responses: usize,
     ) -> Result<SubscriptionIds, SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
         // Parameter to keep track of successful Subscription outcomes
         let mut success_responses = 0usize;
+
+        expected_responses += 2; // Todo:
 
         loop {
             // Break if all Subscriptions were a success
@@ -124,6 +126,8 @@ pub trait Subscriber {
                 // Parse incoming messages and determine subscription outcomes
                 message = websocket.next() => match message {
                     Some(Ok(WsMessage::Text(payload))) => {
+                        println!("Validate: {payload}"); // Todo:
+
                         if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
                             match response.validate() {
                                 // Subscription success
@@ -134,6 +138,7 @@ pub trait Subscriber {
                             }
                         } else {
                             // Some already active Subscriptions may start coming through
+                            success_responses += 1; // Todo:
                             continue;
                         }
                     },
