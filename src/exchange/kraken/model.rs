@@ -646,11 +646,11 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC3: Kraken unsupported SubKind:: w/ unsupported Interval::Month3
-                input: SubKind::OrderBook,
+                // TC3: Kraken unsupported SubKind::OrderBookL2
+                input: SubKind::OrderBookL2,
                 expected: Err(SocketError::Unsupported {
                     entity: "kraken",
-                    item: "order_books".to_string(),
+                    item: "order_books_l2".to_string(),
                 }),
             },
         ];
