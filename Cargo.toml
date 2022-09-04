@@ -15,7 +15,8 @@ categories = ["accessibility", "simulation"]
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.3.4"
+#barter-integration = "0.3.4"
+barter-integration = { path = "../barter-integration-rs" }
 
 # Logging
 tracing = "0.1.36"
