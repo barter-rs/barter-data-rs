@@ -1,6 +1,6 @@
 use crate::{
-    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
-    SubscriptionIds, SubscriptionMeta,
+    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription, SubscriptionIds,
+    SubscriptionMeta,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
