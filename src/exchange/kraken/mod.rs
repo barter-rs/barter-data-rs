@@ -14,7 +14,7 @@ use tracing::debug;
 /// [`Kraken`] specific data structures.
 pub mod model;
 
-/// `Kraken` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
+/// [`Kraken`] [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Kraken {

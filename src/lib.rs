@@ -209,6 +209,7 @@ where
 pub enum ExchangeId {
     BinanceFuturesUsd,
     Binance,
+    Coinbase,
     Ftx,
     Kraken,
 }
@@ -232,6 +233,7 @@ impl ExchangeId {
     pub fn name(&self) -> &'static str {
         match self {
             ExchangeId::Binance | ExchangeId::BinanceFuturesUsd => "binance",
+            ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
         }
@@ -242,6 +244,7 @@ impl ExchangeId {
         match self {
             ExchangeId::Binance => "binance",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
+            ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
         }
