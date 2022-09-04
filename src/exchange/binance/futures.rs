@@ -11,7 +11,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
-/// `BinanceFuturesUsd` [`Subscriber`](crate::Subscriber) &
+/// [`BinanceFuturesUsd`] [`Subscriber`](crate::Subscriber) &
 /// [`ExchangeTransformer`](crate::ExchangeTransformer) implementor for the collection
 /// of `Futures` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
@@ -80,11 +80,11 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
 
 impl BinanceFuturesUsd {
     /// Determine the Binance channel identifier associated with an input Barter [`Subscription`].
-    fn build_channel_id(sub: &Subscription) -> Result<String, SocketError> {
-        match &sub.kind {
+    fn build_channel_id(subscription: &Subscription) -> Result<String, SocketError> {
+        match &subscription.kind {
             SubKind::Trade => Ok(format!(
                 "{}{}@aggTrade",
-                sub.instrument.base, sub.instrument.quote
+                subscription.instrument.base, subscription.instrument.quote
             )),
             other => Err(SocketError::Unsupported {
                 entity: BinanceFuturesUsd::EXCHANGE.as_str(),

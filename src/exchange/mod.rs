@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
+use serde::ser::SerializeSeq;
 use serde::{de, Serialize};
 use std::{str::FromStr, time::Duration};
-use serde::ser::SerializeSeq;
 
 /// Binance `ExchangeTransformer` & `Subscriber` implementations.
 pub mod binance;
@@ -11,6 +11,9 @@ pub mod ftx;
 
 /// Kraken `ExchangeTransformer` & `Subscriber` implementations.
 pub mod kraken;
+
+/// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
+pub mod coinbase;
 
 /// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
 pub fn datetime_utc_from_epoch_duration(duration: Duration) -> DateTime<Utc> {
@@ -52,7 +55,7 @@ where
 pub fn se_element_to_vector<T, S>(element: T, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
-    T: Serialize
+    T: Serialize,
 {
     let mut sequence = serializer.serialize_seq(Some(1))?;
     sequence.serialize_element(&element)?;

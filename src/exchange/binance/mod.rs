@@ -12,12 +12,12 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-/// `BinanceFuturesUsd` specific [`Subscriber`](crate::Subscriber) &
+/// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd) specific [`Subscriber`](crate::Subscriber) &
 /// [`ExchangeTransformer`](crate::ExchangeTransformer) implementor for the collection of
 /// Futures data.
 pub mod futures;
 
-/// `Binance` & `BinanceFuturesUsd` `Subscription` response message.
+/// `Binance` & [`BinanceFuturesUsd`](futures::BinanceFuturesUsd) `Subscription` response message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#live-subscribing-unsubscribing-to-streams>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
