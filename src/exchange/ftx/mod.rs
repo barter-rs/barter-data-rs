@@ -74,7 +74,7 @@ impl Transformer<MarketEvent> for Ftx {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let instrument = match self.ids.find_instrument(&input) {
+        let instrument = match self.ids.find_instrument(&SubscriptionId::from(&input)) {
             Ok(instrument) => instrument,
             Err(error) => return vec![Err(error)],
         };

@@ -84,25 +84,38 @@ impl Transformer<MarketEvent> for Coinbase {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        // Todo: This is inefficient like it is
-        let instrument = match self.ids.find_instrument(&input) {
-            Ok(instrument) => instrument,
-            Err(error) => return vec![Err(error)],
-        };
-
-        let market_event = match input {
+        match input {
             CoinbaseMessage::Trade(trade) => {
-                MarketEvent::from((Coinbase::EXCHANGE, instrument, trade))
+                match self.ids.find_instrument(&trade.subscription_id) {
+                    Ok(instrument) => vec![
+                        Ok(MarketEvent::from(
+                            (Coinbase::EXCHANGE, instrument, trade)
+                        ))
+                    ],
+                    Err(error) => vec![Err(error)],
+                }
             }
             CoinbaseMessage::OrderBookL2Snapshot(snapshot) => {
-                MarketEvent::from((Coinbase::EXCHANGE, instrument, snapshot))
+                match self.ids.find_instrument(&snapshot.subscription_id) {
+                    Ok(instrument) => vec![
+                        Ok(MarketEvent::from(
+                            (Coinbase::EXCHANGE, instrument, snapshot)
+                        ))
+                    ],
+                    Err(error) => vec![Err(error)],
+                }
             }
             CoinbaseMessage::OrderBookL2Update(update) => {
-                MarketEvent::from((Coinbase::EXCHANGE, instrument, update))
+                match self.ids.find_instrument(&update.subscription_id) {
+                    Ok(instrument) => vec![
+                        Ok(MarketEvent::from(
+                            (Coinbase::EXCHANGE, instrument, update)
+                        ))
+                    ],
+                    Err(error) => vec![Err(error)],
+                }
             }
-        };
-
-        vec![Ok(market_event)]
+        }
     }
 }
 
@@ -285,7 +298,7 @@ mod tests {
             TestCase {
                 // TC0: CoinbaseMessage Spot trades w/ known SubscriptionId
                 input: CoinbaseMessage::Trade(CoinbaseTrade {
-                    product_id: String::from("BTC-USD"),
+                    subscription_id: SubscriptionId::from("matches|BTC-USD"),
                     id: 2,
                     sequence: 2,
                     price: 1.0,
@@ -309,7 +322,7 @@ mod tests {
             TestCase {
                 // TC1: CoinbaseMessage with unknown SubscriptionId
                 input: CoinbaseMessage::Trade(CoinbaseTrade {
-                    product_id: String::from("unknown"),
+                    subscription_id: SubscriptionId::from("unknown"),
                     id: 1,
                     sequence: 2,
                     price: 1.0,

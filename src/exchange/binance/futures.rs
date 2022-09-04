@@ -71,7 +71,7 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         let market_event = self
             .ids
-            .find_instrument(&input)
+            .find_instrument(&SubscriptionId::from(&input))
             .map(|instrument| MarketEvent::from((BinanceFuturesUsd::EXCHANGE, instrument, input)));
 
         vec![market_event]

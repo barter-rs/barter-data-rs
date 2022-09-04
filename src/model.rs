@@ -347,15 +347,11 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
 }
 
 impl SubscriptionIds {
-    /// Find the [`Instrument`] associated with the provided `Into<SubscriptionId>`.
-    pub fn find_instrument<Id>(&self, id: Id) -> Result<Instrument, SocketError>
-    where
-        Id: Into<SubscriptionId>,
-    {
-        let subscription_id: SubscriptionId = id.into();
-        self.get(&subscription_id)
+    /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
+    pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
+        self.get(id)
             .map(|subscription| subscription.instrument.clone())
-            .ok_or(SocketError::Unidentifiable(subscription_id))
+            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
     }
 }
 
@@ -602,7 +598,7 @@ mod tests {
         ];
 
         for (index, test) in cases.into_iter().enumerate() {
-            let actual = ids.find_instrument(test.input);
+            let actual = ids.find_instrument(&test.input);
             match (actual, test.expected) {
                 (Ok(actual), Ok(expected)) => {
                     assert_eq!(actual, expected, "TC{} failed", index)

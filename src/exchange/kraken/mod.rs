@@ -76,7 +76,7 @@ impl Transformer<MarketEvent> for Kraken {
         match input {
             KrakenMessage::Trades(trades) => {
                 // Determine Instrument associated with this KrakenTrades message
-                let instrument = match self.ids.find_instrument(trades.subscription_id) {
+                let instrument = match self.ids.find_instrument(&trades.subscription_id) {
                     Ok(instrument) => instrument,
                     Err(error) => return vec![Err(error)],
                 };
@@ -96,7 +96,7 @@ impl Transformer<MarketEvent> for Kraken {
             }
             KrakenMessage::Candle(candle) => {
                 // Determine Instrument associated with this KrakenCandle message
-                let instrument = match self.ids.find_instrument(candle.subscription_id) {
+                let instrument = match self.ids.find_instrument(&candle.subscription_id) {
                     Ok(instrument) => instrument,
                     Err(error) => return vec![Err(error)],
                 };

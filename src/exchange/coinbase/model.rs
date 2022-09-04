@@ -1,7 +1,7 @@
 use super::Coinbase;
 use crate::{
     exchange::de_str,
-    model::{DataKind, PublicTrade, Level},
+    model::{DataKind, PublicTrade, OrderBook, Level, OrderBookDelta, LevelDelta},
     ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
@@ -10,7 +10,6 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::model::{LevelDelta, OrderBook, OrderBookDelta};
 
 /// [`Coinbase`] message received in response to WebSocket subscription requests.
 ///
@@ -56,9 +55,6 @@ impl Validator for CoinbaseSubResponse {
     }
 }
 
-
-// Todo: All structs contain product_id and should therefore be topic level? -> improves find_instrument too
-// Todo: Deserialize straight into SubscriptionId
 /// [`Coinbase`] message variants that can be received over [`WebSocket`].
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels>
@@ -73,28 +69,13 @@ pub enum CoinbaseMessage {
     OrderBookL2Update(CoinbaseOrderBookL2Update)
 }
 
-impl From<&CoinbaseMessage> for SubscriptionId {
-    fn from(message: &CoinbaseMessage) -> Self {
-        match message {
-            CoinbaseMessage::Trade(trade) => {
-                Coinbase::subscription_id(Coinbase::CHANNEL_TRADES, &trade.product_id)
-            },
-            CoinbaseMessage::OrderBookL2Update(update) => {
-                Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L2, &update.product_id)
-            },
-            CoinbaseMessage::OrderBookL2Snapshot(snapshot) => {
-                Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L2, &snapshot.product_id)
-            }
-        }
-    }
-}
-
 /// [`Coinbase`] trade message.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct CoinbaseTrade {
-    pub product_id: String,
+    #[serde(rename = "product_id", deserialize_with = "de_trade_subscription_id")]
+    pub subscription_id: SubscriptionId,
     #[serde(rename = "trade_id")]
     pub id: u64,
     pub sequence: u64,
@@ -128,7 +109,8 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct CoinbaseOrderBookL2Snapshot {
-    pub product_id: String,
+    #[serde(rename = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
+    pub subscription_id: SubscriptionId,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
 }
@@ -153,10 +135,11 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct CoinbaseOrderBookL2Update {
-    product_id: String,
-    time: DateTime<Utc>,
+    #[serde(rename = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
+    pub subscription_id: SubscriptionId,
+    pub time: DateTime<Utc>,
     #[serde(rename = "changes")]
-    deltas: Vec<LevelDelta>,
+    pub deltas: Vec<LevelDelta>,
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
@@ -172,6 +155,25 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
         }
     }
 }
+
+/// Todo:
+pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_TRADES, product_id))
+}
+
+/// Todo:
+pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L2, product_id))
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -291,7 +293,7 @@ mod tests {
                     "product_id": "BTC-USD", "size": "5.23512", "price": "400.23", "side": "sell"
                 }"#,
                 expected: Ok(CoinbaseMessage::Trade(CoinbaseTrade {
-                    product_id: String::from("BTC-USD"),
+                    subscription_id: SubscriptionId::from("matches|BTC-USD"),
                     id: 10,
                     sequence: 50,
                     price: 400.23,
@@ -304,7 +306,7 @@ mod tests {
                 // TC2: valid CoinbaseMessage Spot OrderBookL2Snapshot
                 input: r#"{"type": "snapshot","product_id": "BTC-USD","bids": [["10101.10", "0.45054140"]],"asks": [["10102.55", "0.57753524"]]}"#,
                 expected: Ok(CoinbaseMessage::OrderBookL2Snapshot(CoinbaseOrderBookL2Snapshot {
-                    product_id: "BTC-USD".to_string(),
+                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
                     bids: vec![Level::new(10101.10, 0.45054140)],
                     asks: vec![Level::new(10102.55, 0.57753524)]
                 }))
@@ -332,7 +334,7 @@ mod tests {
                     ]
                 }"#,
                 expected: Ok(CoinbaseMessage::OrderBookL2Update(CoinbaseOrderBookL2Update {
-                    product_id: "BTC-USD".to_string(),
+                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
                     time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
                     deltas: vec![LevelDelta::new(Side::Buy, 10101.80000000, 0.162567)]
                 }))
@@ -357,7 +359,7 @@ mod tests {
                     "time": "2022-09-04T12:41:41.258672Z"
                 }"#,
                 expected: Ok(CoinbaseMessage::OrderBookL2Update(CoinbaseOrderBookL2Update {
-                    product_id: "BTC-USD".to_string(),
+                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
                     time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
                     deltas: vec![
                         LevelDelta::new(Side::Buy, 22356.270000, 0.0),

@@ -99,7 +99,7 @@ pub trait Subscriber {
     async fn validate(
         ids: SubscriptionIds,
         websocket: &mut WebSocket,
-        mut expected_responses: usize,
+        expected_responses: usize,
     ) -> Result<SubscriptionIds, SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
