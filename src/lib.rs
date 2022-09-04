@@ -79,7 +79,7 @@ pub trait Subscriber {
         }
 
         // Validate subscriptions
-        Self::validate(&mut websocket, expected_responses).await?;
+        let ids = Self::validate(&mut websocket, expected_responses).await?;
 
         Ok((websocket, ids))
     }
@@ -97,9 +97,10 @@ pub trait Subscriber {
     /// Uses the provided [`WebSocket`] connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(
+        ids: SubscriptionIds,
         websocket: &mut WebSocket,
         expected_responses: usize,
-    ) -> Result<(), SocketError> {
+    ) -> Result<SubscriptionIds, SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
@@ -109,7 +110,7 @@ pub trait Subscriber {
         loop {
             // Break if all Subscriptions were a success
             if success_responses == expected_responses {
-                break Ok(());
+                break Ok(ids);
             }
 
             tokio::select! {
