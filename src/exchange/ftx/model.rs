@@ -1,3 +1,4 @@
+use crate::exchange::ftx::Ftx;
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -9,7 +10,6 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::exchange::ftx::Ftx;
 
 /// `Ftx` message received in response to WebSocket subscription requests.
 ///
@@ -55,9 +55,7 @@ pub enum FtxMessage {
 impl From<&FtxMessage> for SubscriptionId {
     fn from(message: &FtxMessage) -> Self {
         match message {
-            FtxMessage::Trades { market, .. } => {
-                Ftx::subscription_id(Ftx::CHANNEL_TRADES, market)
-            },
+            FtxMessage::Trades { market, .. } => Ftx::subscription_id(Ftx::CHANNEL_TRADES, market),
         }
     }
 }

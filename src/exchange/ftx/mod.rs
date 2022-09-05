@@ -169,18 +169,15 @@ mod tests {
                 .into_iter()
                 .map(|sub| {
                     let subscription_id = match (&sub.kind, &sub.instrument.kind) {
-                        (SubKind::Trade, InstrumentKind::Spot) => {
-                            Ftx::subscription_id(
-                                Ftx::CHANNEL_TRADES,
-                                &format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
-                            )
-                        }
-                        (SubKind::Trade, InstrumentKind::FuturePerpetual) => {
-                            Ftx::subscription_id(
-                                Ftx::CHANNEL_TRADES,
-                                &format!("{}-PERP", sub.instrument.base).to_uppercase()
-                            )
-                        }
+                        (SubKind::Trade, InstrumentKind::Spot) => Ftx::subscription_id(
+                            Ftx::CHANNEL_TRADES,
+                            &format!("{}/{}", sub.instrument.base, sub.instrument.quote)
+                                .to_uppercase(),
+                        ),
+                        (SubKind::Trade, InstrumentKind::FuturePerpetual) => Ftx::subscription_id(
+                            Ftx::CHANNEL_TRADES,
+                            &format!("{}-PERP", sub.instrument.base).to_uppercase(),
+                        ),
                         (_, _) => {
                             panic!("not supported")
                         }
@@ -400,7 +397,8 @@ mod tests {
                 actual.len(),
                 test.expected.len(),
                 "TestCase {} failed at vector length assert_eq with actual: {:?}",
-                index, actual
+                index,
+                actual
             );
 
             for (vector_index, (actual, expected)) in actual

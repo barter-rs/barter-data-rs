@@ -86,7 +86,7 @@ impl Level {
     {
         Self {
             price: price.into(),
-            quantity: quantity.into()
+            quantity: quantity.into(),
         }
     }
 }
@@ -105,7 +105,7 @@ pub struct LevelDelta {
     #[serde(deserialize_with = "crate::exchange::de_str")]
     pub price: f64,
     #[serde(deserialize_with = "crate::exchange::de_str")]
-    pub quantity: f64
+    pub quantity: f64,
 }
 
 impl<T> From<(Side, T, T)> for LevelDelta
@@ -125,7 +125,7 @@ impl LevelDelta {
         Self {
             side,
             price: price.into(),
-            quantity: quantity.into()
+            quantity: quantity.into(),
         }
     }
 }

@@ -87,31 +87,31 @@ impl Transformer<MarketEvent> for Coinbase {
         match input {
             CoinbaseMessage::Trade(trade) => {
                 match self.ids.find_instrument(&trade.subscription_id) {
-                    Ok(instrument) => vec![
-                        Ok(MarketEvent::from(
-                            (Coinbase::EXCHANGE, instrument, trade)
-                        ))
-                    ],
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        trade,
+                    )))],
                     Err(error) => vec![Err(error)],
                 }
             }
             CoinbaseMessage::OrderBookL2Snapshot(snapshot) => {
                 match self.ids.find_instrument(&snapshot.subscription_id) {
-                    Ok(instrument) => vec![
-                        Ok(MarketEvent::from(
-                            (Coinbase::EXCHANGE, instrument, snapshot)
-                        ))
-                    ],
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        snapshot,
+                    )))],
                     Err(error) => vec![Err(error)],
                 }
             }
             CoinbaseMessage::OrderBookL2Update(update) => {
                 match self.ids.find_instrument(&update.subscription_id) {
-                    Ok(instrument) => vec![
-                        Ok(MarketEvent::from(
-                            (Coinbase::EXCHANGE, instrument, update)
-                        ))
-                    ],
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        update,
+                    )))],
                     Err(error) => vec![Err(error)],
                 }
             }
@@ -330,7 +330,9 @@ mod tests {
                     side: Side::Buy,
                     time,
                 }),
-                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from("unknown")))],
+                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
+                    "unknown",
+                )))],
             },
         ];
 
@@ -340,7 +342,8 @@ mod tests {
                 actual.len(),
                 test.expected.len(),
                 "TestCase {} failed at vector length assert_eq with actual: {:?}",
-                index, actual
+                index,
+                actual
             );
 
             for (vector_index, (actual, expected)) in actual

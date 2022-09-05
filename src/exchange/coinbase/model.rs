@@ -1,7 +1,7 @@
 use super::Coinbase;
 use crate::{
     exchange::de_str,
-    model::{DataKind, PublicTrade, OrderBook, Level, OrderBookDelta, LevelDelta},
+    model::{DataKind, Level, LevelDelta, OrderBook, OrderBookDelta, PublicTrade},
     ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
@@ -66,7 +66,7 @@ pub enum CoinbaseMessage {
     #[serde(alias = "snapshot")]
     OrderBookL2Snapshot(CoinbaseOrderBookL2Snapshot),
     #[serde(alias = "l2update")]
-    OrderBookL2Update(CoinbaseOrderBookL2Update)
+    OrderBookL2Update(CoinbaseOrderBookL2Update),
 }
 
 /// [`Coinbase`] trade message.
@@ -116,7 +116,13 @@ pub struct CoinbaseOrderBookL2Snapshot {
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent {
-    fn from((exchange_id, instrument, ob_snapshot): (ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)) -> Self {
+    fn from(
+        (exchange_id, instrument, ob_snapshot): (
+            ExchangeId,
+            Instrument,
+            CoinbaseOrderBookL2Snapshot,
+        ),
+    ) -> Self {
         Self {
             exchange_time: Utc::now(),
             received_time: Utc::now(),
@@ -124,8 +130,8 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent
             instrument,
             kind: DataKind::OrderBook(OrderBook {
                 bids: ob_snapshot.bids,
-                asks: ob_snapshot.asks
-            })
+                asks: ob_snapshot.asks,
+            }),
         }
     }
 }
@@ -143,7 +149,9 @@ pub struct CoinbaseOrderBookL2Update {
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
-    fn from((exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update)) -> Self {
+    fn from(
+        (exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update),
+    ) -> Self {
         Self {
             exchange_time: update.time,
             received_time: Utc::now(),
@@ -151,7 +159,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
                 deltas: update.deltas,
-            })
+            }),
         }
     }
 }
@@ -173,7 +181,6 @@ where
     serde::de::Deserialize::deserialize(deserializer)
         .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L2, product_id))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -299,17 +306,22 @@ mod tests {
                     price: 400.23,
                     size: 5.23512,
                     side: Side::Sell,
-                    time: DateTime::from_utc(NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(), Utc)
-                }))
+                    time: DateTime::from_utc(
+                        NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),
+                        Utc,
+                    ),
+                })),
             },
             TestCase {
                 // TC2: valid CoinbaseMessage Spot OrderBookL2Snapshot
                 input: r#"{"type": "snapshot","product_id": "BTC-USD","bids": [["10101.10", "0.45054140"]],"asks": [["10102.55", "0.57753524"]]}"#,
-                expected: Ok(CoinbaseMessage::OrderBookL2Snapshot(CoinbaseOrderBookL2Snapshot {
-                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
-                    bids: vec![Level::new(10101.10, 0.45054140)],
-                    asks: vec![Level::new(10102.55, 0.57753524)]
-                }))
+                expected: Ok(CoinbaseMessage::OrderBookL2Snapshot(
+                    CoinbaseOrderBookL2Snapshot {
+                        subscription_id: SubscriptionId::from("level2|BTC-USD"),
+                        bids: vec![Level::new(10101.10, 0.45054140)],
+                        asks: vec![Level::new(10102.55, 0.57753524)],
+                    },
+                )),
             },
             TestCase {
                 // TC3: invalid CoinbaseMessage Spot OrderBookL2Snapshot w/ non-string values
@@ -333,11 +345,13 @@ mod tests {
                         ]
                     ]
                 }"#,
-                expected: Ok(CoinbaseMessage::OrderBookL2Update(CoinbaseOrderBookL2Update {
-                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
-                    time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
-                    deltas: vec![LevelDelta::new(Side::Buy, 10101.80000000, 0.162567)]
-                }))
+                expected: Ok(CoinbaseMessage::OrderBookL2Update(
+                    CoinbaseOrderBookL2Update {
+                        subscription_id: SubscriptionId::from("level2|BTC-USD"),
+                        time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
+                        deltas: vec![LevelDelta::new(Side::Buy, 10101.80000000, 0.162567)],
+                    },
+                )),
             },
             TestCase {
                 // TC5: valid CoinbaseMessage Spot OrderBookL2Update w/ multiple changes
@@ -358,15 +372,17 @@ mod tests {
                     ],
                     "time": "2022-09-04T12:41:41.258672Z"
                 }"#,
-                expected: Ok(CoinbaseMessage::OrderBookL2Update(CoinbaseOrderBookL2Update {
-                    subscription_id: SubscriptionId::from("level2|BTC-USD"),
-                    time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
-                    deltas: vec![
-                        LevelDelta::new(Side::Buy, 22356.270000, 0.0),
-                        LevelDelta::new(Side::Sell, 23356.300000, 1.0),
-                    ]
-                }))
-            }
+                expected: Ok(CoinbaseMessage::OrderBookL2Update(
+                    CoinbaseOrderBookL2Update {
+                        subscription_id: SubscriptionId::from("level2|BTC-USD"),
+                        time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
+                        deltas: vec![
+                            LevelDelta::new(Side::Buy, 22356.270000, 0.0),
+                            LevelDelta::new(Side::Sell, 23356.300000, 1.0),
+                        ],
+                    },
+                )),
+            },
         ];
 
         for (index, test) in cases.into_iter().enumerate() {

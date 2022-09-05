@@ -1,4 +1,4 @@
-use super::{BinanceMessage, BinanceSubResponse};
+use crate::exchange::binance::model::{BinanceMessage, BinanceSubResponse};
 use crate::{
     model::{MarketEvent, SubKind},
     ExchangeId, ExchangeTransformer, Subscriber, Subscription, SubscriptionIds, SubscriptionMeta,

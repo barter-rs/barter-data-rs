@@ -414,7 +414,8 @@ mod tests {
                 actual.len(),
                 test.expected.len(),
                 "TestCase {} failed at vector length assert_eq with actual: {:?}",
-                index, actual
+                index,
+                actual
             );
 
             for (vector_index, (actual, expected)) in actual
