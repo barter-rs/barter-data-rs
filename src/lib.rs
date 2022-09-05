@@ -133,6 +133,7 @@ pub trait Subscriber {
                             }
                         } else {
                             // Some already active Subscriptions may start coming through
+                            println!("{}", payload);
                             continue;
                         }
                     },
@@ -212,6 +213,7 @@ pub enum ExchangeId {
     Coinbase,
     Ftx,
     Kraken,
+    KrakenFuturesUsd,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -235,7 +237,7 @@ impl ExchangeId {
             ExchangeId::Binance | ExchangeId::BinanceFuturesUsd => "binance",
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
-            ExchangeId::Kraken => "kraken",
+            ExchangeId::Kraken | ExchangeId::KrakenFuturesUsd => "kraken",
         }
     }
 
@@ -247,6 +249,7 @@ impl ExchangeId {
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::KrakenFuturesUsd => "kraken_futures_usd",
         }
     }
 
@@ -255,6 +258,7 @@ impl ExchangeId {
     pub fn supports_spot(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => false,
+            ExchangeId::KrakenFuturesUsd => false,
             _ => true,
         }
     }
@@ -264,6 +268,7 @@ impl ExchangeId {
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::KrakenFuturesUsd => true,
             ExchangeId::Ftx => true,
             _ => false,
         }

@@ -12,6 +12,9 @@ pub mod ftx;
 /// Kraken `ExchangeTransformer` & `Subscriber` implementations.
 pub mod kraken;
 
+/// KrakenFutures `ExchangeTransformer` & `Subscriber` implementations.
+pub mod kraken_futures;
+
 /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
 pub mod coinbase;
 
