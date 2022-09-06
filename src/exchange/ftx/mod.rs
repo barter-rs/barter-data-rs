@@ -2,12 +2,7 @@ use crate::{
     model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
     SubscriptionIds, SubscriptionMeta,
 };
-use barter_integration::{
-    error::SocketError,
-    model::{InstrumentKind, SubscriptionId},
-    protocol::websocket::WsMessage,
-    Transformer,
-};
+use barter_integration::{error::SocketError, model::{InstrumentKind, SubscriptionId}, protocol::websocket::WsMessage, Transformer, Validator};
 use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -47,7 +42,7 @@ impl Subscriber for Ftx {
                 // Construct Ftx specific subscription message
                 let ftx_subscription = Self::subscription(channel, &market);
 
-                // Use market as the SubscriptionId key in the SubscriptionIds
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 ids.insert(Ftx::subscription_id(channel, &market), subscription.clone());
 
                 Ok(ftx_subscription)
@@ -101,40 +96,35 @@ impl Ftx {
     pub const CHANNEL_TRADES: &'static str = "trades";
 
     /// Determine the [`Ftx`] channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the [`Ftx`] &str channel, and a `String` market identifier. Both are used to
-    /// build an [`Ftx`] subscription payload.
+    /// This includes the [`Ftx`] `&str` channel identifier, and a `String` market identifier. Both
+    /// are used to build an [`Ftx`] subscription payload.
     ///
     /// Example Ok Return: Ok("trades", "BTC/USDT")
-    /// where channel == "trades" & market == "BTC/USDT".
-    fn build_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
+    /// where channel == "trades" & market == "BTC/USDT"
+    pub fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
+        // Validate provided Subscription InstrumentKind is supported by Ftx
+        let sub = sub.validate()?;
+
         // Determine Ftx channel using the Subscription SubKind
-        let channel = match &subscription.kind {
+        let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
-            other => {
-                return Err(SocketError::Unsupported {
-                    entity: Self::EXCHANGE.as_str(),
-                    item: other.to_string(),
-                })
-            }
+            other => return Err(SocketError::Unsupported {
+                entity: Self::EXCHANGE.as_str(),
+                item: other.to_string(),
+            })
         };
 
         // Determine Ftx market using the Instrument
-        let market = match &subscription.instrument.kind {
-            InstrumentKind::Spot => format!(
-                "{}/{}",
-                subscription.instrument.base, subscription.instrument.quote
-            )
-            .to_uppercase(),
-            InstrumentKind::FuturePerpetual => {
-                format!("{}-PERP", subscription.instrument.base).to_uppercase()
-            }
+        let market = match &sub.instrument.kind {
+            InstrumentKind::Spot => format!("{}/{}", sub.instrument.base, sub.instrument.quote),
+            InstrumentKind::FuturePerpetual => format!("{}-PERP", sub.instrument.base)
         };
 
-        Ok((channel, market))
+        Ok((channel, market.to_uppercase()))
     }
 
     /// Build a [`Ftx`] compatible subscription message using the channel & market provided.
-    fn subscription(channel: &str, market: &str) -> WsMessage {
+    pub fn subscription(channel: &str, market: &str) -> WsMessage {
         WsMessage::Text(
             json!({
                 "op": "subscribe",
@@ -150,7 +140,7 @@ impl Ftx {
     /// original Barter [`Subscription`].
     ///
     /// eg/ SubscriptionId("trades|BTC/USDT")
-    fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
+    pub fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
         SubscriptionId::from(format!("{channel}|{market}"))
     }
 }
