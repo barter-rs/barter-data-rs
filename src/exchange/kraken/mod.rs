@@ -121,14 +121,14 @@ impl Transformer<MarketEvent> for Kraken {
 
 impl Kraken {
     /// Translate a Barter [`Subscription`] into a [`Kraken`] compatible subscription message.
-    fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
-        // Determine Kraken pair using the Instrument
-        let pair = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
+    pub fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
+        // Determine Kraken market identifier using the Instrument
+        let market = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
 
         // Determine the KrakenSubKind from the Barter SubKind
         let kind = KrakenSubKind::try_from(&sub.kind)?;
 
-        Ok(KrakenSubscription::new(pair, kind))
+        Ok(KrakenSubscription::new(market, kind))
     }
 }
 
@@ -198,7 +198,7 @@ mod tests {
                 ),
                 expected: Ok(KrakenSubscription {
                     event: "subscribe",
-                    pair: "XBT/USD".to_string(),
+                    market: "XBT/USD".to_string(),
                     kind: KrakenSubKind::Trade { channel: "trade" },
                 }),
             },
@@ -211,7 +211,7 @@ mod tests {
                 ),
                 expected: Ok(KrakenSubscription {
                     event: "subscribe",
-                    pair: "XBT/USD".to_string(),
+                    market: "XBT/USD".to_string(),
                     kind: KrakenSubKind::Candle {
                         channel: "ohlc",
                         interval: 5,
