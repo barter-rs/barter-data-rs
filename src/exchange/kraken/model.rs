@@ -29,8 +29,8 @@ use std::time::Duration;
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct KrakenSubscription {
     pub event: &'static str,
-    #[serde(serialize_with = "se_element_to_vector")]
-    pub pair: String,
+    #[serde(rename = "pair", serialize_with = "se_element_to_vector")]
+    pub market: String,
     #[serde(rename = "subscription")]
     pub kind: KrakenSubKind,
 }
@@ -40,11 +40,11 @@ impl From<&KrakenSubscription> for SubscriptionId {
         match kraken_subscription.kind {
             KrakenSubKind::Trade { channel } => {
                 // eg/ SubscriptionId::from("trade|XBT/USD")
-                SubscriptionId::from(format!("{channel}|{}", kraken_subscription.pair))
+                SubscriptionId::from(format!("{channel}|{}", kraken_subscription.market))
             }
             KrakenSubKind::Candle { channel, interval } => {
                 // eg/ SubscriptionId::from("ohlc-5|XBT/USD"),
-                SubscriptionId::from(format!("{channel}-{interval}|{}", kraken_subscription.pair))
+                SubscriptionId::from(format!("{channel}-{interval}|{}", kraken_subscription.market))
             }
         }
     }
@@ -66,12 +66,12 @@ impl TryFrom<&KrakenSubscription> for WsMessage {
 impl KrakenSubscription {
     const EVENT: &'static str = "subscribe";
 
-    /// Construct a new [`KrakenSubscription`] from the provided pair (eg/ "XBT/USD") and
-    /// [`KrakenSubKind`].
-    pub fn new(pair: String, kind: KrakenSubKind) -> Self {
+    /// Construct a new [`KrakenSubscription`] from the provided market identifier (eg/ "XBT/USD"),
+    /// and [`KrakenSubKind`].
+    pub fn new(market: String, kind: KrakenSubKind) -> Self {
         Self {
             event: Self::EVENT,
-            pair,
+            market,
             kind,
         }
     }
