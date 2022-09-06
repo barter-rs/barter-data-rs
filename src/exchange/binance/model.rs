@@ -123,7 +123,8 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
     }
 }
 
-/// Todo:
+/// Deserialize a [`BinanceTrade`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "@aggTrade|BTCUSDT").
 pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,
@@ -132,7 +133,11 @@ where
         .map(|market| BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_TRADES, market))
 }
 
-/// Todo:
+/// Deserialize a [`BinanceTrade`] "buyer_is_maker" boolean field to a Barter [`Side`].
+///
+/// Variants:
+/// buyer_is_maker => Side::Sell
+/// !buyer_is_maker => Side::Buy
 pub fn de_side_from_buyer_is_maker<'de, D>(deserializer: D) -> Result<Side, D::Error>
 where
     D: serde::de::Deserializer<'de>,
@@ -147,7 +152,8 @@ where
         })
 }
 
-/// Todo:
+/// Deserialize a [`BinanceOrderBookL2Update`] "s" (eg/ "BTCUSDT") as the associated
+/// [`SubscriptionId`] (eg/ "@depth@100ms|BTCUSDT").
 pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
     where
         D: serde::de::Deserializer<'de>,
