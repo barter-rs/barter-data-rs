@@ -51,16 +51,12 @@ impl Subscriber for Coinbase {
                 // Determine the Coinbase specific channel & market for this Barter Subscription
                 let (channel, market) = Self::build_channel_meta(subscription)?;
 
-                // Construct Coinbase specific subscription message
-                let coinbase_subscription = Self::subscription(channel, &market);
-
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds HashMap
-                ids.insert(
-                    Coinbase::subscription_id(channel, &market),
-                    subscription.clone(),
-                );
+                // eg/ SubscriptionId("matches|ETH-USD")
+                ids.insert(Coinbase::subscription_id(channel, &market), subscription.clone());
 
-                Ok(coinbase_subscription)
+                // Construct Coinbase specific subscription message
+                Ok(Self::subscription(channel, &market))
             })
             .collect::<Result<Vec<_>, SocketError>>()?;
 

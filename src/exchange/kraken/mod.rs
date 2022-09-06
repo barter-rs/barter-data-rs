@@ -41,12 +41,9 @@ impl Subscriber for Kraken {
                 // Translate Barter Subscription to the associated KrakenSubscription
                 let kraken_subscription = Kraken::subscription(subscription)?;
 
-                // Determine the SubscriptionId ("{channel}|{market} ")for this KrakenSubscription
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 // eg/ SubscriptionId("ohlc-5|XBT/USD")
-                let subscription_id = SubscriptionId::from(&kraken_subscription);
-
-                // Insert SubscriptionId to Barter Subscription Entry in SubscriptionIds HashMap
-                ids.insert(subscription_id, subscription.clone());
+                ids.insert(SubscriptionId::from(&kraken_subscription), subscription.clone());
 
                 WsMessage::try_from(&kraken_subscription)
             })

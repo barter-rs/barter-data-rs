@@ -32,20 +32,19 @@ impl Subscriber for Ftx {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut ids = SubscriptionIds(HashMap::with_capacity(subscriptions.len()));
 
-        // Map Barter Subscriptions to Ftx channels
+        // Map Barter Subscriptions to Ftx subscriptions
         let subscriptions = subscriptions
             .iter()
             .map(|subscription| {
                 // Determine the Ftx specific channel & market for this Barter Subscription
                 let (channel, market) = Self::build_channel_meta(subscription)?;
 
-                // Construct Ftx specific subscription message
-                let ftx_subscription = Self::subscription(channel, &market);
-
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
+                // eg/ SubscriptionId("trades|BTC/USDT")
                 ids.insert(Ftx::subscription_id(channel, &market), subscription.clone());
 
-                Ok(ftx_subscription)
+                // Construct Ftx specific subscription message
+                Ok(Self::subscription(channel, &market))
             })
             .collect::<Result<Vec<_>, SocketError>>()?;
 
