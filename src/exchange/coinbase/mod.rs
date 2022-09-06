@@ -48,15 +48,15 @@ impl Subscriber for Coinbase {
         let subscriptions = subscriptions
             .iter()
             .map(|subscription| {
-                // Determine the Coinbase specific channel & product_id for this Barter Subscription
-                let (channel, product_id) = Self::build_channel_meta(subscription)?;
+                // Determine the Coinbase specific channel & market for this Barter Subscription
+                let (channel, market) = Self::build_channel_meta(subscription)?;
 
                 // Construct Coinbase specific subscription message
-                let coinbase_subscription = Self::subscription(channel, &product_id);
+                let coinbase_subscription = Self::subscription(channel, &market);
 
-                // Use "channel|product_id" as the SubscriptionId key in the SubscriptionIds HashMap
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds HashMap
                 ids.insert(
-                    Coinbase::subscription_id(channel, &product_id),
+                    Coinbase::subscription_id(channel, &market),
                     subscription.clone(),
                 );
 
@@ -131,56 +131,50 @@ impl Coinbase {
     pub const CHANNEL_ORDER_BOOK_L2: &'static str = "level2";
 
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the [`Coinbase`] &str channel, and a `String` product_id identifier. Both are
+    /// This includes the [`Coinbase`] &str channel, and a `String` market identifier. Both are
     /// used to build an [`Coinbase`] subscription payload.
     ///
     /// Example Ok return: Ok("matches", "BTC-USD")
-    /// where channel == "matches" & product_id == "BTC-USD".
-    fn build_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
+    /// where channel == "matches" & market == "BTC-USD".
+    pub fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
         // Validate provided Subscription InstrumentKind is supported by Coinbase
-        let subscription = subscription.validate()?;
+        let sub = sub.validate()?;
 
         // Determine Coinbase channel using the Subscription SubKind
-        let channel = match &subscription.kind {
+        let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
             SubKind::OrderBookL2 => Self::CHANNEL_ORDER_BOOK_L2,
-            other => {
-                return Err(SocketError::Unsupported {
-                    entity: Self::EXCHANGE.as_str(),
-                    item: other.to_string(),
-                })
-            }
+            other => return Err(SocketError::Unsupported {
+                entity: Self::EXCHANGE.as_str(),
+                item: other.to_string(),
+            })
         };
 
-        // Determine Coinbase product_id identifier using the Instrument (eg/ "BTC-USD")
-        let product_id = format!(
-            "{}-{}",
-            subscription.instrument.base, subscription.instrument.quote
-        )
-        .to_uppercase();
+        // Determine Coinbase market identifier using the Instrument (eg/ "BTC-USD")
+        let market = format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
 
-        Ok((channel, product_id))
+        Ok((channel, market))
     }
 
-    /// Build a [`Coinbase`] compatible subscription message using the channel & product_id provided.
-    fn subscription(channel: &str, product_id: &str) -> WsMessage {
+    /// Build a [`Coinbase`] compatible subscription message using the channel & market provided.
+    pub fn subscription(channel: &str, market: &str) -> WsMessage {
         WsMessage::Text(
             json!({
                 "type": "subscribe",
-                "product_ids": [product_id],
+                "product_ids": [market],
                 "channels": [channel],
             })
             .to_string(),
         )
     }
 
-    /// Build a [`Coinbase`] compatible [`SubscriptionId`] using the channel & product_id provided.
+    /// Build a [`Coinbase`] compatible [`SubscriptionId`] using the channel & market provided.
     /// This is used to associate [`Coinbase`] data structures received over the WebSocket with it's
     /// original Barter [`Subscription`].
     ///
     /// eg/ SubscriptionId("matches|ETH-USD")
-    fn subscription_id(channel: &str, product_id: &str) -> SubscriptionId {
-        SubscriptionId::from(format!("{channel}|{product_id}"))
+    pub fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{channel}|{market}"))
     }
 }
 
