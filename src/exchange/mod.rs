@@ -31,7 +31,7 @@ where
     data.parse::<T>().map_err(de::Error::custom)
 }
 
-/// Helper function to deserialize a `String` as `DateTime<Utc>`
+/// Helper function to deserialize a `u64` as `DateTime<Utc>`.
 pub fn de_u64_epoch_ms_as_datetime_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: de::Deserializer<'de>,
