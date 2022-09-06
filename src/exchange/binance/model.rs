@@ -1,7 +1,7 @@
 use super::futures::BinanceFuturesUsd;
 use crate::{
     exchange::{datetime_utc_from_epoch_duration},
-    model::{DataKind, PublicTrade, Level, LevelDelta, OrderBookDelta},
+    model::{DataKind, PublicTrade, LevelDelta, OrderBookDelta},
     ExchangeId, MarketEvent,
 };
 use barter_integration::{
@@ -61,17 +61,17 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {
-    #[serde(rename = "s", deserialize_with = "de_trade_subscription_id")]
+    #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(rename = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
-    #[serde(rename = "a")]
+    #[serde(alias = "a")]
     pub id: u64,
-    #[serde(rename = "p", deserialize_with = "crate::exchange::de_str")]
+    #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
     pub price: f64,
-    #[serde(rename = "q", deserialize_with = "crate::exchange::de_str")]
+    #[serde(alias = "q", deserialize_with = "crate::exchange::de_str")]
     pub quantity: f64,
-    #[serde(rename = "m", deserialize_with = "de_side_from_buyer_is_maker")]
+    #[serde(alias = "m", deserialize_with = "de_side_from_buyer_is_maker")]
     pub side: Side,
 }
 
@@ -97,8 +97,23 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceOrderBookL2Update {
-    #[serde(rename = "s", deserialize_with = "de_ob_l2_subscription_id")]
+    #[serde(alias = "s", deserialize_with = "de_ob_l2_subscription_id")]
     pub subscription_id: SubscriptionId,
+
+    #[serde(alias = "E", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    pub event_time: DateTime<Utc>,
+
+    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    pub transaction_time: DateTime<Utc>,
+
+    #[serde(alias = "U")]
+    pub first_update_id: u64,
+
+    #[serde(alias = "u")]
+    pub last_update_id: u64,
+
+    #[serde(alias = "pu")]
+    pub last_event_last_update_id: u64,
 
     // Todo: Must add the other fields for binance
     // Todo: deserialize_with = "level to level_delta"
@@ -117,7 +132,8 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
-                deltas: vec![], // Todo:
+                bid_deltas: ob_update.bids,
+                asks_deltas: ob_update.asks
             }),
         }
     }
@@ -303,6 +319,39 @@ mod tests {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
+            },
+            TestCase {
+                // TC3: valid BinanceMessage L2Update (Diff. Book "depthUpdate")
+                input: r#"{
+                    "e":"depthUpdate","E":1662496296613,"T":1662496296608,"s":"ETHUSDT",
+                    "U":1893125629200,"u":1893125631989,"pu":1893125629181,
+                    "b":[
+                        ["1566.69","0.197"],["1566.73","111.497"], ["1566.74","0.000"],["1568.00","0.000"]
+                    ],
+                    "a":[
+                        ["1565.47","0.000"],["1566.74","13.331"],["1566.76","0.000"],["1566.80","2.504"]
+                    ]
+                }"#,
+                expected: Ok(BinanceMessage::OrderBookL2Update(BinanceOrderBookL2Update {
+                    subscription_id: SubscriptionId::from("@depth@100ms|ETHUSDT"),
+                    event_time: datetime_utc_from_epoch_duration(Duration::from_millis(1662496296613)),
+                    transaction_time: datetime_utc_from_epoch_duration(Duration::from_millis(1662496296608)),
+                    first_update_id: 1893125629200,
+                    last_update_id: 1893125631989,
+                    last_event_last_update_id: 1893125629181,
+                    bids: vec![
+                        LevelDelta::from((1566.69, 0.197)),
+                        LevelDelta::from((1566.73, 111.497)),
+                        LevelDelta::from((1566.74, 0.000)),
+                        LevelDelta::from((1568.00, 0.000)),
+                    ],
+                    asks: vec![
+                        LevelDelta::from((1565.47, 0.000)),
+                        LevelDelta::from((1566.74, 13.331)),
+                        LevelDelta::from((1566.76, 0.000)),
+                        LevelDelta::from((1566.80, 2.504)),
+                    ]
+                })),
             },
         ];
 
