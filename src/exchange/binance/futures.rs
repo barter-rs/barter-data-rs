@@ -38,10 +38,15 @@ impl Subscriber for BinanceFuturesUsd {
                 let (channel, market) = Self::build_channel_meta(subscription)?;
 
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
+                // '--> Uppercase market to match incoming exchange event
                 // eg/ SubscriptionId("@depth@100ms|BTCUSDT")
-                ids.insert(BinanceFuturesUsd::subscription_id(channel, &market), subscription.clone());
+                ids.insert(
+                    BinanceFuturesUsd::subscription_id(channel, &market.to_uppercase()),
+                    subscription.clone()
+                );
 
                 // Construct BinanceFuturesUsd 'StreamName' eg/ "btcusdt@aggTrade"
+                // '--> Lowercase market because the subscription 'StreamName' must be lowercase
                 Ok(format!("{market}{channel}"))
             })
             .collect::<Result<Vec<_>, SocketError>>()?;
@@ -69,6 +74,7 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
+        println!("Transform: {input:?}");
         match input {
             BinanceMessage::Trade(trade) => {
                 match self.ids.find_instrument(&trade.subscription_id) {
@@ -127,7 +133,7 @@ impl BinanceFuturesUsd {
         };
 
         // Determine BinanceFuturesUsd market using the Instrument
-        let market = format!("{}{}", sub.instrument.base, sub.instrument.quote);//.to_uppercase(); // Todo: to upper works?
+        let market = format!("{}{}", sub.instrument.base, sub.instrument.quote);
 
         Ok((channel, market))
     }
@@ -153,4 +159,261 @@ impl BinanceFuturesUsd {
             .to_string(),
         )]
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+    use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
+    use crate::exchange::binance::model::{BinanceOrderBookL2Update, BinanceTrade};
+    use crate::model::{DataKind, Interval, LevelDelta, OrderBookDelta, PublicTrade};
+    use super::*;
+
+    fn binance_futures_usd(subscriptions: Vec<Subscription>) -> BinanceFuturesUsd {
+        let ids = SubscriptionIds(
+            subscriptions
+                .into_iter()
+                .map(|sub| {
+                    let subscription_id = match (&sub.kind, &sub.instrument.kind) {
+                        (SubKind::Trade, InstrumentKind::FuturePerpetual) => BinanceFuturesUsd::subscription_id(
+                            BinanceFuturesUsd::CHANNEL_TRADES,
+                            &format!("{}{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
+                        ),
+                        (SubKind::OrderBookL2, InstrumentKind::FuturePerpetual ) => BinanceFuturesUsd::subscription_id(
+                            BinanceFuturesUsd::CHANNEL_ORDER_BOOK_L2,
+                            &format!("{}{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
+                        ),
+                        (_, _) => {
+                            panic!("not supported")
+                        }
+                    };
+
+                    (subscription_id, sub)
+                })
+                .collect()
+        );
+
+        BinanceFuturesUsd { ids }
+    }
+
+    #[test]
+    fn test_build_channel_meta() {
+        struct TestCase<'a> {
+            input: Subscription,
+            expected: Result<(&'a str, String), SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: Unsupported InstrumentKind::Spot subscription
+                input: Subscription::new(
+                    ExchangeId::BinanceFuturesUsd,
+                    ("btc", "usdt", InstrumentKind::Spot),
+                    SubKind::Trade,
+                ),
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
+            },
+            TestCase {
+                // TC1: Supported InstrumentKind::FuturePerpetual trades subscription
+                input: Subscription::new(
+                    ExchangeId::BinanceFuturesUsd,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::Trade,
+                ),
+                expected: Ok(("@aggTrade", "btcusdt".to_owned())),
+            },
+            TestCase {
+                // TC2: Supported InstrumentKind::FuturePerpetual OrderBookL2 subscription
+                input: Subscription::new(
+                    ExchangeId::BinanceFuturesUsd,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::OrderBookL2,
+                ),
+                expected: Ok(("@depth@100ms", "btcusdt".to_owned())),
+            },
+            TestCase {
+                // TC3: Unsupported InstrumentKind::FuturePerpetual candle subscription
+                input: Subscription::new(
+                    ExchangeId::BinanceFuturesUsd,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::Candle(Interval::Minute5),
+                ),
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = BinanceFuturesUsd::build_channel_meta(&test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_binance_transform() {
+        let mut transformer = binance_futures_usd(vec![
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::OrderBookL2,
+            )),
+        ]);
+
+        let time = Utc::now();
+
+        struct TestCase {
+            input: BinanceMessage,
+            expected: Vec<Result<MarketEvent, SocketError>>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: BinanceMessage with unknown SubscriptionId
+                input: BinanceMessage::Trade(BinanceTrade {
+                    subscription_id: SubscriptionId::from("unknown"),
+                    time,
+                    id: 0,
+                    price: 1000.0,
+                    quantity: 1.0,
+                    side: Side::Buy
+                }),
+                expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
+                    "unknown",
+                )))],
+            },
+            TestCase {
+                // TC1: BinanceMessage FuturePerpetual trade w/ known SubscriptionId
+                input: BinanceMessage::Trade(BinanceTrade {
+                    subscription_id: SubscriptionId::from("@aggTrade|BTCUSDT"),
+                    time,
+                    id: 0,
+                    price: 1000.0,
+                    quantity: 1.0,
+                    side: Side::Buy
+                }),
+                expected: vec![Ok(MarketEvent {
+                    exchange_time: time,
+                    received_time: time,
+                    exchange: Exchange::from(ExchangeId::BinanceFuturesUsd),
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::FuturePerpetual)),
+                    kind: DataKind::Trade(PublicTrade {
+                        id: "0".to_string(),
+                        price: 1000.0,
+                        quantity: 1.0,
+                        side: Side::Buy
+                    })
+                })]
+            },
+            TestCase {
+                // TC2: BinanceMessage FuturePerpetual OrderBookL2 w/ known SubscriptionId
+                input: BinanceMessage::OrderBookL2Update(BinanceOrderBookL2Update {
+                    subscription_id: SubscriptionId::from("@depth@100ms|BTCUSDT"),
+                    event_time: time,
+                    transaction_time: time,
+                    first_update_id: 100,
+                    last_update_id: 110,
+                    last_event_last_update_id: 99,
+                    bids: vec![
+                        LevelDelta::from((1000.0, 1.0)),
+                        LevelDelta::from((2000.0, 1.0)),
+                        LevelDelta::from((3000.0, 1.0)),
+                    ],
+                    asks: vec![
+                        LevelDelta::from((4000.0, 1.0)),
+                        LevelDelta::from((5000.0, 1.0)),
+                        LevelDelta::from((6000.0, 1.0)),
+                    ]
+                }),
+                expected: vec![Ok(MarketEvent {
+                    exchange_time: time,
+                    received_time: time,
+                    exchange: Exchange::from(ExchangeId::BinanceFuturesUsd),
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::FuturePerpetual)),
+                    kind: DataKind::OrderBookDelta(OrderBookDelta {
+                        bid_deltas: vec![
+                            LevelDelta::from((1000.0, 1.0)),
+                            LevelDelta::from((2000.0, 1.0)),
+                            LevelDelta::from((3000.0, 1.0)),
+                        ],
+                        asks_deltas: vec![
+                            LevelDelta::from((4000.0, 1.0)),
+                            LevelDelta::from((5000.0, 1.0)),
+                            LevelDelta::from((6000.0, 1.0)),
+                        ]
+                    })
+                })]
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = transformer.transform(test.input);
+            assert_eq!(
+                actual.len(),
+                test.expected.len(),
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index,
+                actual
+            );
+
+            for (vector_index, (actual, expected)) in actual
+                .into_iter()
+                .zip(test.expected.into_iter())
+                .enumerate()
+            {
+                match (actual, expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        // Scrub Utc::now() timestamps to allow comparison
+                        let actual = MarketEvent {
+                            received_time: time,
+                            ..actual
+                        };
+                        assert_eq!(
+                            actual, expected,
+                            "TC{} failed at vector index {}",
+                            index, vector_index
+                        )
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed at vector index {vector_index} because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+
+
+
 }

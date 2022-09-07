@@ -114,10 +114,7 @@ pub struct BinanceOrderBookL2Update {
 
     #[serde(alias = "pu")]
     pub last_event_last_update_id: u64,
-
-    // Todo: Must add the other fields for binance
-    // Todo: deserialize_with = "level to level_delta"
-
+    
     #[serde(alias = "b")]
     pub bids: Vec<LevelDelta>,
     #[serde(alias = "a")]
@@ -127,7 +124,7 @@ pub struct BinanceOrderBookL2Update {
 impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
     fn from((exchange_id, instrument, ob_update): (ExchangeId, Instrument, BinanceOrderBookL2Update)) -> Self {
         Self {
-            exchange_time: Utc::now(),
+            exchange_time: ob_update.transaction_time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
