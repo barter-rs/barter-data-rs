@@ -290,9 +290,8 @@ mod tests {
                 input: CoinbaseMessage::Trade(CoinbaseTrade {
                     subscription_id: SubscriptionId::from("matches|BTC-USD"),
                     id: 2,
-                    sequence: 2,
                     price: 1.0,
-                    size: 1.0,
+                    quantity: 1.0,
                     side: Side::Buy,
                     time,
                 }),
@@ -314,9 +313,8 @@ mod tests {
                 input: CoinbaseMessage::Trade(CoinbaseTrade {
                     subscription_id: SubscriptionId::from("unknown"),
                     id: 1,
-                    sequence: 2,
                     price: 1.0,
-                    size: 1.0,
+                    quantity: 1.0,
                     side: Side::Buy,
                     time,
                 }),

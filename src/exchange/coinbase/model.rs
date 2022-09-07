@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum CoinbaseSubResponse {
-    #[serde(rename = "subscriptions")]
+    #[serde(alias = "subscriptions")]
     Subscribed {
         channels: Vec<CoinbaseChannels>,
     },
@@ -35,7 +35,7 @@ pub enum CoinbaseSubResponse {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct CoinbaseChannels {
-    #[serde(rename = "name")]
+    #[serde(alias = "name")]
     pub channel: String,
     pub product_ids: Vec<String>,
 }
@@ -74,14 +74,13 @@ pub enum CoinbaseMessage {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct CoinbaseTrade {
-    #[serde(rename = "product_id", deserialize_with = "de_trade_subscription_id")]
+    #[serde(alias = "product_id", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(rename = "trade_id")]
+    #[serde(alias = "trade_id")]
     pub id: u64,
-    pub sequence: u64,
     pub time: DateTime<Utc>,
-    #[serde(deserialize_with = "de_str")]
-    pub size: f64,
+    #[serde(alias = "size", deserialize_with = "de_str")]
+    pub quantity: f64,
     #[serde(deserialize_with = "de_str")]
     pub price: f64,
     pub side: Side,
@@ -97,7 +96,7 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
             kind: DataKind::Trade(PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
-                quantity: trade.size,
+                quantity: trade.quantity,
                 side: trade.side,
             }),
         }
@@ -109,7 +108,7 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct CoinbaseOrderBookL2Snapshot {
-    #[serde(rename = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
+    #[serde(alias = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
     pub subscription_id: SubscriptionId,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
@@ -141,24 +140,54 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct CoinbaseOrderBookL2Update {
-    #[serde(rename = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
+    #[serde(alias = "product_id", deserialize_with = "de_ob_l2_subscription_id")]
     pub subscription_id: SubscriptionId,
     pub time: DateTime<Utc>,
-    #[serde(rename = "changes")]
-    pub deltas: Vec<LevelDelta>,
+    #[serde(alias = "changes")]
+    pub deltas: Vec<CoinbaseL2LevelDelta>,
+}
+
+/// Todo:
+///
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct CoinbaseL2LevelDelta {
+    pub side: Side,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
-    fn from(
-        (exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update),
-    ) -> Self {
+    fn from((exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update)) -> Self {
+        // Todo: Test this functionality & make it more efficient. Also, should we be sorting the deltas?
+        let (bid_deltas, ask_deltas) = update
+            .deltas
+            .into_iter()
+            .fold(
+                (vec![], vec![]),
+                |(mut bid_deltas, mut ask_deltas), delta| {
+                    let CoinbaseL2LevelDelta { side, price, quantity } = delta;
+                    let delta = LevelDelta::new(price, quantity);
+
+                    match side {
+                        Side::Buy => bid_deltas.push(delta),
+                        Side::Sell => ask_deltas.push(delta)
+                    };
+
+                    (bid_deltas, ask_deltas)
+                }
+            );
+
         Self {
             exchange_time: update.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
-                deltas: update.deltas,
+                bid_deltas,
+                ask_deltas,
             }),
         }
     }
@@ -302,9 +331,8 @@ mod tests {
                 expected: Ok(CoinbaseMessage::Trade(CoinbaseTrade {
                     subscription_id: SubscriptionId::from("matches|BTC-USD"),
                     id: 10,
-                    sequence: 50,
                     price: 400.23,
-                    size: 5.23512,
+                    quantity: 5.23512,
                     side: Side::Sell,
                     time: DateTime::from_utc(
                         NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),
@@ -349,7 +377,9 @@ mod tests {
                     CoinbaseOrderBookL2Update {
                         subscription_id: SubscriptionId::from("level2|BTC-USD"),
                         time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
-                        deltas: vec![LevelDelta::new(Side::Buy, 10101.80000000, 0.162567)],
+                        deltas: vec![
+                            CoinbaseL2LevelDelta { side: Side::Buy, price: 10101.80000000, quantity: 0.162567 }
+                        ],
                     },
                 )),
             },
@@ -377,8 +407,8 @@ mod tests {
                         subscription_id: SubscriptionId::from("level2|BTC-USD"),
                         time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
                         deltas: vec![
-                            LevelDelta::new(Side::Buy, 22356.270000, 0.0),
-                            LevelDelta::new(Side::Sell, 23356.300000, 1.0),
+                            CoinbaseL2LevelDelta { side: Side::Buy, price: 22356.270000, quantity: 0.0 },
+                            CoinbaseL2LevelDelta { side: Side::Sell, price: 23356.300000, quantity: 1.0 }
                         ],
                     },
                 )),
