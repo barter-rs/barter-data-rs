@@ -6,19 +6,19 @@
 )]
 
 use crate::model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta};
-use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::Exchange,
     protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage, WsSink, WsStream},
     Event, ExchangeStream, Transformer, Validator,
 };
-use futures::{SinkExt, Stream, StreamExt};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display, Formatter},
     time::Duration,
 };
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use async_trait::async_trait;
+use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::error;
 

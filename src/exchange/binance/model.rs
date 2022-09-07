@@ -90,7 +90,8 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
     }
 }
 
-/// Todo:
+/// Todo: Need to maintain order in the mapper using the fields that are not being sent downstream,
+///
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
