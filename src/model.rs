@@ -92,38 +92,36 @@ impl Level {
 }
 
 /// Todo: Rust docs
-/// Todo: Should probably be bid_deltas & asks_deltas, while dev coinbase keep single vec for simplicity
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBookDelta {
-    pub deltas: Vec<LevelDelta>,
+    pub bid_deltas: Vec<LevelDelta>,
+    pub ask_deltas: Vec<LevelDelta>,
 }
 
 /// Todo: Rust docs
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct LevelDelta {
-    pub side: Side,
     #[serde(deserialize_with = "crate::exchange::de_str")]
     pub price: f64,
     #[serde(deserialize_with = "crate::exchange::de_str")]
     pub quantity: f64,
 }
 
-impl<T> From<(Side, T, T)> for LevelDelta
+impl<T> From<(T, T)> for LevelDelta
 where
     T: Into<f64>,
 {
-    fn from((side, price, quantity): (Side, T, T)) -> Self {
-        Self::new(side, price, quantity)
+    fn from((price, quantity): (T, T)) -> Self {
+        Self::new(price, quantity)
     }
 }
 
 impl LevelDelta {
-    pub fn new<T>(side: Side, price: T, quantity: T) -> Self
+    pub fn new<T>(price: T, quantity: T) -> Self
     where
         T: Into<f64>,
     {
         Self {
-            side,
             price: price.into(),
             quantity: quantity.into(),
         }

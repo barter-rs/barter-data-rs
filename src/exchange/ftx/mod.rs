@@ -323,7 +323,7 @@ mod tests {
                 ],
             },
             TestCase {
-                // TC1: FtxMessage FuturePerpetual trades w/ known SubscriptionId
+                // TC2: FtxMessage FuturePerpetual trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
                     market: String::from("BTC-PERP"),
                     trades: vec![

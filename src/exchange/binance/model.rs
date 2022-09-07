@@ -1,6 +1,5 @@
 use super::futures::BinanceFuturesUsd;
 use crate::{
-    exchange::{datetime_utc_from_epoch_duration},
     model::{DataKind, PublicTrade, LevelDelta, OrderBookDelta},
     ExchangeId, MarketEvent,
 };
@@ -11,7 +10,6 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 /// `Binance` & `BinanceFuturesUsd` `Subscription` response message.
 ///
@@ -130,7 +128,7 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
                 bid_deltas: ob_update.bids,
-                asks_deltas: ob_update.asks
+                ask_deltas: ob_update.asks
             }),
         }
     }
@@ -178,7 +176,9 @@ pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionI
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
     use serde::de::Error;
+    use crate::exchange::datetime_utc_from_epoch_duration;
     use super::*;
 
     #[test]

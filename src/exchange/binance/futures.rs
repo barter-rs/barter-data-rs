@@ -74,7 +74,6 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        println!("Transform: {input:?}");
         match input {
             BinanceMessage::Trade(trade) => {
                 match self.ids.find_instrument(&trade.subscription_id) {
@@ -360,7 +359,7 @@ mod tests {
                             LevelDelta::from((2000.0, 1.0)),
                             LevelDelta::from((3000.0, 1.0)),
                         ],
-                        asks_deltas: vec![
+                        ask_deltas: vec![
                             LevelDelta::from((4000.0, 1.0)),
                             LevelDelta::from((5000.0, 1.0)),
                             LevelDelta::from((6000.0, 1.0)),

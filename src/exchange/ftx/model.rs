@@ -47,7 +47,7 @@ impl Validator for FtxSubResponse {
 pub enum FtxMessage {
     Trades {
         market: String,
-        #[serde(rename = "data")]
+        #[serde(alias = "data")]
         trades: Vec<FtxTrade>,
     },
 }

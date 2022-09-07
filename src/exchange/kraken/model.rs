@@ -29,9 +29,9 @@ use std::time::Duration;
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct KrakenSubscription {
     pub event: &'static str,
-    #[serde(rename = "pair", serialize_with = "se_element_to_vector")]
+    #[serde(alias = "pair", serialize_with = "se_element_to_vector")]
     pub market: String,
-    #[serde(rename = "subscription")]
+    #[serde(alias = "subscription")]
     pub kind: KrakenSubKind,
 }
 
@@ -88,11 +88,11 @@ impl KrakenSubscription {
 #[serde(untagged)]
 pub enum KrakenSubKind {
     Trade {
-        #[serde(rename = "name")]
+        #[serde(alias = "name")]
         channel: &'static str,
     },
     Candle {
-        #[serde(rename = "name")]
+        #[serde(alias = "name")]
         channel: &'static str,
         interval: u32,
     },
@@ -198,9 +198,9 @@ impl From<KrakenInterval> for u32 {
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum KrakenSubResponse {
     Subscribed {
-        #[serde(rename = "channelID")]
+        #[serde(alias = "channelID")]
         channel_id: u64,
-        #[serde(rename = "channelName")]
+        #[serde(alias = "channelName")]
         channel_name: String,
         pair: String,
     },
@@ -217,7 +217,7 @@ pub enum KrakenSubResponse {
 /// See docs subscription failed: <https://docs.kraken.com/websockets/#message-subscriptionStatus>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct KrakenError {
-    #[serde(rename = "errorMessage")]
+    #[serde(alias = "errorMessage")]
     pub message: String,
 }
 
