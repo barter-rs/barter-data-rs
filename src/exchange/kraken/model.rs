@@ -44,7 +44,10 @@ impl From<&KrakenSubscription> for SubscriptionId {
             }
             KrakenSubKind::Candle { channel, interval } => {
                 // eg/ SubscriptionId::from("ohlc-5|XBT/USD"),
-                SubscriptionId::from(format!("{channel}-{interval}|{}", kraken_subscription.market))
+                SubscriptionId::from(format!(
+                    "{channel}-{interval}|{}",
+                    kraken_subscription.market
+                ))
             }
         }
     }

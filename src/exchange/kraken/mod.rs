@@ -43,7 +43,10 @@ impl Subscriber for Kraken {
 
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 // eg/ SubscriptionId("ohlc-5|XBT/USD")
-                ids.insert(SubscriptionId::from(&kraken_subscription), subscription.clone());
+                ids.insert(
+                    SubscriptionId::from(&kraken_subscription),
+                    subscription.clone(),
+                );
 
                 WsMessage::try_from(&kraken_subscription)
             })

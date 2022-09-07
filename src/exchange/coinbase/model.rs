@@ -160,25 +160,28 @@ pub struct CoinbaseL2LevelDelta {
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
-    fn from((exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update)) -> Self {
+    fn from(
+        (exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL2Update),
+    ) -> Self {
         // Todo: Test this functionality & make it more efficient. Also, should we be sorting the deltas?
-        let (bid_deltas, ask_deltas) = update
-            .deltas
-            .into_iter()
-            .fold(
-                (vec![], vec![]),
-                |(mut bid_deltas, mut ask_deltas), delta| {
-                    let CoinbaseL2LevelDelta { side, price, quantity } = delta;
-                    let delta = LevelDelta::new(price, quantity);
+        let (bid_deltas, ask_deltas) = update.deltas.into_iter().fold(
+            (vec![], vec![]),
+            |(mut bid_deltas, mut ask_deltas), delta| {
+                let CoinbaseL2LevelDelta {
+                    side,
+                    price,
+                    quantity,
+                } = delta;
+                let delta = LevelDelta::new(price, quantity);
 
-                    match side {
-                        Side::Buy => bid_deltas.push(delta),
-                        Side::Sell => ask_deltas.push(delta)
-                    };
+                match side {
+                    Side::Buy => bid_deltas.push(delta),
+                    Side::Sell => ask_deltas.push(delta),
+                };
 
-                    (bid_deltas, ask_deltas)
-                }
-            );
+                (bid_deltas, ask_deltas)
+            },
+        );
 
         Self {
             exchange_time: update.time,
@@ -377,9 +380,11 @@ mod tests {
                     CoinbaseOrderBookL2Update {
                         subscription_id: SubscriptionId::from("level2|BTC-USD"),
                         time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
-                        deltas: vec![
-                            CoinbaseL2LevelDelta { side: Side::Buy, price: 10101.80000000, quantity: 0.162567 }
-                        ],
+                        deltas: vec![CoinbaseL2LevelDelta {
+                            side: Side::Buy,
+                            price: 10101.80000000,
+                            quantity: 0.162567,
+                        }],
                     },
                 )),
             },
@@ -407,8 +412,16 @@ mod tests {
                         subscription_id: SubscriptionId::from("level2|BTC-USD"),
                         time: DateTime::from_str("2022-09-04T12:41:41.258672Z").unwrap(),
                         deltas: vec![
-                            CoinbaseL2LevelDelta { side: Side::Buy, price: 22356.270000, quantity: 0.0 },
-                            CoinbaseL2LevelDelta { side: Side::Sell, price: 23356.300000, quantity: 1.0 }
+                            CoinbaseL2LevelDelta {
+                                side: Side::Buy,
+                                price: 22356.270000,
+                                quantity: 0.0,
+                            },
+                            CoinbaseL2LevelDelta {
+                                side: Side::Sell,
+                                price: 23356.300000,
+                                quantity: 1.0,
+                            },
                         ],
                     },
                 )),

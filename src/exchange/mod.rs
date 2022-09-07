@@ -37,7 +37,9 @@ where
     D: de::Deserializer<'de>,
 {
     let epoch_ms: u64 = de::Deserialize::deserialize(deserializer)?;
-    Ok(datetime_utc_from_epoch_duration(Duration::from_millis(epoch_ms)))
+    Ok(datetime_utc_from_epoch_duration(Duration::from_millis(
+        epoch_ms,
+    )))
 }
 
 /// Assists deserialisation of sequences by attempting to extract & parse the next element in the

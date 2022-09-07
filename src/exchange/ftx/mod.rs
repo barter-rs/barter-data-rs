@@ -2,7 +2,12 @@ use crate::{
     model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
     SubscriptionIds, SubscriptionMeta,
 };
-use barter_integration::{error::SocketError, model::{InstrumentKind, SubscriptionId}, protocol::websocket::WsMessage, Transformer, Validator};
+use barter_integration::{
+    error::SocketError,
+    model::{InstrumentKind, SubscriptionId},
+    protocol::websocket::WsMessage,
+    Transformer, Validator,
+};
 use model::{FtxMessage, FtxSubResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -107,16 +112,18 @@ impl Ftx {
         // Determine Ftx channel using the Subscription SubKind
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
-            other => return Err(SocketError::Unsupported {
-                entity: Self::EXCHANGE.as_str(),
-                item: other.to_string(),
-            })
+            other => {
+                return Err(SocketError::Unsupported {
+                    entity: Self::EXCHANGE.as_str(),
+                    item: other.to_string(),
+                })
+            }
         };
 
         // Determine Ftx market using the Instrument
         let market = match &sub.instrument.kind {
             InstrumentKind::Spot => format!("{}/{}", sub.instrument.base, sub.instrument.quote),
-            InstrumentKind::FuturePerpetual => format!("{}-PERP", sub.instrument.base)
+            InstrumentKind::FuturePerpetual => format!("{}-PERP", sub.instrument.base),
         };
 
         Ok((channel, market.to_uppercase()))

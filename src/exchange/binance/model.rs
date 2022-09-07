@@ -1,6 +1,6 @@
 use super::futures::BinanceFuturesUsd;
 use crate::{
-    model::{DataKind, PublicTrade, LevelDelta, OrderBookDelta},
+    model::{DataKind, LevelDelta, OrderBookDelta, PublicTrade},
     ExchangeId, MarketEvent,
 };
 use barter_integration::{
@@ -49,7 +49,9 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
     fn from((exchange, instrument, message): (ExchangeId, Instrument, BinanceMessage)) -> Self {
         match message {
             BinanceMessage::Trade(trade) => MarketEvent::from((exchange, instrument, trade)),
-            BinanceMessage::OrderBookL2Update(update) => MarketEvent::from((exchange, instrument, update))
+            BinanceMessage::OrderBookL2Update(update) => {
+                MarketEvent::from((exchange, instrument, update))
+            }
         }
     }
 }
@@ -61,7 +63,10 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
 pub struct BinanceTrade {
     #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
     pub time: DateTime<Utc>,
     #[serde(alias = "a")]
     pub id: u64,
@@ -84,7 +89,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
                 id: trade.id.to_string(),
                 price: trade.price,
                 quantity: trade.quantity,
-                side: trade.side
+                side: trade.side,
             }),
         }
     }
@@ -99,10 +104,16 @@ pub struct BinanceOrderBookL2Update {
     #[serde(alias = "s", deserialize_with = "de_ob_l2_subscription_id")]
     pub subscription_id: SubscriptionId,
 
-    #[serde(alias = "E", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        alias = "E",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
     pub event_time: DateTime<Utc>,
 
-    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
     pub transaction_time: DateTime<Utc>,
 
     #[serde(alias = "U")]
@@ -113,7 +124,7 @@ pub struct BinanceOrderBookL2Update {
 
     #[serde(alias = "pu")]
     pub last_event_last_update_id: u64,
-    
+
     #[serde(alias = "b")]
     pub bids: Vec<LevelDelta>,
     #[serde(alias = "a")]
@@ -121,7 +132,9 @@ pub struct BinanceOrderBookL2Update {
 }
 
 impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
-    fn from((exchange_id, instrument, ob_update): (ExchangeId, Instrument, BinanceOrderBookL2Update)) -> Self {
+    fn from(
+        (exchange_id, instrument, ob_update): (ExchangeId, Instrument, BinanceOrderBookL2Update),
+    ) -> Self {
         Self {
             exchange_time: ob_update.transaction_time,
             received_time: Utc::now(),
@@ -129,7 +142,7 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
                 bid_deltas: ob_update.bids,
-                ask_deltas: ob_update.asks
+                ask_deltas: ob_update.asks,
             }),
         }
     }
@@ -154,33 +167,32 @@ pub fn de_side_from_buyer_is_maker<'de, D>(deserializer: D) -> Result<Side, D::E
 where
     D: serde::de::Deserializer<'de>,
 {
-    serde::de::Deserialize::deserialize(deserializer)
-        .map(|buyer_is_maker| {
-            if buyer_is_maker {
-                Side::Sell
-            } else {
-                Side::Buy
-            }
-        })
+    serde::de::Deserialize::deserialize(deserializer).map(|buyer_is_maker| {
+        if buyer_is_maker {
+            Side::Sell
+        } else {
+            Side::Buy
+        }
+    })
 }
 
 /// Deserialize a [`BinanceOrderBookL2Update`] "s" (eg/ "BTCUSDT") as the associated
 /// [`SubscriptionId`] (eg/ "@depth@100ms|BTCUSDT").
 pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
+where
+    D: serde::de::Deserializer<'de>,
 {
-    serde::de::Deserialize::deserialize(deserializer)
-        .map(|market| BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_ORDER_BOOK_L2, market))
+    serde::de::Deserialize::deserialize(deserializer).map(|market| {
+        BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_ORDER_BOOK_L2, market)
+    })
 }
-
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-    use serde::de::Error;
-    use crate::exchange::datetime_utc_from_epoch_duration;
     use super::*;
+    use crate::exchange::datetime_utc_from_epoch_duration;
+    use serde::de::Error;
+    use std::time::Duration;
 
     #[test]
     fn test_deserialise_binance_subscription_response() {
@@ -195,7 +207,7 @@ mod tests {
                 input: r#"{"id":1,"result":null}"#,
                 expected: Ok(BinanceSubResponse {
                     result: None,
-                    id: 1
+                    id: 1,
                 }),
             },
             TestCase {
@@ -276,7 +288,6 @@ mod tests {
                     payload: "".to_owned(),
                 }),
             },
-
             TestCase {
                 // TC1: valid BinanceMessage Spot trade w/ Side::Sell
                 input: r#"{
@@ -330,26 +341,32 @@ mod tests {
                         ["1565.47","0.000"],["1566.74","13.331"],["1566.76","0.000"],["1566.80","2.504"]
                     ]
                 }"#,
-                expected: Ok(BinanceMessage::OrderBookL2Update(BinanceOrderBookL2Update {
-                    subscription_id: SubscriptionId::from("@depth@100ms|ETHUSDT"),
-                    event_time: datetime_utc_from_epoch_duration(Duration::from_millis(1662496296613)),
-                    transaction_time: datetime_utc_from_epoch_duration(Duration::from_millis(1662496296608)),
-                    first_update_id: 1893125629200,
-                    last_update_id: 1893125631989,
-                    last_event_last_update_id: 1893125629181,
-                    bids: vec![
-                        LevelDelta::from((1566.69, 0.197)),
-                        LevelDelta::from((1566.73, 111.497)),
-                        LevelDelta::from((1566.74, 0.000)),
-                        LevelDelta::from((1568.00, 0.000)),
-                    ],
-                    asks: vec![
-                        LevelDelta::from((1565.47, 0.000)),
-                        LevelDelta::from((1566.74, 13.331)),
-                        LevelDelta::from((1566.76, 0.000)),
-                        LevelDelta::from((1566.80, 2.504)),
-                    ]
-                })),
+                expected: Ok(BinanceMessage::OrderBookL2Update(
+                    BinanceOrderBookL2Update {
+                        subscription_id: SubscriptionId::from("@depth@100ms|ETHUSDT"),
+                        event_time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1662496296613,
+                        )),
+                        transaction_time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1662496296608,
+                        )),
+                        first_update_id: 1893125629200,
+                        last_update_id: 1893125631989,
+                        last_event_last_update_id: 1893125629181,
+                        bids: vec![
+                            LevelDelta::from((1566.69, 0.197)),
+                            LevelDelta::from((1566.73, 111.497)),
+                            LevelDelta::from((1566.74, 0.000)),
+                            LevelDelta::from((1568.00, 0.000)),
+                        ],
+                        asks: vec![
+                            LevelDelta::from((1565.47, 0.000)),
+                            LevelDelta::from((1566.74, 13.331)),
+                            LevelDelta::from((1566.76, 0.000)),
+                            LevelDelta::from((1566.80, 2.504)),
+                        ],
+                    },
+                )),
             },
         ];
 

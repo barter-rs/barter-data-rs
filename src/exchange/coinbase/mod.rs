@@ -53,7 +53,10 @@ impl Subscriber for Coinbase {
 
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds HashMap
                 // eg/ SubscriptionId("matches|ETH-USD")
-                ids.insert(Coinbase::subscription_id(channel, &market), subscription.clone());
+                ids.insert(
+                    Coinbase::subscription_id(channel, &market),
+                    subscription.clone(),
+                );
 
                 // Construct Coinbase specific subscription message
                 Ok(Self::subscription(channel, &market))
@@ -140,10 +143,12 @@ impl Coinbase {
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
             SubKind::OrderBookL2 => Self::CHANNEL_ORDER_BOOK_L2,
-            other => return Err(SocketError::Unsupported {
-                entity: Self::EXCHANGE.as_str(),
-                item: other.to_string(),
-            })
+            other => {
+                return Err(SocketError::Unsupported {
+                    entity: Self::EXCHANGE.as_str(),
+                    item: other.to_string(),
+                })
+            }
         };
 
         // Determine Coinbase market identifier using the Instrument (eg/ "BTC-USD")
