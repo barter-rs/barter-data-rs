@@ -133,7 +133,6 @@ pub trait Subscriber {
                             }
                         } else {
                             // Some already active Subscriptions may start coming through
-                            println!("{}", payload);
                             continue;
                         }
                     },

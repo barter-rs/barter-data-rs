@@ -1,5 +1,6 @@
 use super::KrakenFuturesUsd;
 use crate::{
+    exchange::datetime_utc_from_epoch_duration,
     model::{DataKind, PublicTrade, SubKind},
     ExchangeId, ExchangeTransformer, MarketEvent,
 };
@@ -9,8 +10,9 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize, Serializer};
+use std::time::Duration;
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct KrakenFuturesUsdSubscription {
@@ -58,9 +60,9 @@ impl KrakenFuturesUsdSubscription {
 impl From<&KrakenFuturesUsdSubscription> for SubscriptionId {
     fn from(kraken_subscription: &KrakenFuturesUsdSubscription) -> Self {
         match kraken_subscription.kind {
-            KrakenFuturesUsdSubKind::Trade(trade) => {
+            KrakenFuturesUsdSubKind::Trade(_trade) => {
                 // eg/ SubscriptionId::from("trade|XBT/USD")
-                SubscriptionId::from(format!("{trade}|{}", kraken_subscription.pair))
+                SubscriptionId::from(format!("{}", kraken_subscription.pair))
             }
         }
     }
@@ -104,7 +106,7 @@ impl TryFrom<&SubKind> for KrakenFuturesUsdSubKind {
 /// eg/ KrakenFuturesSubResponse::Subscribed {"event":"subscribed","feed":"trade","product_ids":["PI_XBTUSD",]}
 /// eg/ KrakenFuturesSubResponse::Error
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
-#[serde(tag = "event", rename_all = "camelCase")]
+#[serde(tag = "event", rename_all = "lowercase")]
 pub enum KrakenFuturesUsdSubResponse {
     Subscribed {
         feed: String,
@@ -149,25 +151,14 @@ pub enum KrakenFuturesUsdMessage {
     Trade(KrakenFuturesUsdTrade),
 }
 
-/// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
-///
-/// See docs: <https://docs.kraken.com/websockets/#message-trade>
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize)]
-pub struct KrakenFuturesUsdTrades {
-    pub subscription_id: SubscriptionId,
-    pub trades: Vec<KrakenFuturesUsdTrade>,
-}
-
 /// `KrakenFutures` trade message.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub struct KrakenFuturesUsdTrade {
     pub product_id: SubscriptionId,
     pub uid: String,
     pub side: Side,
-    #[serde(rename = "type")]
-    pub fill_type: String,
     pub seq: u64,
-    pub time: DateTime<Utc>,
+    pub time: u64,
     #[serde(rename = "qty")]
     pub quantity: f64,
     pub price: f64,
@@ -178,7 +169,7 @@ impl From<(ExchangeId, Instrument, KrakenFuturesUsdTrade)> for MarketEvent {
         (exchange_id, instrument, trade): (ExchangeId, Instrument, KrakenFuturesUsdTrade),
     ) -> Self {
         Self {
-            exchange_time: trade.time,
+            exchange_time: datetime_utc_from_epoch_duration(Duration::new(trade.time, 0)),
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,

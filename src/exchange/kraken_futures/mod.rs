@@ -49,7 +49,6 @@ impl Subscriber for KrakenFuturesUsd {
 
                 // Insert SubscriptionId to Barter Subscription Entry in SubscriptionIds HashMap
                 ids.insert(subscription_id, subscription.clone());
-                println!("{:?}", WsMessage::try_from(&kraken_subscription));
 
                 WsMessage::try_from(&kraken_subscription)
             })
@@ -81,7 +80,9 @@ impl Transformer<MarketEvent> for KrakenFuturesUsd {
             KrakenFuturesUsdMessage::Trade(trade) => {
                 let instrument = match self.ids.find_instrument(trade.product_id.clone()) {
                     Ok(instrument) => instrument,
-                    Err(error) => return vec![Err(error)],
+                    Err(error) => {
+                        return vec![Err(error)];
+                    }
                 };
                 vec![Ok(MarketEvent::from((
                     KrakenFuturesUsd::EXCHANGE,
@@ -89,22 +90,8 @@ impl Transformer<MarketEvent> for KrakenFuturesUsd {
                     trade,
                 )))]
             }
-            KrakenFuturesUsdMessage::TradeSnapshot { trades, .. } => {
-                let instrument = match self.ids.find_instrument(trades[0].product_id.clone()) {
-                    Ok(instrument) => instrument,
-                    Err(error) => return vec![Err(error)],
-                };
-
-                trades
-                    .into_iter()
-                    .map(|trade| {
-                        Ok(MarketEvent::from((
-                            KrakenFuturesUsd::EXCHANGE,
-                            instrument.clone(),
-                            trade,
-                        )))
-                    })
-                    .collect()
+            KrakenFuturesUsdMessage::TradeSnapshot { .. } => {
+                vec![]
             }
         }
     }
