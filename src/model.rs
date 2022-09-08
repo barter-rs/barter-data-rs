@@ -143,9 +143,7 @@ impl Subscription {
 pub enum SubKind {
     Trade,
     Candle(Interval),
-    Kline(Interval),
-    OrderBook,
-    OrderBookDelta,
+    OrderBookL2,
 }
 
 impl Display for SubKind {
@@ -154,11 +152,9 @@ impl Display for SubKind {
             f,
             "{}",
             match self {
-                SubKind::Trade => "trades".to_owned(),
-                SubKind::Candle(interval) => format!("candles_{}", interval),
-                SubKind::Kline(interval) => format!("klines_{}", interval),
-                SubKind::OrderBookDelta => "order_book_deltas".to_owned(),
-                SubKind::OrderBook => "order_books".to_owned(),
+                SubKind::Trade => "trade".to_owned(),
+                SubKind::Candle(interval) => format!("candle_{}", interval),
+                SubKind::OrderBookL2 => "order_book_l2".to_owned(),
             }
         )
     }
@@ -273,15 +269,11 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
 }
 
 impl SubscriptionIds {
-    /// Find the [`Instrument`] associated with the provided `Into<SubscriptionId>`.
-    pub fn find_instrument<Id>(&self, id: Id) -> Result<Instrument, SocketError>
-    where
-        Id: Into<SubscriptionId>,
-    {
-        let subscription_id: SubscriptionId = id.into();
-        self.get(&subscription_id)
+    /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
+    pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
+        self.get(id)
             .map(|subscription| subscription.instrument.clone())
-            .ok_or(SocketError::Unidentifiable(subscription_id))
+            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
     }
 }
 
@@ -335,72 +327,31 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Binance btc_usd Spot Kline("5m") Subscription
-                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": { "kline": "5m"}}"##,
+                // TC4: Valid Binance btc_usd Spot OrderBookL2 Subscription
+                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": "order_book_l2"}"##,
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::Kline(Interval::Minute5),
+                    kind: SubKind::OrderBookL2,
                 }),
             },
             TestCase {
-                // TC5: Valid BinanceFuturesUsd btc_usd FuturePerpetual Kline("5m") Subscription
-                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": { "kline": "5m"}}"##,
+                // TC5: Valid BinanceFuturesUsd btc_usd FuturePerpetual OrderBookL2 Subscription
+                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_l2"}"##,
                 expected: Ok(Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::Kline(Interval::Minute5),
+                    kind: SubKind::OrderBookL2,
                 }),
             },
             TestCase {
-                // TC6: Valid Binance btc_usd Spot OrderBook Subscription
-                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": "order_book"}"##,
-                expected: Ok(Subscription {
-                    exchange: ExchangeId::Binance,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBook,
-                }),
-            },
-            TestCase {
-                // TC7: Valid BinanceFuturesUsd btc_usd FuturePerpetual OrderBook Subscription
-                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book"}"##,
-                expected: Ok(Subscription {
-                    exchange: ExchangeId::BinanceFuturesUsd,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::OrderBook,
-                }),
-            },
-            TestCase {
-                // TC8: Valid Binance btc_usd Spot OrderBookDelta Subscription
-                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": "order_book_delta"}"##,
-                expected: Ok(Subscription {
-                    exchange: ExchangeId::Binance,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBookDelta,
-                }),
-            },
-            TestCase {
-                // TC9: Valid BinanceFuturesUsd btc_usd FuturePerpetual OrderBookDelta Subscription
-                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_delta"}"##,
-                expected: Ok(Subscription {
-                    exchange: ExchangeId::BinanceFuturesUsd,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::OrderBookDelta,
-                }),
-            },
-            TestCase {
-                // TC10: Invalid Subscription w/ gibberish exchange
-                input: r##"{"exchange": "gibberish", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_delta"}"##,
+                // TC6: Invalid Subscription w/ unknown exchange
+                input: r##"{"exchange": "unknown", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_delta"}"##,
                 expected: Err(serde_json::Error::custom("")),
             },
             TestCase {
-                // TC10: Invalid Subscription w/ gibberish SubKind
-                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "gibberish"}"##,
-                expected: Err(serde_json::Error::custom("")),
-            },
-            TestCase {
-                // TC10: Invalid Subscription w/ gibberish
-                input: r##"{ "gibberish": "shouldfail"}"##,
+                // TC7: Invalid Subscription w/ unknown SubKind
+                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "unknown"}"##,
                 expected: Err(serde_json::Error::custom("")),
             },
         ];
@@ -502,7 +453,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Subscription w/ Kraken Spot
+                // TC4: Valid Subscription w/ Ftx Spot
                 input: Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -513,37 +464,6 @@ mod tests {
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Trade,
                 }),
-            },
-            TestCase {
-                // TC5: Invalid Subscription w/ Kraken FuturePerpetual
-                input: Subscription {
-                    exchange: ExchangeId::Kraken,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::Trade,
-                },
-                expected: Err(SocketError::Subscribe("".to_string())),
-            },
-            TestCase {
-                // TC6: Valid Subscription w/ Coinbase Spot
-                input: Subscription {
-                    exchange: ExchangeId::Coinbase,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::Trade,
-                },
-                expected: Ok(Subscription {
-                    exchange: ExchangeId::Coinbase,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::Trade,
-                }),
-            },
-            TestCase {
-                // TC6: Invalid Subscription w/ Coinbase FuturePerpetual
-                input: Subscription {
-                    exchange: ExchangeId::Coinbase,
-                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::Trade,
-                },
-                expected: Err(SocketError::Subscribe("".to_string())),
             },
         ];
 
@@ -600,7 +520,7 @@ mod tests {
         ];
 
         for (index, test) in cases.into_iter().enumerate() {
-            let actual = ids.find_instrument(test.input);
+            let actual = ids.find_instrument(&test.input);
             match (actual, test.expected) {
                 (Ok(actual), Ok(expected)) => {
                     assert_eq!(actual, expected, "TC{} failed", index)
