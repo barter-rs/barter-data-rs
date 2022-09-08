@@ -269,6 +269,31 @@ impl ExchangeId {
             _ => false,
         }
     }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`PublicTrade`](model::PublicTrade) market data.
+    pub fn supports_trades(&self) -> bool {
+        match self {
+            _ => true,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`Candle`](model::Candle) market data.
+    pub fn supports_candles(&self) -> bool {
+        match self {
+            ExchangeId::Kraken => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// L2 OrderBook market data.
+    pub fn supports_order_books(&self) -> bool {
+        match self {
+            _ => false,
+        }
+    }
 }
 
 /// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the

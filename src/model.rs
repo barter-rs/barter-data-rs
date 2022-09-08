@@ -74,14 +74,32 @@ impl Validator for &Subscription {
     where
         Self: Sized,
     {
+        // Check if ExchangeId supports the Subscription InstrumentKind
         match self.instrument.kind {
-            InstrumentKind::Spot if self.exchange.supports_spot() => Ok(self),
-            InstrumentKind::FuturePerpetual if self.exchange.supports_futures() => Ok(self),
-            other => Err(SocketError::Unsupported {
-                entity: self.exchange.as_str(),
-                item: other.to_string(),
-            }),
-        }
+            InstrumentKind::Spot if self.exchange.supports_spot() => {}
+            InstrumentKind::FuturePerpetual if self.exchange.supports_futures() => {}
+            other => {
+                return Err(SocketError::Unsupported {
+                    entity: self.exchange.as_str(),
+                    item: other.to_string(),
+                })
+            }
+        };
+
+        // Check if ExchangeId supports the Subscription SubKind
+        match self.kind {
+            SubKind::Trade if self.exchange.supports_trades() => {}
+            SubKind::Candle(_) if self.exchange.supports_candles() => {}
+            SubKind::OrderBookL2 if self.exchange.supports_order_books() => {}
+            other => {
+                return Err(SocketError::Unsupported {
+                    entity: self.exchange.as_str(),
+                    item: other.to_string(),
+                })
+            }
+        };
+
+        Ok(self)
     }
 }
 
@@ -383,7 +401,7 @@ mod tests {
 
         let cases = vec![
             TestCase {
-                // TC0: Valid Subscription w/ Binance Spot
+                // TC0: Valid Subscription w/ Binance Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -396,16 +414,19 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC1: Invalid Subscription w/ Binance FuturePerpetual
+                // TC1: Invalid Subscription w/ Binance FuturePerpetual Trades
                 input: Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
                     kind: SubKind::Trade,
                 },
-                expected: Err(SocketError::Subscribe("".to_string())),
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
             },
             TestCase {
-                // TC2: Valid Subscription w/ BinanceFuturesUsd FuturePerpetual
+                // TC2: Valid Subscription w/ BinanceFuturesUsd FuturePerpetual Trades
                 input: Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
@@ -418,16 +439,19 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC3: Invalid Subscription w/ BinanceFuturesUsd Spot
+                // TC3: Invalid Subscription w/ BinanceFuturesUsd Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Trade,
                 },
-                expected: Err(SocketError::Subscribe("".to_string())),
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
             },
             TestCase {
-                // TC4: Valid Subscription w/ Ftx Spot
+                // TC4: Valid Subscription w/ Ftx Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::Ftx,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -440,7 +464,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC5: Valid Subscription w/ Ftx FuturePerpetual
+                // TC5: Valid Subscription w/ Ftx FuturePerpetual Trades
                 input: Subscription {
                     exchange: ExchangeId::Ftx,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
@@ -453,7 +477,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Subscription w/ Ftx Spot
+                // TC4: Valid Subscription w/ Ftx Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -463,6 +487,43 @@ mod tests {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Trade,
+                }),
+            },
+            TestCase {
+                // TC5: Invalid Subscription w/ Ftx Spot OrderBookL2
+                input: Subscription {
+                    exchange: ExchangeId::Ftx,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::OrderBookL2,
+                },
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
+            },
+            TestCase {
+                // TC6: Invalid Subscription w/ BinanceFuturesUsd FuturePerpetual Candles
+                input: Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                },
+                expected: Err(SocketError::Unsupported {
+                    entity: "",
+                    item: "".to_string(),
+                }),
+            },
+            TestCase {
+                // TC7: Valid Subscription w/ Kraken Spot Candles
+                input: Subscription {
+                    exchange: ExchangeId::Kraken,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Kraken,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
                 }),
             },
         ];
