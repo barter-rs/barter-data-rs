@@ -14,7 +14,7 @@ use tracing::debug;
 /// [`Kraken`] specific data structures.
 pub mod model;
 
-/// `Kraken` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
+/// [`Kraken`] [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Kraken {
@@ -122,11 +122,11 @@ impl Transformer<MarketEvent> for Kraken {
 impl Kraken {
     /// Translate a Barter [`Subscription`] into a [`Kraken`] compatible subscription message.
     pub fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
-        // Determine Kraken market identifier using the Instrument
-        let market = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
-
         // Determine the KrakenSubKind from the Barter SubKind
         let kind = KrakenSubKind::try_from(&sub.kind)?;
+
+        // Determine Kraken market identifier using the Instrument
+        let market = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
 
         Ok(KrakenSubscription::new(market, kind))
     }

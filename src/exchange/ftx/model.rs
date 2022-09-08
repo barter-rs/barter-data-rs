@@ -11,7 +11,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// `Ftx` message received in response to WebSocket subscription requests.
+/// [`Ftx`](super::Ftx) message received in response to WebSocket subscription requests.
 ///
 /// eg/ FtxResponse::Subscribed {"type": "subscribed", "channel": "trades", "market": "BTC/USDT"}
 /// eg/ FtxResponse::Error {"type": "error", "code": 400, "msg": "Missing parameter \"channel\""}
@@ -39,14 +39,15 @@ impl Validator for FtxSubResponse {
     }
 }
 
-/// `Ftx` message variants that can be received over [`WebSocket`](crate::WebSocket).
+/// [`Ftx`](super::Ftx) message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
 /// See docs: <https://docs.ftx.com/#public-channels>
 #[derive(Clone, PartialEq, Debug, Deserialize)]
 #[serde(tag = "channel", rename_all = "lowercase")]
 pub enum FtxMessage {
     Trades {
-        market: String,
+        #[serde(rename = "market", deserialize_with = "de_trade_subscription_id")]
+        subscription_id: SubscriptionId,
         #[serde(alias = "data")]
         trades: Vec<FtxTrade>,
     },
@@ -60,7 +61,7 @@ impl From<&FtxMessage> for SubscriptionId {
     }
 }
 
-/// `Ftx` trade message.
+/// [`Ftx`](super::Ftx) trade message.
 ///
 /// See docs: <https://docs.ftx.com/#trades>
 #[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
@@ -87,6 +88,16 @@ impl From<(ExchangeId, Instrument, FtxTrade)> for MarketEvent {
             }),
         }
     }
+}
+
+/// Deserialize a [`FtxMessage::Trades`](FtxMessage) "market" (eg/ "BTC/USD") as the
+/// associated [`SubscriptionId`] (eg/ "trades|BTC/USD").
+pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|market| Ftx::subscription_id(Ftx::CHANNEL_TRADES, market))
 }
 
 #[cfg(test)]
@@ -178,11 +189,16 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialise_ftx_message_trades() {
+    fn test_deserialise_ftx_message() {
         struct TestCase {
             input: &'static str,
             expected: Result<FtxMessage, SocketError>,
         }
+
+        // {"channel":"trades","market":"BTC-PERP","type":"update","data":[
+        // {"id":4905794647,"price":19209.0,"size":0.03,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"},
+        // {"id":4905794648,"price":19209.0,"size":0.5178,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"},
+        // {"id":4905794649,"price":19209.0,"size":0.0025,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"}]}
 
         let cases = vec![
             TestCase {
@@ -191,7 +207,7 @@ mod tests {
                 [{"id": 3689226514, "price": 10000.0, "size": 1.0, "side": "buy", "liquidation": false,
                 "time": "2022-04-06T15:38:16.182802+00:00"}]}"#,
                 expected: Ok(FtxMessage::Trades {
-                    market: String::from("BTC/USDT"),
+                    subscription_id: SubscriptionId::from("trades|BTC/USDT"),
                     trades: vec![FtxTrade {
                         id: 3689226514,
                         price: 10000.0,

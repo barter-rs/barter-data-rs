@@ -157,10 +157,10 @@ impl Validator for &Subscription {
         match self.instrument.kind {
             InstrumentKind::Spot if self.exchange.supports_spot() => Ok(self),
             InstrumentKind::FuturePerpetual if self.exchange.supports_futures() => Ok(self),
-            _ => Err(SocketError::Subscribe(format!(
-                "{} ExchangeTransformer does not support InstrumentKinds of provided Subscriptions",
-                self.exchange
-            ))),
+            other => Err(SocketError::Unsupported {
+                entity: self.exchange.as_str(),
+                item: other.to_string(),
+            }),
         }
     }
 }

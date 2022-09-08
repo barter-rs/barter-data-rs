@@ -73,22 +73,27 @@ impl Transformer<MarketEvent> for Ftx {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let instrument = match self.ids.find_instrument(&SubscriptionId::from(&input)) {
-            Ok(instrument) => instrument,
-            Err(error) => return vec![Err(error)],
-        };
-
         match input {
-            FtxMessage::Trades { trades, .. } => trades
-                .into_iter()
-                .map(|trade| {
-                    Ok(MarketEvent::from((
-                        Ftx::EXCHANGE,
-                        instrument.clone(),
-                        trade,
-                    )))
-                })
-                .collect(),
+            FtxMessage::Trades {
+                subscription_id,
+                trades,
+            } => {
+                let instrument = match self.ids.find_instrument(&subscription_id) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error)],
+                };
+
+                trades
+                    .into_iter()
+                    .map(|trade| {
+                        Ok(MarketEvent::from((
+                            Ftx::EXCHANGE,
+                            instrument.clone(),
+                            trade,
+                        )))
+                    })
+                    .collect()
+            }
         }
     }
 }
@@ -284,7 +289,7 @@ mod tests {
             TestCase {
                 // TC1: FtxMessage Spot trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    market: String::from("BTC/USDT"),
+                    subscription_id: SubscriptionId::from("trades|BTC/USDT"),
                     trades: vec![
                         FtxTrade {
                             id: 1,
@@ -332,7 +337,7 @@ mod tests {
             TestCase {
                 // TC2: FtxMessage FuturePerpetual trades w/ known SubscriptionId
                 input: FtxMessage::Trades {
-                    market: String::from("BTC-PERP"),
+                    subscription_id: SubscriptionId::from("trades|BTC-PERP"),
                     trades: vec![
                         FtxTrade {
                             id: 1,

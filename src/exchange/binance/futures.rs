@@ -12,7 +12,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
-/// `BinanceFuturesUsd` [`Subscriber`](crate::Subscriber) &
+/// [`BinanceFuturesUsd`] [`Subscriber`](crate::Subscriber) &
 /// [`ExchangeTransformer`](crate::ExchangeTransformer) implementor for the collection
 /// of `Futures` data.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
@@ -42,7 +42,7 @@ impl Subscriber for BinanceFuturesUsd {
 
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 // '--> Uppercase market to match incoming exchange event
-                // eg/ SubscriptionId("@depth@100ms|BTCUSDT")
+                // eg/ SubscriptionId("@aggTrade|BTCUSDT")
                 ids.insert(
                     BinanceFuturesUsd::subscription_id(channel, &market.to_uppercase()),
                     subscription.clone(),
@@ -151,7 +151,7 @@ impl BinanceFuturesUsd {
     /// provided. This is used to associate [`BinanceFuturesUsd`] data structures received over
     /// the WebSocket with it's original Barter [`Subscription`].
     ///
-    /// eg/ SubscriptionId("@depth@100ms|BTCUSDT")
+    /// eg/ SubscriptionId("@aggTrade|BTCUSDT")
     pub fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
         SubscriptionId::from(format!("{channel}|{market}"))
     }
