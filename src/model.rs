@@ -54,9 +54,12 @@ pub struct Candle {
     pub trade_count: u64,
 }
 
-/// Todo: Rust docs
+/// Todo:
+///  - Rust docs
+///  - Will have to add fields to support generic delta updates...
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
+    pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
 }
@@ -94,6 +97,7 @@ impl Level {
 /// Todo: Rust docs
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBookDelta {
+    pub update_id: u64,
     pub bid_deltas: Vec<LevelDelta>,
     pub ask_deltas: Vec<LevelDelta>,
 }

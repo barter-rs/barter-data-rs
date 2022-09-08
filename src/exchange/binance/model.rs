@@ -63,10 +63,7 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
 pub struct BinanceTrade {
     #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(
-        alias = "T",
-        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
-    )]
+    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
     #[serde(alias = "a")]
     pub id: u64,
@@ -95,8 +92,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
     }
 }
 
-/// Todo: Need to maintain order in the mapper using the fields that are not being sent downstream,
-///
+/// Todo:
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -104,17 +100,8 @@ pub struct BinanceOrderBookL2Update {
     #[serde(alias = "s", deserialize_with = "de_ob_l2_subscription_id")]
     pub subscription_id: SubscriptionId,
 
-    #[serde(
-        alias = "E",
-        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
-    )]
-    pub event_time: DateTime<Utc>,
-
-    #[serde(
-        alias = "T",
-        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
-    )]
-    pub transaction_time: DateTime<Utc>,
+    #[serde(alias = "T", deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc")]
+    pub time: DateTime<Utc>,
 
     #[serde(alias = "U")]
     pub first_update_id: u64,
@@ -123,10 +110,11 @@ pub struct BinanceOrderBookL2Update {
     pub last_update_id: u64,
 
     #[serde(alias = "pu")]
-    pub last_event_last_update_id: u64,
+    pub previous_event_last_update_id: u64,
 
     #[serde(alias = "b")]
     pub bids: Vec<LevelDelta>,
+
     #[serde(alias = "a")]
     pub asks: Vec<LevelDelta>,
 }
@@ -136,11 +124,12 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL2Update)> for MarketEvent {
         (exchange_id, instrument, ob_update): (ExchangeId, Instrument, BinanceOrderBookL2Update),
     ) -> Self {
         Self {
-            exchange_time: ob_update.transaction_time,
+            exchange_time: ob_update.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
+                update_id: 0,
                 bid_deltas: ob_update.bids,
                 ask_deltas: ob_update.asks,
             }),
@@ -344,15 +333,12 @@ mod tests {
                 expected: Ok(BinanceMessage::OrderBookL2Update(
                     BinanceOrderBookL2Update {
                         subscription_id: SubscriptionId::from("@depth@100ms|ETHUSDT"),
-                        event_time: datetime_utc_from_epoch_duration(Duration::from_millis(
-                            1662496296613,
-                        )),
-                        transaction_time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
                             1662496296608,
                         )),
                         first_update_id: 1893125629200,
                         last_update_id: 1893125631989,
-                        last_event_last_update_id: 1893125629181,
+                        previous_event_last_update_id: 1893125629181,
                         bids: vec![
                             LevelDelta::from((1566.69, 0.197)),
                             LevelDelta::from((1566.73, 111.497)),

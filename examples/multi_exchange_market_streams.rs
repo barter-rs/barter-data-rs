@@ -9,7 +9,9 @@ use futures::StreamExt;
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken & BinanceFuturesUsd
 #[tokio::main]
 async fn main() {
-    // Initialise `PublicTrade` & `Candle``MarketStream` for `BinanceFuturesUsd`, `Ftx` & `Kraken`
+    init_logging();
+
+    // Initialise `PublicTrade` & `Candle``MarketStreams` for `BinanceFuturesUsd`, `Ftx` & `Kraken`
     let streams = Streams::builder()
         // .subscribe_exchange(
         //     ExchangeId::Ftx,
@@ -23,10 +25,11 @@ async fn main() {
         .subscribe([
             // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
             // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            // (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
             // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::OrderBookL2),
+            // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBookL2),
+            // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::OrderBookL2),
             // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
         ])
         .init()
@@ -40,4 +43,16 @@ async fn main() {
     while let Some((exchange, event)) = joined_stream.next().await {
         println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
     }
+}
+
+fn init_logging() {
+    tracing_subscriber::fmt()
+        // Filter messages based on the `RUST_LOG` environment variable
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        // Disable colours on release builds
+        .with_ansi(cfg!(debug_assertions))
+        // Enable Json formatting
+        .json()
+        // Install this Tracing subscriber as global default
+        .init()
 }

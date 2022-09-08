@@ -68,6 +68,11 @@ impl Subscriber for BinanceFuturesUsd {
 impl ExchangeTransformer for BinanceFuturesUsd {
     const EXCHANGE: ExchangeId = ExchangeId::BinanceFuturesUsd;
     fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
+
+        // If there is a L2 subscription, we want snapshots periodically
+
+
+
         Self { ids }
     }
 }
@@ -344,10 +349,10 @@ mod tests {
                 input: BinanceMessage::OrderBookL2Update(BinanceOrderBookL2Update {
                     subscription_id: SubscriptionId::from("@depth@100ms|BTCUSDT"),
                     event_time: time,
-                    transaction_time: time,
+                    time: time,
                     first_update_id: 100,
                     last_update_id: 110,
-                    last_event_last_update_id: 99,
+                    previous_event_last_update_id: 99,
                     bids: vec![
                         LevelDelta::from((1000.0, 1.0)),
                         LevelDelta::from((2000.0, 1.0)),
