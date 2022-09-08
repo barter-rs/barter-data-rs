@@ -124,6 +124,7 @@ pub trait Subscriber {
                 // Parse incoming messages and determine subscription outcomes
                 message = websocket.next() => match message {
                     Some(Ok(WsMessage::Text(payload))) => {
+                        println!("{payload}");
                         if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
                             match response.validate() {
                                 // Subscription success

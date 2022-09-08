@@ -29,9 +29,9 @@ use std::time::Duration;
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct KrakenSubscription {
     pub event: &'static str,
-    #[serde(alias = "pair", serialize_with = "se_element_to_vector")]
+    #[serde(rename = "pair", serialize_with = "se_element_to_vector")]
     pub market: String,
-    #[serde(alias = "subscription")]
+    #[serde(rename = "subscription")]
     pub kind: KrakenSubKind,
 }
 
@@ -91,11 +91,11 @@ impl KrakenSubscription {
 #[serde(untagged)]
 pub enum KrakenSubKind {
     Trade {
-        #[serde(alias = "name")]
+        #[serde(rename = "name")]
         channel: &'static str,
     },
     Candle {
-        #[serde(alias = "name")]
+        #[serde(rename = "name")]
         channel: &'static str,
         interval: u32,
     },
