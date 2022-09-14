@@ -76,8 +76,7 @@ impl Transformer<MarketEvent> for KrakenFuturesUsd {
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         match input {
-            // TODO: refactor
-            KrakenFutKrakenuresUsdMessage::Trade(trade) => {
+            KrakenFuturesUsdMessage::Trade(trade) => {
                 let instrument = match self.ids.find_instrument(trade.product_id.clone()) {
                     Ok(instrument) => instrument,
                     Err(error) => {
@@ -90,7 +89,9 @@ impl Transformer<MarketEvent> for KrakenFuturesUsd {
                     trade,
                 )))]
             }
-            KrakenFuturesUsdMessage::TradeSnapshot { product_id, trades } => {
+            KrakenFuturesUsdMessage::TradeSnapshot { .. } => {
+                vec![]
+                /*
                 let instrument = match self.ids.find_instrument(product_id.clone()) {
                     Ok(instrument) => instrument,
                     Err(error) => {
@@ -108,6 +109,7 @@ impl Transformer<MarketEvent> for KrakenFuturesUsd {
                         )))
                     })
                     .collect()
+                */
             }
         }
     }
