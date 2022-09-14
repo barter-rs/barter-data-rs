@@ -169,7 +169,11 @@ impl From<(ExchangeId, Instrument, KrakenFuturesUsdTrade)> for MarketEvent {
         (exchange_id, instrument, trade): (ExchangeId, Instrument, KrakenFuturesUsdTrade),
     ) -> Self {
         Self {
-            exchange_time: datetime_utc_from_epoch_duration(Duration::new(trade.time, 0)),
+            // time is received as ms
+            exchange_time: datetime_utc_from_epoch_duration(Duration::new(
+                trade.time / 1000,
+                (trade.time % 1000u64 * 1000000) as u32,
+            )),
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
