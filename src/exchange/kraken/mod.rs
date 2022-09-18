@@ -41,12 +41,12 @@ impl Subscriber for Kraken {
                 // Translate Barter Subscription to the associated KrakenSubscription
                 let kraken_subscription = Kraken::subscription(subscription)?;
 
-                // Determine the SubscriptionId ("{channel}|{market} ")for this KrakenSubscription
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 // eg/ SubscriptionId("ohlc-5|XBT/USD")
-                let subscription_id = SubscriptionId::from(&kraken_subscription);
-
-                // Insert SubscriptionId to Barter Subscription Entry in SubscriptionIds HashMap
-                ids.insert(subscription_id, subscription.clone());
+                ids.insert(
+                    SubscriptionId::from(&kraken_subscription),
+                    subscription.clone(),
+                );
 
                 WsMessage::try_from(&kraken_subscription)
             })
@@ -76,7 +76,7 @@ impl Transformer<MarketEvent> for Kraken {
         match input {
             KrakenMessage::Trades(trades) => {
                 // Determine Instrument associated with this KrakenTrades message
-                let instrument = match self.ids.find_instrument(trades.subscription_id) {
+                let instrument = match self.ids.find_instrument(&trades.subscription_id) {
                     Ok(instrument) => instrument,
                     Err(error) => return vec![Err(error)],
                 };
@@ -96,7 +96,7 @@ impl Transformer<MarketEvent> for Kraken {
             }
             KrakenMessage::Candle(candle) => {
                 // Determine Instrument associated with this KrakenCandle message
-                let instrument = match self.ids.find_instrument(candle.subscription_id) {
+                let instrument = match self.ids.find_instrument(&candle.subscription_id) {
                     Ok(instrument) => instrument,
                     Err(error) => return vec![Err(error)],
                 };
@@ -121,14 +121,14 @@ impl Transformer<MarketEvent> for Kraken {
 
 impl Kraken {
     /// Translate a Barter [`Subscription`] into a [`Kraken`] compatible subscription message.
-    fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
-        // Determine Kraken pair using the Instrument
-        let pair = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
-
+    pub fn subscription(sub: &Subscription) -> Result<KrakenSubscription, SocketError> {
         // Determine the KrakenSubKind from the Barter SubKind
         let kind = KrakenSubKind::try_from(&sub.kind)?;
 
-        Ok(KrakenSubscription::new(pair, kind))
+        // Determine Kraken market identifier using the Instrument
+        let market = format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
+
+        Ok(KrakenSubscription::new(market, kind))
     }
 }
 
@@ -198,7 +198,7 @@ mod tests {
                 ),
                 expected: Ok(KrakenSubscription {
                     event: "subscribe",
-                    pair: "XBT/USD".to_string(),
+                    market: "XBT/USD".to_string(),
                     kind: KrakenSubKind::Trade { channel: "trade" },
                 }),
             },
@@ -211,7 +211,7 @@ mod tests {
                 ),
                 expected: Ok(KrakenSubscription {
                     event: "subscribe",
-                    pair: "XBT/USD".to_string(),
+                    market: "XBT/USD".to_string(),
                     kind: KrakenSubKind::Candle {
                         channel: "ohlc",
                         interval: 5,
@@ -410,12 +410,12 @@ mod tests {
 
         for (index, test) in cases.into_iter().enumerate() {
             let actual = transformer.transform(test.input);
-
             assert_eq!(
                 actual.len(),
                 test.expected.len(),
-                "TestCase {} failed on vector length check",
-                index
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index,
+                actual
             );
 
             for (vector_index, (actual, expected)) in actual

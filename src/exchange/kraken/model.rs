@@ -29,8 +29,8 @@ use std::time::Duration;
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct KrakenSubscription {
     pub event: &'static str,
-    #[serde(serialize_with = "se_element_to_vector")]
-    pub pair: String,
+    #[serde(rename = "pair", serialize_with = "se_element_to_vector")]
+    pub market: String,
     #[serde(rename = "subscription")]
     pub kind: KrakenSubKind,
 }
@@ -40,11 +40,14 @@ impl From<&KrakenSubscription> for SubscriptionId {
         match kraken_subscription.kind {
             KrakenSubKind::Trade { channel } => {
                 // eg/ SubscriptionId::from("trade|XBT/USD")
-                SubscriptionId::from(format!("{channel}|{}", kraken_subscription.pair))
+                SubscriptionId::from(format!("{channel}|{}", kraken_subscription.market))
             }
             KrakenSubKind::Candle { channel, interval } => {
                 // eg/ SubscriptionId::from("ohlc-5|XBT/USD"),
-                SubscriptionId::from(format!("{channel}-{interval}|{}", kraken_subscription.pair))
+                SubscriptionId::from(format!(
+                    "{channel}-{interval}|{}",
+                    kraken_subscription.market
+                ))
             }
         }
     }
@@ -66,12 +69,12 @@ impl TryFrom<&KrakenSubscription> for WsMessage {
 impl KrakenSubscription {
     const EVENT: &'static str = "subscribe";
 
-    /// Construct a new [`KrakenSubscription`] from the provided pair (eg/ "XBT/USD") and
-    /// [`KrakenSubKind`].
-    pub fn new(pair: String, kind: KrakenSubKind) -> Self {
+    /// Construct a new [`KrakenSubscription`] from the provided market identifier (eg/ "XBT/USD"),
+    /// and [`KrakenSubKind`].
+    pub fn new(market: String, kind: KrakenSubKind) -> Self {
         Self {
             event: Self::EVENT,
-            pair,
+            market,
             kind,
         }
     }
@@ -198,16 +201,16 @@ impl From<KrakenInterval> for u32 {
 #[serde(tag = "status", rename_all = "camelCase")]
 pub enum KrakenSubResponse {
     Subscribed {
-        #[serde(rename = "channelID")]
+        #[serde(alias = "channelID")]
         channel_id: u64,
-        #[serde(rename = "channelName")]
+        #[serde(alias = "channelName")]
         channel_name: String,
         pair: String,
     },
     Error(KrakenError),
 }
 
-/// [`Kraken`] generic error message String received over the WebSocket.
+/// `Kraken` generic error message String received over the WebSocket.
 ///
 /// Note that since the [`KrakenError`] is only made up of a renamed message String field, it can
 /// be used flexible as a [`KrakenSubResponse::Error`](KrakenSubResponse) or as a generic error
@@ -217,7 +220,7 @@ pub enum KrakenSubResponse {
 /// See docs subscription failed: <https://docs.kraken.com/websockets/#message-subscriptionStatus>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct KrakenError {
-    #[serde(rename = "errorMessage")]
+    #[serde(alias = "errorMessage")]
     pub message: String,
 }
 
@@ -294,7 +297,7 @@ pub struct KrakenCandleData {
 
 /// `Kraken` messages received over the WebSocket which are not subscription data.
 ///
-/// eg/ [`Kraken`] sends a `KrakenEvent::Heartbeat` if no subscription traffic has been sent
+/// eg/ `Kraken` sends a `KrakenEvent::Heartbeat` if no subscription traffic has been sent
 /// within the last second.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-heartbeat>
@@ -646,11 +649,11 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC3: Kraken unsupported SubKind:: w/ unsupported Interval::Month3
-                input: SubKind::OrderBook,
+                // TC3: Kraken unsupported SubKind::OrderBookL2
+                input: SubKind::OrderBookL2,
                 expected: Err(SocketError::Unsupported {
                     entity: "kraken",
-                    item: "order_books".to_string(),
+                    item: "order_books_l2".to_string(),
                 }),
             },
         ];

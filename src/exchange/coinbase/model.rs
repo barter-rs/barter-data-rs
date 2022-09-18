@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 /// eg/ CoinbaseResponse::Subscribed {"type": "subscriptions", "channels": [{"name": "matches", "product_ids": ["BTC-USD"]}]}
 /// eg/ CoinbaseResponse::Error {"type": "error", "message": "error message", "reason": "reason"}
 ///
-/// See docs: <https://docs.cloud.coinbase.com/exchange/websocket-overview#subscribe>
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum CoinbaseSubResponse {
-    #[serde(rename = "subscriptions")]
+    #[serde(alias = "subscriptions")]
     Subscribed {
         channels: Vec<CoinbaseChannels>,
     },
@@ -35,7 +35,7 @@ pub enum CoinbaseSubResponse {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct CoinbaseChannels {
-    #[serde(rename = "name")]
+    #[serde(alias = "name")]
     pub channel: String,
     pub product_ids: Vec<String>,
 }
@@ -57,39 +57,26 @@ impl Validator for CoinbaseSubResponse {
 
 /// [`Coinbase`] message variants that can be received over [`WebSocket`].
 ///
-/// See docs: https://docs.cloud.coinbase.com/exchange/docs/websocket-channels
-#[derive(Clone, PartialEq, Debug, Deserialize)]
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels>
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum CoinbaseMessage {
     #[serde(alias = "match", alias = "last_match")]
-    Trade {
-        product_id: String,
-        #[serde(flatten)]
-        trade: CoinbaseTrade,
-    },
-}
-
-impl From<&CoinbaseMessage> for SubscriptionId {
-    fn from(message: &CoinbaseMessage) -> Self {
-        match message {
-            CoinbaseMessage::Trade { product_id, .. } => {
-                Coinbase::subscription_id(Coinbase::CHANNEL_TRADE, product_id)
-            }
-        }
-    }
+    Trade(CoinbaseTrade),
 }
 
 /// [`Coinbase`] trade message.
 ///
-/// See docs: https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct CoinbaseTrade {
-    #[serde(rename = "trade_id")]
+    #[serde(alias = "product_id", deserialize_with = "de_trade_subscription_id")]
+    pub subscription_id: SubscriptionId,
+    #[serde(alias = "trade_id")]
     pub id: u64,
-    pub sequence: u64,
     pub time: DateTime<Utc>,
-    #[serde(deserialize_with = "de_str")]
-    pub size: f64,
+    #[serde(alias = "size", deserialize_with = "de_str")]
+    pub quantity: f64,
     #[serde(deserialize_with = "de_str")]
     pub price: f64,
     pub side: Side,
@@ -105,11 +92,21 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
             kind: DataKind::Trade(PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
-                quantity: trade.size,
+                quantity: trade.quantity,
                 side: trade.side,
             }),
         }
     }
+}
+
+/// Deserialize a [`CoinbaseTrade`] "product_id" (eg/ "BTC-USD") as the associated [`SubscriptionId`]
+/// (eg/ SubscriptionId("matches|BTC-USD").
+pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_TRADES, product_id))
 }
 
 #[cfg(test)]
@@ -205,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialise_coinbase_message_trades() {
+    fn test_deserialise_coinbase_message() {
         struct TestCase {
             input: &'static str,
             expected: Result<CoinbaseMessage, SocketError>,
@@ -213,54 +210,33 @@ mod tests {
 
         let cases = vec![
             TestCase {
-                // TC0: valid CoinbaseMessage Spot trades
-                input: r#"{"type": "match","trade_id": 10,"sequence": 50,
-                  "maker_order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
-                  "taker_order_id": "132fb6ae-456b-4654-b4e0-d681ac05cea1",
-                  "time": "2014-11-07T08:19:27.028459Z",
-                  "product_id": "BTC-USD",
-                  "size": "5.23512",
-                  "price": "400.23",
-                  "side": "sell"
-                    }"#,
-                expected: Ok(CoinbaseMessage::Trade {
-                    product_id: String::from("BTC-USD"),
-                    trade: CoinbaseTrade {
-                        id: 10,
-                        sequence: 50,
-                        price: 400.23,
-                        size: 5.23512,
-                        side: Side::Sell,
-                        time: DateTime::from_utc(
-                            NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),
-                            Utc,
-                        ),
-                    },
-                }),
-            },
-            TestCase {
-                // TC1: invalid CoinbaseMessage Spot trades w/ unknown tag
-                input: r#"{"type": "unknown","trade_id": 10,"sequence": 50,
-                  "maker_order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
-                  "taker_order_id": "132fb6ae-456b-4654-b4e0-d681ac05cea1",
-                  "time": "2014-11-07T08:19:27.028459Z",
-                  "product_id": "BTC-USD",
-                  "size": "5.23512",
-                  "price": "400.23",
-                  "side": "sell"
-                    }"#,
+                // TC0: invalid CoinbaseMessage w/ unknown tag
+                input: r#"{"type": "unknown", "sequence": 50,"product_id": "BTC-USD"}"#,
                 expected: Err(SocketError::Serde {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
             },
             TestCase {
-                // TC2: input trades message data is malformed gibberish
-                input: r#"{"channel": "trades", "market": "BTC-USD", "type": "update", "data": [gibberish]}"#,
-                expected: Err(SocketError::Serde {
-                    error: serde_json::Error::custom(""),
-                    payload: "".to_owned(),
-                }),
+                // TC1: valid CoinbaseMessage Spot trades
+                input: r#"{
+                    "type": "match","trade_id": 10,"sequence": 50,
+                    "maker_order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
+                    "taker_order_id": "132fb6ae-456b-4654-b4e0-d681ac05cea1",
+                    "time": "2014-11-07T08:19:27.028459Z",
+                    "product_id": "BTC-USD", "size": "5.23512", "price": "400.23", "side": "sell"
+                }"#,
+                expected: Ok(CoinbaseMessage::Trade(CoinbaseTrade {
+                    subscription_id: SubscriptionId::from("matches|BTC-USD"),
+                    id: 10,
+                    price: 400.23,
+                    quantity: 5.23512,
+                    side: Side::Sell,
+                    time: DateTime::from_utc(
+                        NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),
+                        Utc,
+                    ),
+                })),
             },
         ];
 
