@@ -5,7 +5,10 @@
     // missing_docs
 )]
 
-use crate::model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta};
+use crate::model::{
+    subscription::{Subscription, SubscriptionIds, SubscriptionMeta},
+    MarketEvent,
+};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
@@ -253,6 +256,7 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the ingestion of
     /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_spot(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => false,
@@ -262,6 +266,7 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
@@ -272,6 +277,7 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// [`PublicTrade`](model::PublicTrade) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_trades(&self) -> bool {
         match self {
             _ => true,
@@ -280,6 +286,7 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// [`Candle`](model::Candle) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_candles(&self) -> bool {
         match self {
             ExchangeId::Kraken => true,
@@ -287,9 +294,29 @@ impl ExchangeId {
         }
     }
 
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// L2 OrderBook market data.
+    /// Determines whether this [`ExchangeId`] supports the collection of OrderBook snapshot
+    /// market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_order_books(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// L2 OrderBook delta market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_order_book_l2_deltas(&self) -> bool {
+        match self {
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// L3 OrderBook delta market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_order_book_l3_deltas(&self) -> bool {
         match self {
             _ => false,
         }

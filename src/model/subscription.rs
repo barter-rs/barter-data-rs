@@ -1,62 +1,16 @@
 use crate::ExchangeId;
 use barter_integration::{
     error::SocketError,
-    model::{Exchange, Instrument, InstrumentKind, Market, Side, SubscriptionId, Symbol},
+    model::{Instrument, InstrumentKind, Market, SubscriptionId, Symbol},
     protocol::websocket::WsMessage,
-    Event, Validator,
+    Validator,
 };
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
-
-/// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
-    pub exchange_time: DateTime<Utc>,
-    pub received_time: DateTime<Utc>,
-    pub exchange: Exchange,
-    pub instrument: Instrument,
-    pub kind: DataKind,
-}
-
-/// Defines the type of Barter [`MarketEvent`].
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub enum DataKind {
-    Trade(PublicTrade),
-    Candle(Candle),
-}
-
-/// Normalised Barter [`PublicTrade`] model.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct PublicTrade {
-    pub id: String,
-    pub price: f64,
-    pub quantity: f64,
-    pub side: Side,
-}
-
-/// Normalised Barter OHLCV [`Candle`] model.
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct Candle {
-    pub start_time: DateTime<Utc>,
-    pub end_time: DateTime<Utc>,
-    pub open: f64,
-    pub high: f64,
-    pub low: f64,
-    pub close: f64,
-    pub volume: f64,
-    pub trade_count: u64,
-}
-
-impl From<Event<MarketEvent>> for MarketEvent {
-    fn from(event: Event<MarketEvent>) -> Self {
-        event.payload
-    }
-}
 
 /// Barter [`Subscription`] used to subscribe to a market [`SubKind`] for a particular
 /// [`Exchange`]'s [`Instrument`].
@@ -90,7 +44,7 @@ impl Validator for &Subscription {
         match self.kind {
             SubKind::Trade if self.exchange.supports_trades() => {}
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
-            SubKind::OrderBookL2 if self.exchange.supports_order_books() => {}
+            SubKind::OrderBook if self.exchange.supports_order_books() => {}
             other => {
                 return Err(SocketError::Unsupported {
                     entity: self.exchange.as_str(),
@@ -161,7 +115,9 @@ impl Subscription {
 pub enum SubKind {
     Trade,
     Candle(Interval),
-    OrderBookL2,
+    OrderBook,
+    OrderBookL2Delta,
+    OrderBookL3Delta,
 }
 
 impl Display for SubKind {
@@ -172,7 +128,9 @@ impl Display for SubKind {
             match self {
                 SubKind::Trade => "trade".to_owned(),
                 SubKind::Candle(interval) => format!("candle_{}", interval),
-                SubKind::OrderBookL2 => "order_book_l2".to_owned(),
+                SubKind::OrderBook => "order_book".to_owned(),
+                SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
+                SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
             }
         )
     }
@@ -239,6 +197,24 @@ impl Display for Interval {
                 Interval::Month3 => "3M",
             }
         )
+    }
+}
+
+/// Barter OrderBook depth used for specifying the depth of an [`SubKind::OrderBook`] snapshot.
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub struct Depth(u16);
+
+impl Display for Depth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Deref for Depth {
+    type Target = u16;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -345,26 +321,26 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Binance btc_usd Spot OrderBookL2 Subscription
-                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": "order_book_l2"}"##,
+                // TC4: Valid Binance btc_usd Spot OrderBookL2Delta Subscription
+                input: r##"{"exchange": "binance", "base": "btc", "quote": "usd", "instrument_type": "spot", "type": "order_book_l2_delta"}"##,
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBookL2,
+                    kind: SubKind::OrderBookL2Delta,
                 }),
             },
             TestCase {
-                // TC5: Valid BinanceFuturesUsd btc_usd FuturePerpetual OrderBookL2 Subscription
-                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_l2"}"##,
+                // TC5: Valid BinanceFuturesUsd btc_usd FuturePerpetual OrderBookL2Delta Subscription
+                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_l2_delta"}"##,
                 expected: Ok(Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::OrderBookL2,
+                    kind: SubKind::OrderBookL2Delta,
                 }),
             },
             TestCase {
                 // TC6: Invalid Subscription w/ unknown exchange
-                input: r##"{"exchange": "unknown", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_delta"}"##,
+                input: r##"{"exchange": "unknown", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "order_book_l2_delta"}"##,
                 expected: Err(serde_json::Error::custom("")),
             },
             TestCase {
@@ -490,11 +466,11 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC5: Invalid Subscription w/ Ftx Spot OrderBookL2
+                // TC5: Invalid Subscription w/ Ftx Spot OrderBookL2Delta
                 input: Subscription {
                     exchange: ExchangeId::Ftx,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBookL2,
+                    kind: SubKind::OrderBookL2Delta,
                 },
                 expected: Err(SocketError::Unsupported {
                     entity: "",

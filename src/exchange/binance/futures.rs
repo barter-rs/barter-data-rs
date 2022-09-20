@@ -1,6 +1,6 @@
 use super::model::{BinanceMessage, BinanceSubResponse};
 use crate::{
-    model::{MarketEvent, SubKind},
+    model::{subscription::SubKind, MarketEvent},
     ExchangeId, ExchangeTransformer, Subscriber, Subscription, SubscriptionIds, SubscriptionMeta,
 };
 use barter_integration::{
@@ -88,6 +88,16 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
                     Err(error) => vec![Err(error)],
                 }
             }
+            BinanceMessage::OrderBookSnapshot(snapshot) => {
+                match self.ids.find_instrument(&snapshot.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        BinanceFuturesUsd::EXCHANGE,
+                        instrument,
+                        snapshot,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -97,6 +107,12 @@ impl BinanceFuturesUsd {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams>
     pub const CHANNEL_TRADES: &'static str = "@aggTrade";
+
+    /// [`BinanceFuturesUsd`] OrderBook channel name. Note that currently additional channel
+    /// information for for OrderBook latency (100ms) and depth (20 levels) is included.
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+    pub const CHANNEL_ORDER_BOOK: &'static str = "@depth20@100ms";
 
     /// Determine the [`BinanceFuturesUsd`] channel metadata associated with an input
     /// Barter [`Subscription`]. This includes the [`BinanceFuturesUsd`] `&str` channel
@@ -112,6 +128,7 @@ impl BinanceFuturesUsd {
         // Determine the BinanceFuturesUsd channel
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::OrderBook => Self::CHANNEL_ORDER_BOOK,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: BinanceFuturesUsd::EXCHANGE.as_str(),
@@ -153,7 +170,7 @@ impl BinanceFuturesUsd {
 mod tests {
     use super::*;
     use crate::exchange::binance::model::BinanceTrade;
-    use crate::model::{DataKind, Interval, PublicTrade};
+    use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
 
@@ -213,11 +230,11 @@ mod tests {
                 expected: Ok(("@aggTrade", "btcusdt".to_owned())),
             },
             TestCase {
-                // TC2: Unsupported InstrumentKind::FuturePerpetual OrderBookL2 subscription
+                // TC2: Unsupported InstrumentKind::FuturePerpetual OrderBookL2Delta subscription
                 input: Subscription::new(
                     ExchangeId::BinanceFuturesUsd,
                     ("btc", "usdt", InstrumentKind::FuturePerpetual),
-                    SubKind::OrderBookL2,
+                    SubKind::OrderBookL2Delta,
                 ),
                 expected: Err(SocketError::Unsupported {
                     entity: "",
