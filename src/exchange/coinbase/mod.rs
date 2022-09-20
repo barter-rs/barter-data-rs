@@ -1,6 +1,6 @@
 use crate::{
-    model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
-    SubscriptionIds, SubscriptionMeta, Validator,
+    model::subscription::{SubKind, SubscriptionIds, SubscriptionMeta},
+    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription, Validator,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
@@ -147,7 +147,7 @@ impl Coinbase {
 mod tests {
     use super::*;
     use crate::exchange::coinbase::model::CoinbaseTrade;
-    use crate::model::{DataKind, Interval, PublicTrade};
+    use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
 
