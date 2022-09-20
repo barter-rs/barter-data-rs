@@ -1,6 +1,6 @@
 use crate::{
-    model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
-    SubscriptionIds, SubscriptionMeta, Validator,
+    model::subscription::{SubKind, SubscriptionIds, SubscriptionMeta},
+    ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription, Validator,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Transformer,
@@ -38,19 +38,18 @@ impl Subscriber for Coinbase {
         let subscriptions = subscriptions
             .iter()
             .map(|subscription| {
-                // Determine the Coinbase specific channel & product_id for this Barter Subscription
-                let (channel, product_id) = Self::build_channel_meta(subscription)?;
+                // Determine the Coinbase specific channel & market for this Barter Subscription
+                let (channel, market) = Self::build_channel_meta(subscription)?;
 
-                // Construct Coinbase specific subscription message
-                let coinbase_subscription = Self::subscription(channel, &product_id);
-
-                // Use "channel|product_id" as the SubscriptionId key in the SubscriptionIds HashMap
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds HashMap
+                // eg/ SubscriptionId("matches|ETH-USD")
                 ids.insert(
-                    Coinbase::subscription_id(channel, &product_id),
+                    Coinbase::subscription_id(channel, &market),
                     subscription.clone(),
                 );
 
-                Ok(coinbase_subscription)
+                // Construct Coinbase specific subscription message
+                Ok(Self::subscription(channel, &market))
             })
             .collect::<Result<Vec<_>, SocketError>>()?;
 
@@ -74,17 +73,17 @@ impl Transformer<MarketEvent> for Coinbase {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let instrument = match self.ids.find_instrument(&input) {
-            Ok(instrument) => instrument,
-            Err(error) => return vec![Err(error)],
-        };
-
         match input {
-            CoinbaseMessage::Trade { trade, .. } => vec![Ok(MarketEvent::from((
-                Coinbase::EXCHANGE,
-                instrument,
-                trade,
-            )))],
+            CoinbaseMessage::Trade(trade) => {
+                match self.ids.find_instrument(&trade.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        trade,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -93,21 +92,21 @@ impl Coinbase {
     /// [`Coinbase`] trades channel name.
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
-    const CHANNEL_TRADE: &'static str = "matches";
+    pub const CHANNEL_TRADES: &'static str = "matches";
 
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
-    /// This includes the [`Coinbase`] &str channel, and a `String` product_id identifier. Both are
+    /// This includes the [`Coinbase`] &str channel, and a `String` market identifier. Both are
     /// used to build an [`Coinbase`] subscription payload.
     ///
     /// Example Ok return: Ok("matches", "BTC-USD")
-    /// where channel == "matches" & product_id == "BTC-USD".
-    fn build_channel_meta(subscription: &Subscription) -> Result<(&str, String), SocketError> {
+    /// where channel == "matches" & market == "BTC-USD".
+    pub fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
         // Validate provided Subscription InstrumentKind is supported by Coinbase
-        let subscription = subscription.validate()?;
+        let sub = sub.validate()?;
 
-        // Determine Coinbase channel using the Subscription StreamKind
-        let channel = match &subscription.kind {
-            SubKind::Trade => Self::CHANNEL_TRADE,
+        // Determine Coinbase channel using the Subscription SubKind
+        let channel = match &sub.kind {
+            SubKind::Trade => Self::CHANNEL_TRADES,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -116,35 +115,31 @@ impl Coinbase {
             }
         };
 
-        // Determine Coinbase product_id identifier using the Instrument (eg/ "BTC-USD")
-        let product_id = format!(
-            "{}-{}",
-            subscription.instrument.base, subscription.instrument.quote
-        )
-        .to_uppercase();
+        // Determine Coinbase market identifier using the Instrument (eg/ "BTC-USD")
+        let market = format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase();
 
-        Ok((channel, product_id))
+        Ok((channel, market))
     }
 
-    /// Build a [`Coinbase`] compatible subscription message using the channel & product_id provided.
-    fn subscription(channel: &str, product_id: &str) -> WsMessage {
+    /// Build a [`Coinbase`] compatible subscription message using the channel & market provided.
+    pub fn subscription(channel: &str, market: &str) -> WsMessage {
         WsMessage::Text(
             json!({
                 "type": "subscribe",
-                "product_ids": [product_id],
+                "product_ids": [market],
                 "channels": [channel],
             })
             .to_string(),
         )
     }
 
-    /// Build a [`Coinbase`] compatible [`SubscriptionId`] using the channel & product_id provided.
+    /// Build a [`Coinbase`] compatible [`SubscriptionId`] using the channel & market provided.
     /// This is used to associate [`Coinbase`] data structures received over the WebSocket with it's
     /// original Barter [`Subscription`].
     ///
     /// eg/ SubscriptionId("matches|ETH-USD")
-    fn subscription_id(channel: &str, product_id: &str) -> SubscriptionId {
-        SubscriptionId::from(format!("{channel}|{product_id}"))
+    pub fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{channel}|{market}"))
     }
 }
 
@@ -152,7 +147,7 @@ impl Coinbase {
 mod tests {
     use super::*;
     use crate::exchange::coinbase::model::CoinbaseTrade;
-    use crate::model::{DataKind, Interval, PublicTrade};
+    use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
 
@@ -261,17 +256,14 @@ mod tests {
         let cases = vec![
             TestCase {
                 // TC0: CoinbaseMessage Spot trades w/ known SubscriptionId
-                input: CoinbaseMessage::Trade {
-                    product_id: String::from("BTC-USD"),
-                    trade: CoinbaseTrade {
-                        id: 2,
-                        sequence: 2,
-                        price: 1.0,
-                        size: 1.0,
-                        side: Side::Buy,
-                        time,
-                    },
-                },
+                input: CoinbaseMessage::Trade(CoinbaseTrade {
+                    subscription_id: SubscriptionId::from("matches|BTC-USD"),
+                    id: 2,
+                    price: 1.0,
+                    quantity: 1.0,
+                    side: Side::Buy,
+                    time,
+                }),
                 expected: vec![Ok(MarketEvent {
                     exchange_time: time,
                     received_time: time,
@@ -287,17 +279,14 @@ mod tests {
             },
             TestCase {
                 // TC1: CoinbaseMessage with unknown SubscriptionId
-                input: CoinbaseMessage::Trade {
-                    product_id: String::from("unknown"),
-                    trade: CoinbaseTrade {
-                        id: 1,
-                        sequence: 2,
-                        price: 1.0,
-                        size: 1.0,
-                        side: Side::Buy,
-                        time,
-                    },
-                },
+                input: CoinbaseMessage::Trade(CoinbaseTrade {
+                    subscription_id: SubscriptionId::from("unknown"),
+                    id: 1,
+                    price: 1.0,
+                    quantity: 1.0,
+                    side: Side::Buy,
+                    time,
+                }),
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
                     "unknown",
                 )))],
@@ -309,8 +298,9 @@ mod tests {
             assert_eq!(
                 actual.len(),
                 test.expected.len(),
-                "TestCase {} failed",
-                index
+                "TestCase {} failed at vector length assert_eq with actual: {:?}",
+                index,
+                actual
             );
 
             for (vector_index, (actual, expected)) in actual

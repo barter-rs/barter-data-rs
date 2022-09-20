@@ -1,3 +1,4 @@
+use crate::exchange::ftx::Ftx;
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -45,9 +46,9 @@ impl Validator for FtxSubResponse {
 #[serde(tag = "channel", rename_all = "lowercase")]
 pub enum FtxMessage {
     Trades {
-        #[serde(rename = "market")]
+        #[serde(rename = "market", deserialize_with = "de_trade_subscription_id")]
         subscription_id: SubscriptionId,
-        #[serde(rename = "data")]
+        #[serde(alias = "data")]
         trades: Vec<FtxTrade>,
     },
 }
@@ -89,6 +90,16 @@ impl From<(ExchangeId, Instrument, FtxTrade)> for MarketEvent {
             }),
         }
     }
+}
+
+/// Deserialize a [`FtxMessage::Trades`](FtxMessage) "market" (eg/ "BTC/USD") as the
+/// associated [`SubscriptionId`] (eg/ "trades|BTC/USD").
+pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|market| Ftx::subscription_id(Ftx::CHANNEL_TRADES, market))
 }
 
 #[cfg(test)]
@@ -180,11 +191,16 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialise_ftx_message_trades() {
+    fn test_deserialise_ftx_message() {
         struct TestCase {
             input: &'static str,
             expected: Result<FtxMessage, SocketError>,
         }
+
+        // {"channel":"trades","market":"BTC-PERP","type":"update","data":[
+        // {"id":4905794647,"price":19209.0,"size":0.03,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"},
+        // {"id":4905794648,"price":19209.0,"size":0.5178,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"},
+        // {"id":4905794649,"price":19209.0,"size":0.0025,"side":"buy","liquidation":false,"time":"2022-09-08T19:09:15.452462+00:00"}]}
 
         let cases = vec![
             TestCase {
@@ -193,7 +209,7 @@ mod tests {
                 [{"id": 3689226514, "price": 10000.0, "size": 1.0, "side": "buy", "liquidation": false,
                 "time": "2022-04-06T15:38:16.182802+00:00"}]}"#,
                 expected: Ok(FtxMessage::Trades {
-                    subscription_id: SubscriptionId::from("BTC/USDT"),
+                    subscription_id: SubscriptionId::from("trades|BTC/USDT"),
                     trades: vec![FtxTrade {
                         id: 3689226514,
                         price: 10000.0,

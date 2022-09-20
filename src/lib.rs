@@ -5,7 +5,10 @@
     // missing_docs
 )]
 
-use crate::model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta};
+use crate::model::{
+    subscription::{Subscription, SubscriptionIds, SubscriptionMeta},
+    MarketEvent,
+};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
@@ -79,7 +82,7 @@ pub trait Subscriber {
         }
 
         // Validate subscriptions
-        Self::validate(&mut websocket, expected_responses).await?;
+        let ids = Self::validate(ids, &mut websocket, expected_responses).await?;
 
         Ok((websocket, ids))
     }
@@ -97,9 +100,10 @@ pub trait Subscriber {
     /// Uses the provided [`WebSocket`] connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(
+        ids: SubscriptionIds,
         websocket: &mut WebSocket,
         expected_responses: usize,
-    ) -> Result<(), SocketError> {
+    ) -> Result<SubscriptionIds, SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
@@ -109,7 +113,7 @@ pub trait Subscriber {
         loop {
             // Break if all Subscriptions were a success
             if success_responses == expected_responses {
-                break Ok(());
+                break Ok(ids);
             }
 
             tokio::select! {
@@ -252,6 +256,7 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the ingestion of
     /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_spot(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => false,
@@ -261,10 +266,58 @@ impl ExchangeId {
 
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
             ExchangeId::Ftx => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`PublicTrade`](model::PublicTrade) market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_trades(&self) -> bool {
+        match self {
+            _ => true,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`Candle`](model::Candle) market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_candles(&self) -> bool {
+        match self {
+            ExchangeId::Kraken => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of OrderBook snapshot
+    /// market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_order_books(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// L2 OrderBook delta market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_order_book_l2_deltas(&self) -> bool {
+        match self {
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// L3 OrderBook delta market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_order_book_l3_deltas(&self) -> bool {
+        match self {
             _ => false,
         }
     }
