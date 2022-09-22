@@ -13,22 +13,75 @@ async fn main() {
     // Initialise `PublicTrade` & `Candle``MarketStream` for `BinanceFuturesUsd`, `Ftx`, `Kraken`
     // & Coinbase
     let streams = Streams::builder()
-        .subscribe_exchange(
-            ExchangeId::Ftx,
-            [
-                ("btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-                ("eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-                ("btc", "usdt", InstrumentKind::Spot, SubKind::Trade),
-                ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
-            ],
-        )
+        // .subscribe_exchange(
+        //     ExchangeId::Ftx,
+        //     [
+        //         (
+        //             "btc",
+        //             "usdt",
+        //             InstrumentKind::FuturePerpetual,
+        //             SubKind::Trade,
+        //         ),
+        //         (
+        //             "eth",
+        //             "usdt",
+        //             InstrumentKind::FuturePerpetual,
+        //             SubKind::Trade,
+        //         ),
+        //         ("btc", "usdt", InstrumentKind::Spot, SubKind::Trade),
+        //         ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
+        //     ],
+        // )
         .subscribe([
-            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            // (
+            //     ExchangeId::Coinbase,
+            //     "btc",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Coinbase,
+            //     "eth",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::BinanceFuturesUsd,
+            //     "btc",
+            //     "usdt",
+            //     InstrumentKind::FuturePerpetual,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::BinanceFuturesUsd,
+            //     "eth",
+            //     "usdt",
+            //     InstrumentKind::FuturePerpetual,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Kraken,
+            //     "xbt",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Kraken,
+            //     "xbt",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Candle(Interval::Minute1),
+            // ),
+            (
+                ExchangeId::Bitfinex,
+                "btc",
+                "usd",
+                InstrumentKind::Spot,
+                SubKind::Trade,
+            ),
         ])
         .init()
         .await

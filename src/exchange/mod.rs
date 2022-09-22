@@ -15,6 +15,9 @@ pub mod kraken;
 /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
 pub mod coinbase;
 
+/// Bitfinex 'ExchangeTransformer' & 'Subscriber' implementations.
+pub mod bitfinex;
+
 /// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
 pub fn datetime_utc_from_epoch_duration(duration: Duration) -> DateTime<Utc> {
     DateTime::<Utc>::from(std::time::UNIX_EPOCH + duration)
