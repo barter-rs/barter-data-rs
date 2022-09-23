@@ -116,7 +116,7 @@ impl ExchangeTransformer for Bitfinex {
     const EXCHANGE: ExchangeId = ExchangeId::Bitfinex;
 
     fn new(
-        _: tokio::sync::mpsc::UnboundedSender<WsMessage>,
+        ws_sink_tx: tokio::sync::mpsc::UnboundedSender<WsMessage>,
         ids: SubscriptionIds,
     ) -> Self {
         Self { ids }
@@ -159,29 +159,29 @@ impl Transformer<MarketEvent> for Bitfinex {
                     vec![]
                 }
             },
-            // BitfinexMessage::SubscriptionEvent { subscription_id, sub_response } => {
-            //     println!("IN TRADE SUBSCRIPTION MESSAGE");
-            //     match sub_response {
-            //         // Replace SubscriptionId to that of the channel
-            //         BitfinexSubResponse::TradeSubscriptionMessage { 
-            //             event, 
-            //             channel, 
-            //             channel_id, 
-            //             symbol, 
-            //             pair } => {
-            //                 // Remove the generic subscription id and replace it
-            //                 println!("IN TRADE SUBSCRIPTION MESSAGE");
-            //                 let sub_id = Bitfinex::subscription_id(&channel, &pair);
-            //                 println!("sub id: {:?}", sub_id);
-            //                 if let Some(subscription) = self.ids.remove(&sub_id) {
-            //                     self.ids.insert(SubscriptionId(channel_id.to_string()), subscription);
-            //                 }
-            //                 vec![]
-            //             },
-            //         // TODO: Deal with this appropriately
-            //         BitfinexSubResponse::Error { .. } => todo!(),
-            //     }
-            // }
+            BitfinexMessage::SubscriptionEvent { subscription_id, sub_response } => {
+                println!("IN TRADE SUBSCRIPTION MESSAGE");
+                match sub_response {
+                    // Replace SubscriptionId to that of the channel
+                    BitfinexSubResponse::TradeSubscriptionMessage { 
+                        event, 
+                        channel, 
+                        channel_id, 
+                        symbol, 
+                        pair } => {
+                            // Remove the generic subscription id and replace it
+                            println!("IN TRADE SUBSCRIPTION MESSAGE");
+                            let sub_id = Bitfinex::subscription_id(&channel, &pair);
+                            println!("sub id: {:?}", sub_id);
+                            if let Some(subscription) = self.ids.remove(&sub_id) {
+                                self.ids.insert(SubscriptionId(channel_id.to_string()), subscription);
+                            }
+                            vec![]
+                        },
+                    // TODO: Deal with this appropriately
+                    BitfinexSubResponse::Error { .. } => todo!(),
+                }
+            }
             _ => { vec![]},
         }
     }

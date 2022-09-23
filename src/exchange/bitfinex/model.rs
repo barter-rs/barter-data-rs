@@ -13,38 +13,6 @@ use crate::{
 use super::Bitfinex;
 
 
-// /// [`Bitfinex`] message received in response to WebSocket subscription request.
-// ///
-// /// ## Error types
-// /// 10300 : Subscription failed (generic)
-// /// 10301 : Already subscribed
-// /// 10302 : Unknown channel
-// #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
-// #[serde(untagged)]
-// pub enum BitfinexSubResponse {
-//     /// Response to successful subscription request to trade stream
-//     TradeSubscriptionMessage {
-//         event: String,
-//         channel: String,
-//         #[serde(rename = "chanId")]
-//         channel_id: u32,
-//         symbol: String,
-//         pair: String,
-
-//     },
-//     // TODO: Make sure they are all formatted like this
-//     /// Erroneous subscription request
-//     Error {
-//         event: String,
-//         msg: String,
-//         // TODO: Change this to map to specific error value
-//         code: u32,
-//         chan_id: Option<u32>,
-//         symbol: Option<String>,
-//         channel: Option<String>,
-//     },
-// }
-
 /// [`Bitfinex`] message received in response to WebSocket subscription request.
 ///
 /// ## Error types
@@ -55,27 +23,26 @@ use super::Bitfinex;
 #[serde(untagged)]
 pub enum BitfinexSubResponse {
     /// Response to successful subscription request to trade stream
-    TradeSubscriptionMessage (TradingSubscriptionMessage),
+    TradeSubscriptionMessage {
+        event: String,
+        channel: String,
+        #[serde(rename = "chanId")]
+        channel_id: u32,
+        symbol: String,
+        pair: String,
+
+    },
     // TODO: Make sure they are all formatted like this
-    ErrorMessage(ErrorMessage),
-}
-
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TradingSubscriptionMessage {
-    pub event: String,
-    pub channel: String,
-    pub chan_id: u32,
-    pub symbol: String,
-    pub pair: String
-}
-
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ErrorMessage {
-    event: String,
-    msg: String,
-    code: u32,
+    /// Erroneous subscription request
+    Error {
+        event: String,
+        msg: String,
+        // TODO: Change this to map to specific error value
+        code: u32,
+        chan_id: Option<u32>,
+        symbol: Option<String>,
+        channel: Option<String>,
+    },
 }
 
 impl Validator for BitfinexSubResponse {
@@ -84,10 +51,11 @@ impl Validator for BitfinexSubResponse {
         Self: Sized,
     {
         match &self {
-            BitfinexSubResponse::TradeSubscriptionMessage(_) => Ok(self),
-            BitfinexSubResponse::ErrorMessage (_)  => {
+            BitfinexSubResponse::TradeSubscriptionMessage { .. } => Ok(self),
+            BitfinexSubResponse::Error { msg, .. } => {
                 Err(barter_integration::error::SocketError::Subscribe(format!(
-                    "received failed subscription response: ",
+                    "received failed subscription response: {}",
+                    msg
                 )))
             }
         }
@@ -161,7 +129,7 @@ pub enum BitfinexMessage {
     SubscriptionEvent {
         // This will be in the form of trades|tBTCUSD as it is not formatted yet
         subscription_id: SubscriptionId,
-        sub_response: TradingSubscriptionMessage,
+        sub_response: BitfinexSubResponse,
     },
     InfoEvent {
         info: InfoMessage,
@@ -173,18 +141,10 @@ pub enum BitfinexMessage {
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
 enum IntermediaryBitfinexMessage {
-    //SubscriptionEvent(TradingSubscriptionMessage),
-    SubscriptionEvent {
-        event: String,
-        channel: String,
-        #[serde(rename = "chanId")]
-        chan_id: u32,
-        symbol: String,
-        pair: String
-    },
     HeartbeatEvent(i32, String),
     TradesSnapshotEvent(i32, Vec<BitfinexTrade>),
     TradesUpdateEvent(i32, String, BitfinexTrade),
+    SubscriptionEvent(BitfinexSubResponse),
     InfoEvent(InfoMessage),
 }
 
@@ -214,22 +174,28 @@ impl From<IntermediaryBitfinexMessage> for BitfinexMessage {
                     trade,
                 }
             },
-            IntermediaryBitfinexMessage::SubscriptionEvent { event, channel, chan_id, symbol, pair } => {
-                //match &sub {
-                    // BitfinexSubResponse::TradeSubscriptionMessage(trade_msg) => {
-                        let subscription_id = Bitfinex::subscription_id(&channel.clone(), &pair.clone());
+            IntermediaryBitfinexMessage::SubscriptionEvent(sub) => {
+                match &sub {
+                    BitfinexSubResponse::TradeSubscriptionMessage { 
+                        event, 
+                        channel, 
+                        channel_id, 
+                        symbol, 
+                        pair 
+                    } => {
+                        let subscription_id = Bitfinex::subscription_id(&channel, &pair);
                         println!("SUBSCRIPTION ID: {}", subscription_id);
                         BitfinexMessage::SubscriptionEvent { 
                             subscription_id, 
-                            sub_response: TradingSubscriptionMessage { event, channel, chan_id, symbol, pair }
+                            sub_response: sub
                         }
-                    // },
-                    // BitfinexSubResponse::ErrorMessage (err) => {
-                    //     // TODO: This is definitely wrong
-                    //     let subscription_id = SubscriptionId::from("fwef");
-                    //     BitfinexMessage::HeartbeatEvent { subscription_id, msg: "grs".to_string() }
-                    // },
-                //}
+                    },
+                    BitfinexSubResponse::Error { event, msg, code, chan_id, symbol, channel } => {
+                        // TODO: This is definitely wrong
+                        let subscription_id = SubscriptionId::from("fwef");
+                        BitfinexMessage::HeartbeatEvent { subscription_id, msg: "grs".to_string() }
+                    },
+                }
             },  
             IntermediaryBitfinexMessage::InfoEvent(info) => BitfinexMessage::InfoEvent { info },
         }
