@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::ser::SerializeSeq;
 use serde::{de, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{str::FromStr, time::Duration};
 
 /// Binance `ExchangeTransformer` & `Subscriber` implementations.
@@ -17,6 +18,9 @@ pub mod coinbase;
 
 /// Bitfinex 'ExchangeTransformer' & 'Subscriber' implementations.
 pub mod bitfinex;
+
+/// Kucoin ''ExchangeTransformer' & 'Subscriber' implementations.
+pub mod kucoin;
 
 /// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
 pub fn datetime_utc_from_epoch_duration(duration: Duration) -> DateTime<Utc> {
@@ -74,4 +78,14 @@ where
     let mut sequence = serializer.serialize_seq(Some(1))?;
     sequence.serialize_element(&element)?;
     sequence.end()
+}
+
+/// Get the UNIX timestamp in ms. Useful for id'ing messages.
+pub fn get_time() -> u128 {
+    let start = SystemTime::now();
+    let since_the_epoch = start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+
+    since_the_epoch.as_millis()
 }

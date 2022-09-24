@@ -214,6 +214,8 @@ pub enum ExchangeId {
     Ftx,
     Kraken,
     Bitfinex,
+    /// Kucoin spot implementation
+    Kucoin,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -239,6 +241,7 @@ impl ExchangeId {
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Kucoin => "kucoin",
         }
     }
 
@@ -251,6 +254,7 @@ impl ExchangeId {
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Kucoin => "kucoin",
         }
     }
 
