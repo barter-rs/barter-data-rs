@@ -62,8 +62,8 @@ impl Subscriber for Bitfinex {
     }
 
     fn build_subscription_meta(
-        subscriptions: &[crate::model::Subscription],
-    ) -> Result<crate::model::SubscriptionMeta, barter_integration::error::SocketError> {
+        subscriptions: &[Subscription],
+    ) -> Result<SubscriptionMeta, SocketError> {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut ids = SubscriptionIds(HashMap::with_capacity(subscriptions.len()));
 
@@ -125,7 +125,6 @@ impl Subscriber for Bitfinex {
                 // Parse incoming messages and determine subscription outcomes
                 message = websocket.next() => match message {
                     Some(Ok(WsMessage::Text(payload))) => {
-
                         if let Ok(bitfinex_status) = serde_json::from_str::<BitfinexPlatformStatus>(&payload) {
                             bitfinex_status.validate()?;
                         }
