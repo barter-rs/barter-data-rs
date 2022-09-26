@@ -185,8 +185,8 @@ impl Validator for BitfinexPlatformStatus {
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexMessage {
-    channel_id: u32,
-    payload: BitfinexPayload,
+    pub channel_id: u32,
+    pub payload: BitfinexPayload,
 }
 
 /// [`Bitfinex`](super::Bitfinex) market data variants associated with an
