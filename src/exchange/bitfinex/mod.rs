@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::{
-    model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta},
+    model::{MarketEvent, subscription::{SubscriptionMeta, SubKind, SubscriptionIds, Subscription}},
     ExchangeId, ExchangeTransformer, Subscriber,
 };
 
@@ -42,9 +42,10 @@ impl Bitfinex {
         let sub = sub.validate()?;
 
         let channel = match &sub.kind {
-            crate::model::SubKind::Trade => Self::CHANNEL_TRADES,
-            crate::model::SubKind::Candle(_) => todo!(),
-            crate::model::SubKind::OrderBookL2 => todo!(),
+            SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::Candle(_) => todo!(),
+            SubKind::OrderBook => todo!(),
+            _ => todo!(),
         };
 
         // Determine the symbol name
@@ -80,8 +81,8 @@ impl Subscriber for Bitfinex {
     }
 
     fn build_subscription_meta(
-        subscriptions: &[crate::model::Subscription],
-    ) -> Result<crate::model::SubscriptionMeta, barter_integration::error::SocketError> {
+        subscriptions: &[Subscription],
+    ) -> Result<SubscriptionMeta, barter_integration::error::SocketError> {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut ids = SubscriptionIds(HashMap::with_capacity(subscriptions.len()));
 
@@ -116,7 +117,7 @@ impl ExchangeTransformer for Bitfinex {
     const EXCHANGE: ExchangeId = ExchangeId::Bitfinex;
 
     fn new(
-        ws_sink_tx: tokio::sync::mpsc::UnboundedSender<WsMessage>,
+        _: tokio::sync::mpsc::UnboundedSender<WsMessage>,
         ids: SubscriptionIds,
     ) -> Self {
         Self { ids }
