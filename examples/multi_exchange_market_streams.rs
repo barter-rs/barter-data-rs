@@ -1,7 +1,10 @@
 use barter_data::{
     builder::Streams,
-    model::{Interval, MarketEvent, SubKind},
     ExchangeId,
+    model::{
+        MarketEvent,
+        subscription::{Interval, SubKind}
+    },
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
@@ -23,15 +26,13 @@ async fn main() {
         //     ],
         // )
         .subscribe([
-            (ExchangeId::Bitfinex, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Bitfinex, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
-            // (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBookL2),
+            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
+            (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
+            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
+            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
         ])
         .init()
         .await

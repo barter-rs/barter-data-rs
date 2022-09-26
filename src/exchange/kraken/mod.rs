@@ -138,7 +138,10 @@ mod tests {
     use crate::exchange::kraken::model::{
         KrakenCandle, KrakenCandleData, KrakenError, KrakenInterval, KrakenTrade, KrakenTrades,
     };
-    use crate::model::{Candle, DataKind, Interval, PublicTrade, SubKind};
+    use crate::model::{
+        subscription::{Interval, SubKind},
+        Candle, DataKind, PublicTrade,
+    };
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::{DateTime, Utc};
 
