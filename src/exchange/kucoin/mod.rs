@@ -2,9 +2,7 @@
 //! 
 //! There are 50 connections allowed per user ID. There is a limit of 300 topics per connection.
 
-use std::net::SocketAddr;
-
-use barter_integration::{Validator, error::SocketError, model::InstrumentKind, protocol::websocket::WsMessage};
+use barter_integration::{Validator, error::SocketError, model::{InstrumentKind, SubscriptionId}, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -61,5 +59,14 @@ impl Kucoin {
             })
             .to_string()
         )
+    }
+
+    /// Build a [`Kucoin`] compatible [`SubscriptionId`] using the topic.
+    /// Used to associate [`Kucoin`] data structures receive over the Websocket with
+    /// the original Barter [`Subscription`].
+    /// 
+    /// ex/ SubscriptionId("/market/match:BTC-USDT")
+    pub fn subscription_id(topic: &str) -> SubscriptionId {
+        SubscriptionId::from(topic)
     }
 }
