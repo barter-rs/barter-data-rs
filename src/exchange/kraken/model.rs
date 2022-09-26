@@ -1,7 +1,10 @@
 use super::Kraken;
 use crate::{
     exchange::{datetime_utc_from_epoch_duration, extract_next, se_element_to_vector},
-    model::{Candle, DataKind, Interval, PublicTrade, SubKind},
+    model::{
+        subscription::{Interval, SubKind},
+        Candle, DataKind, PublicTrade,
+    },
     ExchangeId, ExchangeTransformer, MarketEvent,
 };
 use barter_integration::{
@@ -649,8 +652,8 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC3: Kraken unsupported SubKind::OrderBookL2
-                input: SubKind::OrderBookL2,
+                // TC3: Kraken unsupported SubKind::OrderBookL2Delta
+                input: SubKind::OrderBookL2Delta,
                 expected: Err(SocketError::Unsupported {
                     entity: "kraken",
                     item: "order_books_l2".to_string(),
