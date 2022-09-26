@@ -1,81 +1,125 @@
-use barter_integration::{
-    model::{Exchange, Instrument, Side, SubscriptionId},
-    Validator,
-};
-use chrono::{TimeZone, Utc};
-use serde::{Deserialize, Serialize};
-
+use barter_integration::error;
 use crate::{
     model::{DataKind, MarketEvent},
     ExchangeId,
 };
+use barter_integration::{
+    model::{Exchange, Instrument, Side, SubscriptionId},
+    error::SocketError,
+    Validator,
+};
+use serde::{Deserialize, Serialize};
+use chrono::{TimeZone, Utc};
 
-use super::Bitfinex;
-
-
-// /// [`Bitfinex`] message received in response to WebSocket subscription request.
-// ///
-// /// ## Error types
-// /// 10300 : Subscription failed (generic)
-// /// 10301 : Already subscribed
-// /// 10302 : Unknown channel
-// #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
-// #[serde(untagged)]
-// pub enum BitfinexSubResponse {
-//     /// Response to successful subscription request to trade stream
-//     TradeSubscriptionMessage {
-//         event: String,
-//         channel: String,
-//         #[serde(rename = "chanId")]
-//         channel_id: u32,
-//         symbol: String,
-//         pair: String,
-
-//     },
-//     // TODO: Make sure they are all formatted like this
-//     /// Erroneous subscription request
-//     Error {
-//         event: String,
-//         msg: String,
-//         // TODO: Change this to map to specific error value
-//         code: u32,
-//         chan_id: Option<u32>,
-//         symbol: Option<String>,
-//         channel: Option<String>,
-//     },
-// }
-
-/// [`Bitfinex`] message received in response to WebSocket subscription request.
+/// [`Bitfinex`](super::Bitfinex) message variants received in response to WebSocket
+/// subscription requests.
 ///
-/// ## Error types
-/// 10300 : Subscription failed (generic)
-/// 10301 : Already subscribed
-/// 10302 : Unknown channel
-#[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
+/// ## Examples
+/// Trade Subscription Response
+/// ``` json
+/// {
+///   event: "subscribed",
+///   channel: "trades",
+///   chanId: CHANNEL_ID,
+///   symbol: "tBTCUSD"
+///   pair: "BTCUSD"
+/// }
+/// ```
+///
+/// Candle Subscription Response
+/// ``` json
+/// {
+///   event: "subscribed",
+///   channel: "candles",
+///   chanId: CHANNEL_ID,
+///   key: "trade:1m:tBTCUSD"
+/// }
+/// ```
+///
+/// Error Subscription Response
+/// ``` json
+/// {
+///    "event": "error",
+///    "msg": ERROR_MSG,
+///    "code": ERROR_CODE
+/// }
+/// ```
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[serde(tag = "event", rename_all = "lowercase")]
 pub enum BitfinexSubResponse {
-    /// Response to successful subscription request to trade stream
-    TradeSubscriptionMessage (TradingSubscriptionMessage),
-    // TODO: Make sure they are all formatted like this
-    ErrorMessage(ErrorMessage),
+    Subscribed(BitfinexSubResponseKind),
+    Error(BitfinexError),
 }
 
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TradingSubscriptionMessage {
-    pub event: String,
-    pub channel: String,
-    pub chan_id: u32,
-    pub symbol: String,
-    pub pair: String
+/// [`Bitfinex`](super::Bitfinex) subscription success response variants for each channel.
+///
+/// ## Examples
+/// Trade Subscription Response
+/// ``` json
+/// {
+///   event: "subscribed",
+///   channel: "trades",
+///   chanId: CHANNEL_ID,
+///   symbol: "tBTCUSD"
+///   pair: "BTCUSD"
+/// }
+/// ```
+///
+/// Candle Subscription Response
+/// ``` json
+/// {
+///   event: "subscribed",
+///   channel: "candles",
+///   chanId: CHANNEL_ID,
+///   key: "trade:1m:tBTCUSD"
+/// }
+/// ```
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[serde(tag = "channel", rename_all = "lowercase")]
+enum BitfinexSubResponseKind {
+    Trades {
+        #[serde(rename = "chanId")]
+        channel_id: u32,
+        #[serde(rename = "symbol")]
+        market: String,
+    },
+    Candles {
+        #[serde(rename = "chanId")]
+        channel_id: u32,
+        key: String,
+    }
 }
 
+/// [`Bitfinex`](super::Bitfinex) error message that is received if a [`BitfinexSubResponse`]
+/// indicates a WebSocket subscription failure.
+///
+/// ## Subscription Error Codes:
+/// 10300: Generic failure
+/// 10301: Already subscribed
+/// 10302: Unknown channel
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ErrorMessage {
-    event: String,
+pub struct BitfinexError {
     msg: String,
     code: u32,
+}
+
+impl Validator for BitfinexSubResponse {
+    fn validate(self) -> Result<Self, SocketError>
+    where
+        Self: Sized,
+    {
+        match &self {
+            BitfinexSubResponse::Subscribed { .. } => Ok(self),
+            BitfinexSubResponse::Error(error) => Err(SocketError::Subscribe(format!(
+                "received failure subscription response code: {} with message: {}",
+                error.code, error.msg,
+            ))),
+        }
+    }
 }
 
 impl Validator for BitfinexSubResponse {
@@ -93,6 +137,67 @@ impl Validator for BitfinexSubResponse {
         }
     }
 }
+
+/// [`Bitfinex`](super::Bitfinex) platform status message containing the server we are connecting
+/// to, the version of the API, and if it is in maintenance mode.
+///
+/// ## Example
+/// Platform Status Online
+/// ``` json
+/// {
+///   "event": "info",
+///   "version":  VERSION,
+///   "platform": {
+///     "status": 1
+///   }
+/// }
+/// ```
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general#info-messages>
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize)]
+pub struct BitfinexPlatformStatus {
+    version: u8,
+    #[serde(rename = "serverId")]
+    server_id: String,
+    #[serde(rename = "platform")]
+    status: Status,
+}
+
+/// [`Bitfinex`](super::Bitfinex) platform [`Status`] indicating if the API is in maintenance mode.
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general#info-messages>
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum Status {
+    Maintenance,
+    Operative,
+}
+
+impl Validator for BitfinexPlatformStatus {
+    fn validate(self) -> Result<Self, SocketError>
+    where
+        Self: Sized,
+    {
+        match self.status {
+            Status::Operative => Ok(self),
+            Status::Maintenance => Err(SocketError::Subscribe(format!(
+                "exchange version: {} with server_id: {} is in maintenance mode",
+                self.version, self.server_id,
+            ))),
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 /// [`Bitfinex`](super::Bitfinex) native non-aggregated trade message.
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
@@ -234,26 +339,4 @@ impl From<IntermediaryBitfinexMessage> for BitfinexMessage {
             IntermediaryBitfinexMessage::InfoEvent(info) => BitfinexMessage::InfoEvent { info },
         }
     }
-}
-
-/// The platform status (0 for maintenance, 1 for operative).
-#[derive(Debug, Deserialize, Serialize, Copy, Clone)]
-pub struct PlatformStatus {
-    /// The status flag
-    status: i8,
-}
-
-// TODO: Add enums for all info messages
-/// Sent by the server to notify about the state of the connection.
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(untagged)]
-pub enum InfoMessage {
-    /// Sent by server upon connection.
-    SocketAcceptance {
-        version: u8,
-        server_id: String,
-        #[serde(rename = "platform")]
-        platform_status: PlatformStatus,
-    },
 }
