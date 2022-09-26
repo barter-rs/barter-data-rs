@@ -1,5 +1,8 @@
 use crate::{
-    exchange::{binance::futures::BinanceFuturesUsd, coinbase::Coinbase, bitfinex::Bitfinex, ftx::Ftx, kraken::Kraken},
+    exchange::{
+        binance::futures::BinanceFuturesUsd, bitfinex::Bitfinex, coinbase::Coinbase, ftx::Ftx,
+        kraken::Kraken,
+    },
     model::subscription::{SubKind, Subscription},
     ExchangeId, ExchangeWsStream, MarketEvent, MarketStream,
 };
