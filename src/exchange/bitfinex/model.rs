@@ -1,16 +1,19 @@
-use barter_integration::error;
 use crate::{
-    model::{DataKind, MarketEvent},
+    model::{DataKind, MarketEvent, PublicTrade},
+    exchange::{extract_next, datetime_utc_from_epoch_duration},
     ExchangeId,
 };
 use barter_integration::{
-    model::{Exchange, Instrument, Side, SubscriptionId},
+    model::{Exchange, Instrument, Side},
     error::SocketError,
     Validator,
 };
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, TimeZone, Utc};
-use crate::model::PublicTrade;
+use std::time::Duration;
+use serde::{
+    de::Error,
+    Deserialize, Serialize
+};
+use chrono::{DateTime, Utc};
 
 /// [`Bitfinex`](super::Bitfinex) message variants received in response to WebSocket
 /// subscription requests.
@@ -47,6 +50,7 @@ use crate::model::PublicTrade;
 /// ```
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "event", rename_all = "lowercase")]
 pub enum BitfinexSubResponse {
     Subscribed(BitfinexSubResponseKind),
@@ -78,8 +82,9 @@ pub enum BitfinexSubResponse {
 /// ```
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "channel", rename_all = "lowercase")]
-enum BitfinexSubResponseKind {
+pub enum BitfinexSubResponseKind {
     Trades {
         #[serde(rename = "chanId")]
         channel_id: u32,
@@ -102,7 +107,7 @@ enum BitfinexSubResponseKind {
 /// 10302: Unknown channel
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
-#[derive(Debug, Deserialize, Clone, Eq, PartialEq, Serialize)]
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexError {
     msg: String,
     code: u32,
@@ -119,22 +124,6 @@ impl Validator for BitfinexSubResponse {
                 "received failure subscription response code: {} with message: {}",
                 error.code, error.msg,
             ))),
-        }
-    }
-}
-
-impl Validator for BitfinexSubResponse {
-    fn validate(self) -> Result<Self, barter_integration::error::SocketError>
-    where
-        Self: Sized,
-    {
-        match &self {
-            BitfinexSubResponse::TradeSubscriptionMessage(_) => Ok(self),
-            BitfinexSubResponse::ErrorMessage (_)  => {
-                Err(barter_integration::error::SocketError::Subscribe(format!(
-                    "received failed subscription response: ",
-                )))
-            }
         }
     }
 }
@@ -194,7 +183,7 @@ impl Validator for BitfinexPlatformStatus {
 /// [`SubscriptionId`](crate::SubscriptionId).
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexMessage {
     channel_id: u32,
     payload: BitfinexPayload,
@@ -204,7 +193,7 @@ pub struct BitfinexMessage {
 /// active [`Subscription`](crate::Subscription).
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
-#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub enum BitfinexPayload {
     Heartbeat,
     Trade(BitfinexTrade),
@@ -223,7 +212,7 @@ pub enum BitfinexPayload {
 /// - Therefore, tag="tu" trades are filtered out and considered only as additional Heartbeats.
 ///
 /// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexTrade {
     /// Exchange trade identifier.
     pub id: u64,
@@ -251,5 +240,152 @@ impl From<(ExchangeId, Instrument, BitfinexTrade)> for MarketEvent {
                 side: trade.side,
             }),
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for Status {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Outer {
+            #[serde(deserialize_with = "de_status_from_u8")]
+            status: Status,
+        }
+
+        // Deserialise Outer struct
+        let Outer { status } = Outer::deserialize(deserializer)?;
+
+        Ok(status)
+    }
+}
+
+impl<'de> Deserialize<'de> for BitfinexMessage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        struct SeqVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for SeqVisitor {
+            type Value = BitfinexMessage;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("BitfinexMessage struct from the Bitfinex WebSocket API")
+            }
+
+            fn visit_seq<SeqAccessor>(
+                self,
+                mut seq: SeqAccessor,
+            ) -> Result<Self::Value, SeqAccessor::Error>
+            where
+                SeqAccessor: serde::de::SeqAccess<'de>,
+            {
+                // Trade: [CHANNEL_ID, <"te", "tu">, [ID, TIME, AMOUNT, PRICE]]
+                // Heartbeat: [ CHANNEL_ID, "hb" ]
+
+                // Extract CHANNEL_ID used to identify SubscriptionId: 1st element of the sequence
+                let channel_id: u32 = extract_next(&mut seq, "channel_id")?;
+
+                // Extract message tag used to identify type of payload: 2nd element of the sequence
+                let message_tag: String = extract_next(&mut seq, "message_tag")?;
+
+                // Use message tag to extract the payload: 3rd element of sequence
+                let payload = match message_tag.as_str() {
+                    // Filter "tu" Trades since they are identical but slower
+                    // '--> use as additional Heartbeat
+                    "hb" | "tu" => BitfinexPayload::Heartbeat,
+                    "te" => BitfinexPayload::Trade(extract_next(&mut seq, "BitfinexTrade")?),
+                    other => {
+                        return Err(SeqAccessor::Error::unknown_variant(
+                            other,
+                            &["heartbeat (hb)", "trade (te | tu)"],
+                        ))
+                    }
+                };
+
+                // Ignore any additional elements or SerDe will fail
+                //  '--> Bitfinex may add fields without warning
+                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+
+                Ok(BitfinexMessage {
+                    channel_id,
+                    payload,
+                })
+            }
+        }
+
+        // Use Visitor implementation to deserialise the Bitfinex WebSocket message
+        deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
+impl<'de> Deserialize<'de> for BitfinexTrade {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        struct SeqVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for SeqVisitor {
+            type Value = BitfinexTrade;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("BitfinexTrade struct from the Bitfinex WebSocket API")
+            }
+
+            fn visit_seq<SeqAccessor>(
+                self,
+                mut seq: SeqAccessor,
+            ) -> Result<Self::Value, SeqAccessor::Error>
+            where
+                SeqAccessor: serde::de::SeqAccess<'de>,
+            {
+                // Trade: [ID, TIME, AMOUNT,PRICE]
+                let id = extract_next(&mut seq, "id")?;
+                let time_millis = extract_next(&mut seq, "time")?;
+                let amount: f64 = extract_next(&mut seq, "amount")?;
+                let price = extract_next(&mut seq, "price")?;
+                let side = match amount.is_sign_positive() {
+                    true => Side::Buy,
+                    false => Side::Sell,
+                };
+
+                // Ignore any additional elements or SerDe will fail
+                //  '--> Bitfinex may add fields without warning
+                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+
+                Ok(BitfinexTrade {
+                    id,
+                    time: datetime_utc_from_epoch_duration(Duration::from_millis(time_millis)),
+                    price,
+                    quantity: amount.abs(),
+                    side,
+                })
+            }
+        }
+
+        // Use Visitor implementation to deserialise the Bitfinex WebSocket message
+        deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
+/// Deserialize a `u8` as a `Bitfinex` platform [`Status`].
+///
+/// 0u8 => [`Status::Maintenance`](Status),
+/// 1u8 => [`Status::Operative`](Status),
+/// other => [`de::Error`]
+fn de_status_from_u8<'de, D>(deserializer: D) -> Result<Status, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    match Deserialize::deserialize(deserializer)? {
+        0 => Ok(Status::Maintenance),
+        1 => Ok(Status::Operative),
+        other => Err(D::Error::invalid_value(
+            serde::de::Unexpected::Unsigned(other as u64),
+            &"0 or 1",
+        )),
     }
 }

@@ -14,14 +14,16 @@ use crate::{
 use barter_integration::{
     error::SocketError,
     model::{InstrumentKind, SubscriptionId},
-    protocol::websocket::WsMessage,
+    protocol::websocket::{WebSocket, WsMessage},
     Transformer, Validator,
 };
-use std::collections::HashMap;
-use std::time::Duration;
-use barter_integration::protocol::websocket::WebSocket;
+use std::{
+    collections::HashMap
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use async_trait::async_trait;
+use tokio::sync::mpsc;
 
 /// [`Bitfinex`] specific data structures.
 pub mod model;
@@ -33,6 +35,7 @@ pub struct Bitfinex {
     pub ids: SubscriptionIds,
 }
 
+#[async_trait]
 impl Subscriber for Bitfinex {
     type SubResponse = BitfinexSubResponse;
 
@@ -145,10 +148,7 @@ impl Bitfinex {
 impl ExchangeTransformer for Bitfinex {
     const EXCHANGE: ExchangeId = ExchangeId::Bitfinex;
 
-    fn new(
-        _: tokio::sync::mpsc::UnboundedSender<WsMessage>,
-        ids: SubscriptionIds,
-    ) -> Self {
+    fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
         Self { ids }
     }
 }
@@ -158,61 +158,65 @@ impl Transformer<MarketEvent> for Bitfinex {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        println!("{:?}", input);
-        //println!("{:?}", self.ids);
-        match input {
-            BitfinexMessage::HeartbeatEvent { .. } => {
-                vec![]
-            }
-            // TODO: Should we ignore trade snapshot?
-            BitfinexMessage::TradeSnapshotEvent { .. } => {
-                vec![]
-            }
-            BitfinexMessage::TradeUpdateEvent {
-                subscription_id,
-                update_type,
-                trade,
-            } => {
-                // TODO: Maybe not good to allocate a string each time?
-                if update_type == String::from("te") {
-                    let instrument = match self.ids.find_instrument(&subscription_id) {
-                        Ok(instrument) => instrument,
-                        Err(err) => return vec![Err(err)],
-                    };
-
-                    vec![Ok(MarketEvent::from((
-                        Bitfinex::EXCHANGE,
-                        instrument.clone(),
-                        trade,
-                    )))]
-                } else {
-                    vec![]
-                }
-            },
-            // BitfinexMessage::SubscriptionEvent { subscription_id, sub_response } => {
-            //     println!("IN TRADE SUBSCRIPTION MESSAGE");
-            //     match sub_response {
-            //         // Replace SubscriptionId to that of the channel
-            //         BitfinexSubResponse::TradeSubscriptionMessage { 
-            //             event, 
-            //             channel, 
-            //             channel_id, 
-            //             symbol, 
-            //             pair } => {
-            //                 // Remove the generic subscription id and replace it
-            //                 println!("IN TRADE SUBSCRIPTION MESSAGE");
-            //                 let sub_id = Bitfinex::subscription_id(&channel, &pair);
-            //                 println!("sub id: {:?}", sub_id);
-            //                 if let Some(subscription) = self.ids.remove(&sub_id) {
-            //                     self.ids.insert(SubscriptionId(channel_id.to_string()), subscription);
-            //                 }
-            //                 vec![]
-            //             },
-            //         // TODO: Deal with this appropriately
-            //         BitfinexSubResponse::Error { .. } => todo!(),
-            //     }
-            // }
-            _ => { vec![]},
-        }
+        todo!()
     }
+
+    // fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
+    //     println!("{:?}", input);
+    //     //println!("{:?}", self.ids);
+    //     match input {
+    //         BitfinexMessage::HeartbeatEvent { .. } => {
+    //             vec![]
+    //         }
+    //         // TODO: Should we ignore trade snapshot?
+    //         BitfinexMessage::TradeSnapshotEvent { .. } => {
+    //             vec![]
+    //         }
+    //         BitfinexMessage::TradeUpdateEvent {
+    //             subscription_id,
+    //             update_type,
+    //             trade,
+    //         } => {
+    //             // TODO: Maybe not good to allocate a string each time?
+    //             if update_type == String::from("te") {
+    //                 let instrument = match self.ids.find_instrument(&subscription_id) {
+    //                     Ok(instrument) => instrument,
+    //                     Err(err) => return vec![Err(err)],
+    //                 };
+    //
+    //                 vec![Ok(MarketEvent::from((
+    //                     Bitfinex::EXCHANGE,
+    //                     instrument.clone(),
+    //                     trade,
+    //                 )))]
+    //             } else {
+    //                 vec![]
+    //             }
+    //         },
+    //         // BitfinexMessage::SubscriptionEvent { subscription_id, sub_response } => {
+    //         //     println!("IN TRADE SUBSCRIPTION MESSAGE");
+    //         //     match sub_response {
+    //         //         // Replace SubscriptionId to that of the channel
+    //         //         BitfinexSubResponse::TradeSubscriptionMessage {
+    //         //             event,
+    //         //             channel,
+    //         //             channel_id,
+    //         //             symbol,
+    //         //             pair } => {
+    //         //                 // Remove the generic subscription id and replace it
+    //         //                 println!("IN TRADE SUBSCRIPTION MESSAGE");
+    //         //                 let sub_id = Bitfinex::subscription_id(&channel, &pair);
+    //         //                 println!("sub id: {:?}", sub_id);
+    //         //                 if let Some(subscription) = self.ids.remove(&sub_id) {
+    //         //                     self.ids.insert(SubscriptionId(channel_id.to_string()), subscription);
+    //         //                 }
+    //         //                 vec![]
+    //         //             },
+    //         //         // TODO: Deal with this appropriately
+    //         //         BitfinexSubResponse::Error { .. } => todo!(),
+    //         //     }
+    //         // }
+    //         _ => { vec![]},
+    //     }
+    // }
 }
