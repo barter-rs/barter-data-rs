@@ -15,7 +15,7 @@ pub mod kraken;
 /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
 pub mod coinbase;
 
-/// Bitfinex 'ExchangeTransformer' & 'Subscriber' implementations.
+/// Bitfinex `ExchangeTransformer` & `Subscriber` implementations.
 pub mod bitfinex;
 
 /// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.

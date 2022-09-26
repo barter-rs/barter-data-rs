@@ -1,25 +1,27 @@
+
+//! Todo:
 //! Websocket implementation for Bitfinex v2 websocket API.
 //!
 //! The user is allowed up to 20 connections per minute on the public API. Each connection
 //! can be used to connect up to 25 different channels.
 
-use std::collections::HashMap;
 
+use self::model::{BitfinexMessage, BitfinexSubResponse};
+use crate::{
+    model::{MarketEvent, Subscription, SubKind, SubscriptionIds, SubscriptionMeta},
+    ExchangeId, ExchangeTransformer, Subscriber,
+};
 use barter_integration::{
     error::SocketError,
     model::{InstrumentKind, SubscriptionId},
     protocol::websocket::WsMessage,
     Transformer, Validator,
 };
+use std::collections::HashMap;
+use std::time::Duration;
+use barter_integration::protocol::websocket::WebSocket;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-
-use crate::{
-    model::{MarketEvent, Subscription, SubscriptionIds, SubscriptionMeta},
-    ExchangeId, ExchangeTransformer, Subscriber,
-};
-
-use self::model::{BitfinexMessage, BitfinexSubResponse};
 
 /// [`Bitfinex`] specific data structures.
 pub mod model;
@@ -29,47 +31,6 @@ pub mod model;
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Bitfinex {
     pub ids: SubscriptionIds,
-}
-
-impl Bitfinex {
-    pub const CHANNEL_TRADES: &'static str = "trades";
-
-    fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
-        SubscriptionId::from(format!("{channel}|{market}"))
-    }
-
-    pub fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
-        let sub = sub.validate()?;
-
-        let channel = match &sub.kind {
-            crate::model::SubKind::Trade => Self::CHANNEL_TRADES,
-            crate::model::SubKind::Candle(_) => todo!(),
-            crate::model::SubKind::OrderBookL2 => todo!(),
-        };
-
-        // Determine the symbol name
-        let market = match &sub.instrument.kind {
-            InstrumentKind::Spot => format!(
-                "t{}{}",
-                sub.instrument.base.to_string().to_uppercase(),
-                sub.instrument.quote.to_string().to_uppercase()
-            ),
-            InstrumentKind::FuturePerpetual => todo!(),
-        };
-
-        Ok((channel, market))
-    }
-
-    fn build_subscription_message(channel: &str, market: &str) -> WsMessage {
-        WsMessage::Text(
-            json!({
-                "event": "subscribe",
-                "channel": channel,
-                "symbol": market,
-            })
-            .to_string(),
-        )
-    }
 }
 
 impl Subscriber for Bitfinex {
@@ -94,6 +55,7 @@ impl Subscriber for Bitfinex {
 
                 // Use "channel|market" as the Subscription key in the SubscriptionIds
                 // eg/ SubscriptionId("trades|BTC/USDT")
+                // '--> later switched to SubscriptionId(CHANNEL_ID) during subscription validation
                 ids.insert(
                     Bitfinex::subscription_id(channel, &market),
                     subscription.clone(),
@@ -109,6 +71,74 @@ impl Subscriber for Bitfinex {
             expected_responses: subscriptions.len(),
             subscriptions,
         })
+    }
+
+    async fn validate(
+        mut ids: SubscriptionIds,
+        websocket: &mut WebSocket,
+        expected_responses: usize
+    ) -> Result<SubscriptionIds, SocketError> {
+        todo!()
+    }
+}
+
+impl Bitfinex {
+    /// [`Bitfinex`] trades channel name.
+    ///
+    /// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+    const CHANNEL_TRADES: &'static str = "trades";
+
+    /// Todo: Mention re channel_id change!
+    /// Build a [`Bitfinex`] compatible [`SubscriptionId`] using the channel & market
+    /// provided. This is used to associate [`Bitfinex`] data structures received over
+    /// the WebSocket with it's original Barter [`Subscription`].
+    ///
+    /// eg/ SubscriptionId("trades|tBTCUSD")
+    fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{channel}|{market}"))
+    }
+
+    /// Determine the [`Bitfinex`] channel metadata associated with an input Barter
+    /// [`Subscription`]. This includes the `Bitfinex` &str channel, and a `String` market
+    /// identifier. Both are used to build a `Bitfinex` subscription payload.
+    ///
+    /// Example Ok Return: Ok("trades", "tBTCUSD")
+    /// where channel == "trades" & market == "tBTCUSD".
+    fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
+        let sub = sub.validate()?;
+
+        // Determine Bitfinex channel
+        let channel = match &sub.kind {
+            SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::Candle(_) => todo!(),
+            SubKind::OrderBookL2 => todo!(),
+        };
+
+        // Determine Bitfinex market using the Subscription Instrument
+        let market = match &sub.instrument.kind {
+            InstrumentKind::Spot => format!(
+                "t{}{}",
+                sub.instrument.base.to_string().to_uppercase(),
+                sub.instrument.quote.to_string().to_uppercase()
+            ),
+            InstrumentKind::FuturePerpetual => todo!(),
+        };
+
+        Ok((channel, market))
+    }
+
+    /// Build a [`Bitfinex`] compatible subscription message using the channel & market provided.
+    ///
+    /// Example arguments: channel = "trades", market = "tBTCUSD"
+    fn build_subscription_message(channel: &str, market: &str) -> WsMessage {
+        WsMessage::Text(
+            json!({
+                "event": "subscribe",
+                "channel": channel,
+                "symbol": market,
+            })
+            .to_string(),
+        )
     }
 }
 
