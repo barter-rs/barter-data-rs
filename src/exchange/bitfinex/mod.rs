@@ -1,32 +1,46 @@
-
-//! Todo:
+//!
 //! Websocket implementation for Bitfinex v2 websocket API.
 //!
-//! The user is allowed up to 20 connections per minute on the public API. Each connection
-//! can be used to connect up to 25 different channels.
-
+//! ## Notes:
+//! ### SubscriptionId
+//! - Successful Bitfinex subscription responses contain a numeric `CHANNEL_ID` that must be used to
+//!   identify future messages relating to that subscription (not persistent across connections).
+//! - To identify the initial subscription response containing the `CHANNEL_ID`, the "channel" &
+//!   "market" identifiers can be used for the `SubscriptionId(channel|market)`
+//!   (eg/ SubscriptionId("trades|tBTCUSD")).
+//! - Once the subscription has been validated and the `CHANNEL_ID` determined, each `SubscriptionId`
+//!   in the `SubscriptionIds` `HashMap` is mutated to become `SubscriptionId(CHANNEL_ID)`.
+//!   eg/ SubscriptionId("trades|tBTCUSD") -> SubscriptionId(69)
+//!
+//! ### Connection Limits
+//! - The user is allowed up to 20 connections per minute on the public API.
+//! - Each connection can be used to connect up to 25 different channels.
+//!
+//! ### Trade Variants
+//! - `Bitfinex` trades subscriptions results in receiving tag="te" & tag="tu" trades.
+//! - Both appear to be identical payloads, but "te" arriving marginally faster.
+//! - Therefore, tag="tu" trades are filtered out and considered only as additional Heartbeats.
 
 use self::model::{
-    BitfinexPlatformStatus, BitfinexMessage, BitfinexPayload, BitfinexSubResponse, BitfinexSubResponseKind
+    BitfinexMessage, BitfinexPayload, BitfinexPlatformStatus, BitfinexSubResponse,
+    BitfinexSubResponseKind,
 };
 use crate::{
-    model::{MarketEvent, Subscription, SubKind, SubscriptionIds, SubscriptionMeta},
+    model::{MarketEvent, SubKind, Subscription, SubscriptionIds, SubscriptionMeta},
     ExchangeId, ExchangeTransformer, Subscriber,
 };
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::{InstrumentKind, SubscriptionId},
     protocol::websocket::{WebSocket, WsMessage},
     Transformer, Validator,
 };
-use std::{
-    collections::HashMap
-};
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use async_trait::async_trait;
+use std::collections::HashMap;
 use tokio::sync::mpsc;
-use futures::StreamExt;
 use tracing::debug;
 
 /// [`Bitfinex`] specific data structures.
@@ -83,9 +97,8 @@ impl Subscriber for Bitfinex {
     async fn validate(
         mut ids: SubscriptionIds,
         websocket: &mut WebSocket,
-        expected_responses: usize
+        expected_responses: usize,
     ) -> Result<SubscriptionIds, SocketError> {
-
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
@@ -183,10 +196,14 @@ impl Bitfinex {
     /// See docs: <https://docs.bitfinex.com/reference/ws-public-candles>
     const CHANNEL_CANDLES: &'static str = "candles";
 
-    /// Todo: Mention re channel_id change!
-    /// Build a [`Bitfinex`] compatible [`SubscriptionId`] using the channel & market
-    /// provided. This is used to associate [`Bitfinex`] data structures received over
-    /// the WebSocket with it's original Barter [`Subscription`].
+    /// Build the initial [`Bitfinex`] compatible [`SubscriptionId`] using the channel & market
+    /// provided. Note this is only used to confirm subscription responses. The [`SubscriptionId`]
+    /// is then replaced with the numeric `CHANNEL_ID` [`Bitfinex`] uses as message identifiers
+    /// (not persistent across connection).
+    ///
+    /// This `SubscriptionId(CHANNEL_ID)` is then used to
+    /// associated [`Bitfinex`] data structures received over the Websocket with it's original
+    /// Barter [`Subscription`].
     ///
     /// eg/ SubscriptionId("trades|tBTCUSD")
     fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
@@ -255,7 +272,10 @@ impl Transformer<MarketEvent> for Bitfinex {
     type OutputIter = Vec<Result<MarketEvent, SocketError>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        let BitfinexMessage { channel_id, payload} = input;
+        let BitfinexMessage {
+            channel_id,
+            payload,
+        } = input;
 
         match payload {
             BitfinexPayload::Heartbeat => {
@@ -263,10 +283,15 @@ impl Transformer<MarketEvent> for Bitfinex {
                 vec![]
             }
             BitfinexPayload::Trade(trade) => {
-                match self.ids.find_instrument(&SubscriptionId(channel_id.to_string())) {
-                    Ok(instrument) => vec![Ok(MarketEvent::from(
-                        (Bitfinex::EXCHANGE, instrument, trade)
-                    ))],
+                match self
+                    .ids
+                    .find_instrument(&SubscriptionId(channel_id.to_string()))
+                {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Bitfinex::EXCHANGE,
+                        instrument,
+                        trade,
+                    )))],
                     Err(error) => vec![Err(error)],
                 }
             }

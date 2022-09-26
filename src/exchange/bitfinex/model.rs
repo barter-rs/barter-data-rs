@@ -1,19 +1,16 @@
 use crate::{
+    exchange::{datetime_utc_from_epoch_duration, extract_next},
     model::{DataKind, MarketEvent, PublicTrade},
-    exchange::{extract_next, datetime_utc_from_epoch_duration},
     ExchangeId,
 };
 use barter_integration::{
-    model::{Exchange, Instrument, Side},
     error::SocketError,
+    model::{Exchange, Instrument, Side},
     Validator,
 };
-use std::time::Duration;
-use serde::{
-    de::Error,
-    Deserialize, Serialize
-};
 use chrono::{DateTime, Utc};
+use serde::{de::Error, Deserialize, Serialize};
+use std::time::Duration;
 
 /// [`Bitfinex`](super::Bitfinex) message variants received in response to WebSocket
 /// subscription requests.
@@ -95,7 +92,7 @@ pub enum BitfinexSubResponseKind {
         #[serde(rename = "chanId")]
         channel_id: u32,
         key: String,
-    }
+    },
 }
 
 /// [`Bitfinex`](super::Bitfinex) error message that is received if a [`BitfinexSubResponse`]
@@ -180,7 +177,7 @@ impl Validator for BitfinexPlatformStatus {
 /// [`Bitfinex`](super::Bitfinex) message received over [`WebSocket`](crate::WebSocket) relating
 /// to an active [`Subscription`](crate::Subscription). The message is associated with the original
 /// [`Subscription`](crate::Subscription) using the `channel_id` field as the
-/// [`SubscriptionId`](crate::SubscriptionId).
+/// [`SubscriptionId`](barter_integration::model::SubscriptionId).
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
@@ -198,7 +195,6 @@ pub enum BitfinexPayload {
     Heartbeat,
     Trade(BitfinexTrade),
 }
-
 
 /// [`Bitfinex`](super::Bitfinex) real-time trade message.
 ///
