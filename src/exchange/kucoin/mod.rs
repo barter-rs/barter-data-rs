@@ -5,8 +5,9 @@
 use barter_integration::{Validator, error::SocketError, model::{InstrumentKind, SubscriptionId}, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tokio::sync::mpsc;
 
-use crate::{model::{SubscriptionIds, Subscription, SubKind}, exchange::get_time};
+use crate::{model::{SubscriptionIds, Subscription, SubKind}, exchange::get_time, ExchangeTransformer, ExchangeId};
 
 /// [`Kucoin`] specific data structures.
 pub mod model;
@@ -69,4 +70,14 @@ impl Kucoin {
     pub fn subscription_id(topic: &str) -> SubscriptionId {
         SubscriptionId::from(topic)
     }
+}
+
+impl ExchangeTransformer for Kucoin {
+    const EXCHANGE: ExchangeId = ExchangeId::Kucoin;
+
+    fn new(ws_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self {
+        
+        Self { ids }
+    }
+
 }
