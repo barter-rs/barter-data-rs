@@ -9,7 +9,8 @@ use barter_integration::{
     Validator,
 };
 use serde::{Deserialize, Serialize};
-use chrono::{TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
+use crate::model::PublicTrade;
 
 /// [`Bitfinex`](super::Bitfinex) message variants received in response to WebSocket
 /// subscription requests.
@@ -187,156 +188,68 @@ impl Validator for BitfinexPlatformStatus {
     }
 }
 
+/// [`Bitfinex`](super::Bitfinex) message received over [`WebSocket`](crate::WebSocket) relating
+/// to an active [`Subscription`](crate::Subscription). The message is associated with the original
+/// [`Subscription`](crate::Subscription) using the `channel_id` field as the
+/// [`SubscriptionId`](crate::SubscriptionId).
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct BitfinexMessage {
+    channel_id: u32,
+    payload: BitfinexPayload,
+}
+
+/// [`Bitfinex`](super::Bitfinex) market data variants associated with an
+/// active [`Subscription`](crate::Subscription).
+///
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+#[derive(Clone, Copy, PartialEq, Debug, Deserialize)]
+pub enum BitfinexPayload {
+    Heartbeat,
+    Trade(BitfinexTrade),
+}
 
 
-
-
-
-
-
-
-
-
-
-
-/// [`Bitfinex`](super::Bitfinex) native non-aggregated trade message.
+/// [`Bitfinex`](super::Bitfinex) real-time trade message.
+///
+/// Format: \[ID, TIME, AMOUNT, PRICE\], where +/- of amount indicates Side
+/// eg/ \[401597395,1574694478808,0.005,7245.3\]
+///
+/// ## Notes:
+/// - [`Bitfinex`](super::Bitfinex) trades subscriptions results in receiving tag="te" & tag="tu"
+/// trades, both of which are identical.
+/// - "te" trades arrive marginally faster.
+/// - Therefore, tag="tu" trades are filtered out and considered only as additional Heartbeats.
+///
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct BitfinexTrade {
-    /// Id given to the trade by the exchange.
-    pub trade_id: u64,
-    /// Millisecond timestamp recorded on the exchange.
-    pub timestamp: u64,
-    /// The amount of the trade, if negative a sell.
-    pub amount: f64,
-    /// The execution price of this trade.
+    /// Exchange trade identifier.
+    pub id: u64,
+    /// Exchange timestamp for trade.
+    pub time: DateTime<Utc>,
+    /// Side of the trade: buy or sell.
+    pub side: Side,
+    /// Trade execution price.
     pub price: f64,
+    /// Trade quantity.
+    pub quantity: f64,
 }
 
 impl From<(ExchangeId, Instrument, BitfinexTrade)> for MarketEvent {
-    fn from((exchange, instrument, trade): (ExchangeId, Instrument, BitfinexTrade)) -> Self {
-        // TODO: Find a better way to convert ms timestamp to chrono::Utc
-        let ts_secs = trade.timestamp / 1000;
-        let ts_ns = (trade.timestamp % 1000) * 1_000_000;
-        let exchange_time = Utc.timestamp(
-            ts_secs.try_into().unwrap_or_default(),
-            ts_ns.try_into().unwrap_or_default(),
-        );
-        let side = if trade.amount < 0.0 {
-            Side::Sell
-        } else {
-            Side::Buy
-        };
+    fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BitfinexTrade)) -> Self {
         Self {
-            exchange_time,
+            exchange_time: trade.time,
             received_time: Utc::now(),
-            exchange: Exchange::from(exchange.as_str()),
+            exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::Trade(crate::model::PublicTrade {
-                id: trade.trade_id.to_string(),
+            kind: DataKind::Trade(PublicTrade {
+                id: trade.id.to_string(),
                 price: trade.price,
-                quantity: trade.amount,
-                side,
+                quantity: trade.quantity,
+                side: trade.side,
             }),
-        }
-    }
-}
-
-// TODO: Add error message
-/// [`Bitfinex`](super::Bitfinex) message variants that can be received over [`WebSocket`](crate::WebSocket).
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(from = "IntermediaryBitfinexMessage")]
-pub enum BitfinexMessage {
-    /// Heartbeat sent every 15 seconds
-    HeartbeatEvent {
-        subscription_id: SubscriptionId,
-        msg: String,
-    },
-    /// Snapshot of recent trades initially sent over the socket.
-    TradeSnapshotEvent {
-        subscription_id: SubscriptionId,
-        trades: Vec<BitfinexTrade>,
-    },
-    /// Update
-    TradeUpdateEvent {
-        subscription_id: SubscriptionId,
-        update_type: String,
-        trade: BitfinexTrade,
-    },
-    /// Sent in response to a socket connection, containing channel information
-    SubscriptionEvent {
-        // This will be in the form of trades|tBTCUSD as it is not formatted yet
-        subscription_id: SubscriptionId,
-        sub_response: TradingSubscriptionMessage,
-    },
-    InfoEvent {
-        info: InfoMessage,
-    }
-}
-
-// TODO: This transformation may be redundant
-/// [`Bitfinex`](super::Bitfinex) raw message variants received over the connection to Bitfinex.
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-enum IntermediaryBitfinexMessage {
-    //SubscriptionEvent(TradingSubscriptionMessage),
-    SubscriptionEvent {
-        event: String,
-        channel: String,
-        #[serde(rename = "chanId")]
-        chan_id: u32,
-        symbol: String,
-        pair: String
-    },
-    HeartbeatEvent(i32, String),
-    TradesSnapshotEvent(i32, Vec<BitfinexTrade>),
-    TradesUpdateEvent(i32, String, BitfinexTrade),
-    InfoEvent(InfoMessage),
-}
-
-impl From<IntermediaryBitfinexMessage> for BitfinexMessage {
-    fn from(inter_ev: IntermediaryBitfinexMessage) -> Self {
-        println!("Intermed: {:?}", inter_ev);
-        match inter_ev {
-            IntermediaryBitfinexMessage::HeartbeatEvent(channel_num, msg) => {
-                let subscription_id = SubscriptionId::from(channel_num.to_string());
-                BitfinexMessage::HeartbeatEvent {
-                    subscription_id,
-                    msg,
-                }
-            }
-            IntermediaryBitfinexMessage::TradesSnapshotEvent(channel_num, trades) => {
-                let subscription_id = SubscriptionId::from(channel_num.to_string());
-                BitfinexMessage::TradeSnapshotEvent {
-                    subscription_id,
-                    trades,
-                }
-            }
-            IntermediaryBitfinexMessage::TradesUpdateEvent(channel_num, update_type, trade) => {
-                let subscription_id = SubscriptionId::from(channel_num.to_string());
-                BitfinexMessage::TradeUpdateEvent {
-                    subscription_id,
-                    update_type,
-                    trade,
-                }
-            },
-            IntermediaryBitfinexMessage::SubscriptionEvent { event, channel, chan_id, symbol, pair } => {
-                //match &sub {
-                    // BitfinexSubResponse::TradeSubscriptionMessage(trade_msg) => {
-                        let subscription_id = Bitfinex::subscription_id(&channel.clone(), &pair.clone());
-                        println!("SUBSCRIPTION ID: {}", subscription_id);
-                        BitfinexMessage::SubscriptionEvent { 
-                            subscription_id, 
-                            sub_response: TradingSubscriptionMessage { event, channel, chan_id, symbol, pair }
-                        }
-                    // },
-                    // BitfinexSubResponse::ErrorMessage (err) => {
-                    //     // TODO: This is definitely wrong
-                    //     let subscription_id = SubscriptionId::from("fwef");
-                    //     BitfinexMessage::HeartbeatEvent { subscription_id, msg: "grs".to_string() }
-                    // },
-                //}
-            },  
-            IntermediaryBitfinexMessage::InfoEvent(info) => BitfinexMessage::InfoEvent { info },
         }
     }
 }
