@@ -466,7 +466,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC5: Invalid Subscription w/ Ftx Spot OrderBookL2Delta
+                // TC7: Invalid Subscription w/ Ftx Spot OrderBookL2Delta
                 input: Subscription {
                     exchange: ExchangeId::Ftx,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),

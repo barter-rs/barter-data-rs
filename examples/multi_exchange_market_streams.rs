@@ -9,7 +9,7 @@ use barter_data::{
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 
-// StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,
+// StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Bitfinex, Kraken,
 // BinanceFuturesUsd & Coinbase
 #[tokio::main]
 async fn main() {
@@ -19,18 +19,8 @@ async fn main() {
         // .subscribe_exchange(
         //     ExchangeId::Ftx,
         //     [
-        //         (
-        //             "btc",
-        //             "usdt",
-        //             InstrumentKind::FuturePerpetual,
-        //             SubKind::Trade,
-        //         ),
-        //         (
-        //             "eth",
-        //             "usdt",
-        //             InstrumentKind::FuturePerpetual,
-        //             SubKind::Trade,
-        //         ),
+        //         ("btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+        //         ("eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
         //         ("btc", "usdt", InstrumentKind::Spot, SubKind::Trade),
         //         ("eth", "usdt", InstrumentKind::Spot, SubKind::Trade),
         //     ],
@@ -56,3 +46,4 @@ async fn main() {
         println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
     }
 }
+
