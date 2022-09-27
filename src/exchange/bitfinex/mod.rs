@@ -26,8 +26,11 @@ use self::model::{
     BitfinexSubResponseKind,
 };
 use crate::{
-    model::{MarketEvent, SubKind, Subscription, SubscriptionIds, SubscriptionMeta},
-    ExchangeId, ExchangeTransformer, Subscriber,
+    model::{
+        MarketEvent,
+        subscription::{Subscription, SubKind, SubscriptionIds, SubscriptionMeta},
+    },
+    ExchangeId, ExchangeTransformer, Subscriber
 };
 use async_trait::async_trait;
 use barter_integration::{
