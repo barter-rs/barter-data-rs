@@ -14,9 +14,11 @@ categories = ["accessibility", "simulation"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Rest API
+coinbase-pro-api = "0.1.1"
+
 # Barter Ecosystem
-#barter-integration = "0.3.4"
-barter-integration = { path = "../barter-integration-rs" }
+barter-integration = "0.3.4"
 
 # Logging
 tracing = "0.1.36"

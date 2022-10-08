@@ -1,7 +1,9 @@
 use super::Coinbase;
+use super::error::CoinbaseMsgError;
 use crate::{
     exchange::de_str,
-    model::{DataKind, Level, LevelDelta, OrderBook, OrderBookDelta, PublicTrade},
+    model::{DataKind, Level, LevelDelta, OrderBook, OrderBookDelta, PublicTrade,
+            OrderBookEvent, Order},
     ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
@@ -67,6 +69,8 @@ pub enum CoinbaseMessage {
     OrderBookL2Snapshot(CoinbaseOrderBookL2Snapshot),
     #[serde(alias = "l2update")]
     OrderBookL2Update(CoinbaseOrderBookL2Update),
+    #[serde(alias = "l3update")]
+    OrderbookL3Update(CoinbaseOrderBookL3Update),
 }
 
 /// [`Coinbase`] trade message.
@@ -128,6 +132,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBook(OrderBook {
+                last_update_id: 0,  // todo: fix
                 bids: ob_snapshot.bids,
                 asks: ob_snapshot.asks,
             }),
@@ -189,12 +194,87 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookDelta(OrderBookDelta {
+                update_id: 0, // todo
                 bid_deltas,
                 ask_deltas,
             }),
         }
     }
 }
+
+/// Todo:
+///
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#full-channel>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct CoinbaseOrderBookL3Update {
+    #[serde(alias = "product_id", deserialize_with = "de_ob_l3_subscription_id")]
+    pub subscription_id: SubscriptionId,
+    pub event_type: Option<String>,
+    pub reason: Option<String>,
+    pub sequence: Option<u64>,
+    pub order_id: Option<String>,
+    pub side: Option<Side>,
+    pub price: Option<f64>,
+    pub size: Option<f64>,              // only in received order messages
+    pub remaining_size: Option<f64>,    // only in open order messages
+    pub old_size: Option<f64>,          // only in update order messages - may be useless
+    pub new_size: Option<f64>,          // only in update order messages
+    pub time: DateTime<Utc>,
+}
+
+impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Update)> for MarketEvent {
+    fn from(
+        (exchange_id, instrument, update): (ExchangeId, Instrument, CoinbaseOrderBookL3Update),
+    ) -> Self {
+
+        Self {
+            exchange_time: update.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::OrderBookEvent(
+                OrderBookEvent::try_from(update).unwrap_or_else(|_| OrderBookEvent::Invalid)
+            )
+        }
+    }
+}
+
+impl TryFrom<CoinbaseOrderBookL3Update> for OrderBookEvent {
+    type Error = CoinbaseMsgError;
+
+    fn try_from(update: CoinbaseOrderBookL3Update) -> Result<Self, Self::Error> {
+
+        if update.sequence.is_none() { return Err(CoinbaseMsgError::NoSequence) }
+        if update.event_type.is_none() { return Err(CoinbaseMsgError::NoType) }
+        if update.order_id.is_none() { return Err(CoinbaseMsgError::NoOrderID) }
+
+        match update.event_type.as_ref().unwrap().as_str() {
+            "received" => Ok(Self::Received),  // todo
+
+            "open" => {
+                match (update.side, update.price, update.remaining_size) {
+                    (Some(side), Some(price), Some(size)) => {
+                        Ok(Self::Open(Order { id: update.order_id.unwrap(), side, price, size }))
+                    },
+                    _ => Err(CoinbaseMsgError::InvalidOpen)
+                }
+            },
+
+            "done" => { Ok(Self::Close(update.order_id.unwrap().clone())) }
+
+            "change" => {
+                match update.new_size {
+                    Some(size) => Ok(Self::Update((update.order_id.unwrap(), size))),
+                    None => Err(CoinbaseMsgError::InvalidUpdate)
+                }
+            }
+
+            _ => Err(CoinbaseMsgError::UnhandledType(update.event_type.unwrap().clone()))
+        }
+    }
+}
+
+
 
 /// Todo:
 pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
@@ -214,12 +294,22 @@ where
         .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L2, product_id))
 }
 
+/// Todo:
+pub fn de_ob_l3_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(|product_id| Coinbase::subscription_id(Coinbase::CHANNEL_ORDER_BOOK_L3, product_id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use chrono::NaiveDateTime;
     use serde::de::Error;
     use std::str::FromStr;
+    use barter_integration::model::Side::Sell;
 
     #[test]
     fn test_deserialise_coinbase_subscription_response() {
@@ -304,6 +394,53 @@ mod tests {
             let actual = test.input_response.validate().is_ok();
             assert_eq!(actual, test.is_valid, "TestCase {} failed", index);
         }
+    }
+
+    #[test]
+    fn test_deserialize_coinbase_L3_updates() {
+        struct TestCase {
+            input: &'static str,
+            expected: Result<CoinbaseMessage, SocketError>
+        }
+
+        let cases = vec![
+            TestCase {
+                // TCO: valid CoinbaseMessage Order Close
+                input: r#"{"order_id": "2a878d12-d790-4ea2-99ab-14c7481ab63c", "reason": "canceled",
+                 "price": "1318.65", "remaining_size": "3.18557088", "type": "done", "side": "sell",
+                 "product_id": "ETH-USD", "time": "2022-09-27T19:31:30.580366Z", "sequence": 36673387904}"#,
+                expected: Ok(CoinbaseMessage::OrderbookL3Update(
+                    CoinbaseOrderBookL3Update {
+                        subscription_id: SubscriptionId::from("full|ETH-USD"),
+                        sequence: Some(36673387904),
+                        order_id: "2a878d12-d790-4ea2-99ab-14c7481ab63c".to_owned(),
+                        side: Some(Side::Sell),
+                        price: Some(1318.65),
+                        size: Some(3.18557088),
+                        time: DateTime::from_utc(
+                            NaiveDateTime::from_str("2022-09-27T19:31:30.580366Z").unwrap(),
+                            Utc,
+                        ),
+                    }
+                ))
+            }
+        ];
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = serde_json::from_str::<CoinbaseMessage>(test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+
     }
 
     #[test]

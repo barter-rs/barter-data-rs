@@ -30,6 +30,7 @@ pub enum DataKind {
     Candle(Candle),
     OrderBook(OrderBook),
     OrderBookDelta(OrderBookDelta),
+    OrderBookEvent(OrderBookEvent),
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -132,6 +133,28 @@ impl LevelDelta {
     }
 }
 
+type OrderId = String;
+type NewSize = f64;
+
+/// Todo:
+#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub enum OrderBookEvent {
+    Received,
+    Open(Order),
+    Close(OrderId),
+    Update((OrderId, NewSize)),
+    Invalid,
+}
+
+/// Todo:
+#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub struct Order {
+    pub id: OrderId,
+    pub side: Side,
+    pub price: f64,
+    pub size: f64,
+}
+
 impl From<Event<MarketEvent>> for MarketEvent {
     fn from(event: Event<MarketEvent>) -> Self {
         event.payload
@@ -224,6 +247,7 @@ pub enum SubKind {
     Trade,
     Candle(Interval),
     OrderBookL2,
+    OrderBookL3,
 }
 
 impl Display for SubKind {
@@ -235,6 +259,7 @@ impl Display for SubKind {
                 SubKind::Trade => "trade".to_owned(),
                 SubKind::Candle(interval) => format!("candle_{}", interval),
                 SubKind::OrderBookL2 => "order_book_l2".to_owned(),
+                SubKind::OrderBookL3 => "order_book_l3".to_owned(),
             }
         )
     }

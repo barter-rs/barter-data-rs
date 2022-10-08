@@ -10,9 +10,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
+use coinbase_pro_api::*;
 
-/// [`Coinbase`] specific data structures.
+/// [`Coinbase`] specific data structures and errors.
 mod model;
+mod error;
 
 // Todo:
 //  - Per message de-flate WS header upon connection to improve latency?
@@ -114,6 +116,16 @@ impl Transformer<MarketEvent> for Coinbase {
                     Err(error) => vec![Err(error)],
                 }
             }
+            CoinbaseMessage::OrderbookL3Update(update) => {
+                match self.ids.find_instrument(&update.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        update,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -129,6 +141,11 @@ impl Coinbase {
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#level2-channel>
     pub const CHANNEL_ORDER_BOOK_L2: &'static str = "level2";
 
+    /// [`Coinbase`] L3 OrderBook channel name.
+    ///
+    /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#full-channel>
+    pub const CHANNEL_ORDER_BOOK_L3: &'static str = "full";
+
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
     /// This includes the [`Coinbase`] &str channel, and a `String` market identifier. Both are
     /// used to build an [`Coinbase`] subscription payload.
@@ -143,6 +160,7 @@ impl Coinbase {
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
             SubKind::OrderBookL2 => Self::CHANNEL_ORDER_BOOK_L2,
+            SubKind::OrderBookL3 => Self::CHANNEL_ORDER_BOOK_L3,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),

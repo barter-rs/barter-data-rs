@@ -1,5 +1,6 @@
 use crate::{
-    exchange::{binance::futures::BinanceFuturesUsd, coinbase::Coinbase, ftx::Ftx, kraken::Kraken},
+    // exchange::{binance::futures::BinanceFuturesUsd, coinbase::Coinbase, ftx::Ftx, kraken::Kraken},
+    exchange::coinbase::Coinbase,
     model::SubKind,
     ExchangeId, ExchangeWsStream, MarketEvent, MarketStream, Subscription,
 };
@@ -161,13 +162,13 @@ impl StreamBuilder {
 
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
-                ExchangeId::BinanceFuturesUsd => {
-                    tokio::spawn(consume::<ExchangeWsStream<BinanceFuturesUsd>>(
-                        exchange,
-                        subscriptions,
-                        exchange_tx,
-                    ));
-                }
+                // ExchangeId::BinanceFuturesUsd => {
+                //     tokio::spawn(consume::<ExchangeWsStream<BinanceFuturesUsd>>(
+                //         exchange,
+                //         subscriptions,
+                //         exchange_tx,
+                //     ));
+                // }
                 ExchangeId::Coinbase => {
                     tokio::spawn(consume::<ExchangeWsStream<Coinbase>>(
                         exchange,
@@ -175,20 +176,20 @@ impl StreamBuilder {
                         exchange_tx,
                     ));
                 }
-                ExchangeId::Ftx => {
-                    tokio::spawn(consume::<ExchangeWsStream<Ftx>>(
-                        exchange,
-                        subscriptions,
-                        exchange_tx,
-                    ));
-                }
-                ExchangeId::Kraken => {
-                    tokio::spawn(consume::<ExchangeWsStream<Kraken>>(
-                        exchange,
-                        subscriptions,
-                        exchange_tx,
-                    ));
-                }
+                // ExchangeId::Ftx => {
+                //     tokio::spawn(consume::<ExchangeWsStream<Ftx>>(
+                //         exchange,
+                //         subscriptions,
+                //         exchange_tx,
+                //     ));
+                // }
+                // ExchangeId::Kraken => {
+                //     tokio::spawn(consume::<ExchangeWsStream<Kraken>>(
+                //         exchange,
+                //         subscriptions,
+                //         exchange_tx,
+                //     ));
+                // }
                 not_supported => {
                     return Err(SocketError::Subscribe(format!(
                         "Streams::init() does not support: {}",
