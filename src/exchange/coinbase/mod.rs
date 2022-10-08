@@ -14,7 +14,6 @@ use coinbase_pro_api::*;
 
 /// [`Coinbase`] specific data structures and errors.
 mod model;
-mod error;
 
 // Todo:
 //  - Per message de-flate WS header upon connection to improve latency?
@@ -116,14 +115,44 @@ impl Transformer<MarketEvent> for Coinbase {
                     Err(error) => vec![Err(error)],
                 }
             }
-            CoinbaseMessage::OrderbookL3Update(update) => {
-                match self.ids.find_instrument(&update.subscription_id) {
+            CoinbaseMessage::OrderBookL3Received(received) => {
+                match self.ids.find_instrument(&received.subscription_id) {
                     Ok(instrument) => vec![Ok(MarketEvent::from((
                         Coinbase::EXCHANGE,
                         instrument,
-                        update,
+                        received,
                     )))],
                     Err(error) => vec![Err(error)],
+                }
+            }
+            CoinbaseMessage::OrderBookL3Open(open) => {
+                match self.ids.find_instrument(&open.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        open,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
+            CoinbaseMessage::OrderBookL3Done(done) => {
+                match self.ids.find_instrument(&done.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        done,
+                    )))],
+                    Err(error) => vec![Err(error)]
+                }
+            }
+            CoinbaseMessage::OrderBookL3Change(change) => {
+                match self.ids.find_instrument(&change.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        change,
+                    )))],
+                    Err(error) => vec![Err(error)]
                 }
             }
         }
@@ -317,6 +346,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Ok(MarketEvent {
                     exchange_time: time,
@@ -328,6 +358,7 @@ mod tests {
                         price: 1.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                        sequence: 1,
                     }),
                 })],
             },
@@ -340,6 +371,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
                     "unknown",

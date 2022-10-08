@@ -323,6 +323,7 @@ pub mod test_util {
                 price: 1000.0,
                 quantity: 1.0,
                 side,
+                sequence: 100,
             }),
         }
     }

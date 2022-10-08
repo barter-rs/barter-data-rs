@@ -40,6 +40,7 @@ pub struct PublicTrade {
     pub price: f64,
     pub quantity: f64,
     pub side: Side,
+    pub sequence: u64,
 }
 
 /// Normalised Barter OHLCV [`Candle`] model.
@@ -135,15 +136,22 @@ impl LevelDelta {
 
 type OrderId = String;
 type NewSize = f64;
+type Sequence = u64;
 
 /// Todo:
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum OrderBookEvent {
-    Received,
-    Open(Order),
-    Close(OrderId),
-    Update((OrderId, NewSize)),
-    Invalid,
+    Received(Order, Sequence),
+    Open(Order, Sequence),
+    Done(OrderId, Sequence),
+    Change(OrderId, NewSize, Sequence),
+}
+
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OrderType {
+    Market,
+    Limit,
 }
 
 /// Todo:
@@ -153,6 +161,7 @@ pub struct Order {
     pub side: Side,
     pub price: f64,
     pub size: f64,
+    pub order_type: OrderType,
 }
 
 impl From<Event<MarketEvent>> for MarketEvent {
