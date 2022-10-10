@@ -5,4 +5,4 @@ Cargo.lock
 # IDE
 .idea/
 *.iml
-src/exchange/coinbase/Coinbase_orderbook_snapshot_ETH-USD_35140793720_20220830-183202.json
+Coinbase_orderbook_snapshot_ETH-USD_35140793720_20220830-183202.json

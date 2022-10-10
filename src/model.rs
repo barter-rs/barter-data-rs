@@ -1,12 +1,14 @@
+#![allow(dead_code)]
+
 use crate::ExchangeId;
 use barter_integration::{
     error::SocketError,
+    Event,
     model::{Exchange, Instrument, InstrumentKind, Market, Side, SubscriptionId, Symbol},
-    protocol::websocket::WsMessage,
-    Event, Validator,
+    protocol::websocket::WsMessage, Validator,
 };
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
@@ -28,9 +30,30 @@ pub struct MarketEvent {
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
-    OrderBook(OrderBook),
+    OrderBookL2(OrderbookL2),
     OrderBookDelta(OrderBookDelta),
     OrderBookEvent(OrderBookEvent),
+    // OrderBookL3(OrderBookL3Snapshot),
+}
+
+impl DataKind {
+    pub fn sequence(&self) -> &u64 {
+        match self {
+            DataKind::Trade(trade) => {&trade.sequence}
+            DataKind::Candle(_candle) => {&0}  // todo: derive this?
+            DataKind::OrderBookL2(orderbook) => {&orderbook.last_update_id}
+            DataKind::OrderBookDelta(delta) => {&delta.update_id}
+            DataKind::OrderBookEvent(event) => {
+                match event {
+                    OrderBookEvent::Received(_, sequence) => {sequence}
+                    OrderBookEvent::Open(_, sequence) => {sequence}
+                    OrderBookEvent::Done(_, sequence) => {sequence}
+                    OrderBookEvent::Change(_, _, sequence) => {sequence}
+                }
+            },
+            // DataKind::OrderBookL3(orderbook) => {&orderbook.sequence}
+        }
+    }
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -60,7 +83,7 @@ pub struct Candle {
 ///  - Rust docs
 ///  - Will have to add fields to support generic delta updates...
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct OrderBook {
+pub struct OrderbookL2 {
     pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
@@ -147,21 +170,30 @@ pub enum OrderBookEvent {
     Change(OrderId, NewSize, Sequence),
 }
 
+/// Todo: might be useless
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OrderType {
-    Market,
     Limit,
+    Market,
 }
 
 /// Todo:
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub struct Order {
+pub enum Order {
+    Bid(AtomicOrder, OrderType),
+    Ask(AtomicOrder, OrderType),
+}
+
+/// Todo:
+/// Most basic order struct - this is how it should look in the orderbook
+#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
+pub struct AtomicOrder {
     pub id: OrderId,
-    pub side: Side,
+    #[serde(deserialize_with = "de_floats")]
     pub price: f64,
+    #[serde(deserialize_with = "de_floats")]
     pub size: f64,
-    pub order_type: OrderType,
 }
 
 impl From<Event<MarketEvent>> for MarketEvent {
@@ -380,6 +412,13 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
     {
         HashMap::deserialize(deserializer).map(SubscriptionIds)
     }
+}
+
+/// Todo:
+pub fn de_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
+    where D: Deserializer<'de>, {
+    let num_str: String = Deserialize::deserialize(deserializer)?;
+    num_str.parse().map_err(|_| D::Error::custom("Float parsing error"))
 }
 
 impl SubscriptionIds {

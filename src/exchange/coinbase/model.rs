@@ -1,8 +1,9 @@
 use super::Coinbase;
 use crate::{
     exchange::de_str,
-    model::{DataKind, Level, LevelDelta, OrderBook, OrderBookDelta, PublicTrade,
-            OrderBookEvent, OrderType, Order},
+    model::{DataKind, Level, LevelDelta, OrderbookL2, OrderBookDelta, PublicTrade,
+            OrderBookEvent, OrderType, Order::Bid, Order::Ask, AtomicOrder,
+            de_floats},
     ExchangeId, MarketEvent, Validator,
 };
 use barter_integration::{
@@ -12,6 +13,16 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde::de::Error;
+// use coinbase_pro_api::{CoinbasePublicClient, OBLevel};
+
+/// ['Coinbase'] message variants that can be received over ['REST API']
+///
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/requests>
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum CoinbaseRestAPIResponse {
+    OrderBookL3Snapshot(CoinbaseOrderBookL3Snapshot),
+}
 
 /// [`Coinbase`] message received in response to WebSocket subscription requests.
 ///
@@ -56,7 +67,6 @@ impl Validator for CoinbaseSubResponse {
         }
     }
 }
-
 
 /// [`Coinbase`] message variants that can be received over [`WebSocket`].
 ///
@@ -141,7 +151,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Snapshot)> for MarketEvent
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBook(OrderBook {
+            kind: DataKind::OrderBookL2(OrderbookL2 {
                 last_update_id: 0,  // todo: fix
                 bids: ob_snapshot.bids,
                 asks: ob_snapshot.asks,
@@ -212,6 +222,39 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL2Update)> for MarketEvent {
     }
 }
 
+/// Struct used as an intermediary between order arrays in json snapshot and
+/// generalized AtomicOrder struct
+#[derive(Debug, Deserialize)]
+struct CoinbaseL3SnapshotOrder(
+    #[serde(deserialize_with = "de_floats")]
+    f64,
+    #[serde(deserialize_with = "de_floats")]
+    f64,
+    String
+);
+
+impl From<CoinbaseL3SnapshotOrder> for AtomicOrder {
+    fn from(tuple: CoinbaseL3SnapshotOrder) -> Self {
+        AtomicOrder {
+            id: tuple.2,
+            price: tuple.0,
+            size: tuple.1,
+        }
+    }
+}
+
+/// Todo:
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct CoinbaseOrderBookL3Snapshot {
+    #[serde(deserialize_with = "de_reorder_cb_snapshot_order_fields")]
+    pub bids: Vec<AtomicOrder>,
+    #[serde(deserialize_with = "de_reorder_cb_snapshot_order_fields")]
+    pub asks: Vec<AtomicOrder>,
+    pub sequence: u64,
+    pub auction_mode: bool,
+    pub auction: serde_json::Value,
+}
+
 /// Used to populate optional missing key-value pairs as None during deserialization.
 fn serde_default_none<T>() -> Option<T> { None }
 
@@ -228,9 +271,9 @@ pub struct CoinbaseOrderBookL3Received {
     pub subscription_id: SubscriptionId,
     pub order_id: String,
     pub order_type: OrderType,
-    #[serde(deserialize_with = "de_ob_l3_floats")]
+    #[serde(deserialize_with = "de_floats")]
     pub size: f64,
-    #[serde(deserialize_with = "de_ob_l3_floats")]
+    #[serde(deserialize_with = "de_floats")]
     pub price: f64,
     pub client_oid: String,
     pub side: Side,
@@ -257,16 +300,17 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Received)> for MarketEvent
 
 impl From<CoinbaseOrderBookL3Received> for OrderBookEvent {
     fn from(received: CoinbaseOrderBookL3Received) -> Self {
-        OrderBookEvent::Received(
-        Order {
-                id: received.order_id,
-                side: received.side,
-                price: received.price,
-                size: received.size,
-                order_type: received.order_type,
-            },
-    received.sequence,
-        )
+        let order = AtomicOrder {
+            id: received.order_id,
+            price: received.price,
+            size: received.size,
+        };
+        match received.side {
+            Side::Buy => OrderBookEvent::Received(
+                Bid(order, received.order_type), received.sequence),
+            Side::Sell => OrderBookEvent::Received(
+                Ask( order, received.order_type), received.sequence),
+        }
     }
 }
 
@@ -282,9 +326,9 @@ pub struct CoinbaseOrderBookL3Open {
     #[serde(alias = "product_id", deserialize_with = "de_ob_l3_subscription_id")]
     pub subscription_id: SubscriptionId,
     pub order_id: String,
-    #[serde(deserialize_with = "de_ob_l3_floats")]
+    #[serde(deserialize_with = "de_floats")]
     pub remaining_size: f64,
-    #[serde(deserialize_with = "de_ob_l3_floats")]
+    #[serde(deserialize_with = "de_floats")]
     pub price: f64,
     pub side: Side,
     pub time: DateTime<Utc>,
@@ -310,16 +354,17 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Open)> for MarketEvent {
 
 impl From<CoinbaseOrderBookL3Open> for OrderBookEvent {
     fn from(open: CoinbaseOrderBookL3Open) -> Self {
-        OrderBookEvent::Open(
-        Order {
-                id: open.order_id,
-                side: open.side,
-                price: open.price,
-                size: open.remaining_size,
-                order_type: OrderType::Limit,
-            },
-    open.sequence,
-        )
+        let order = AtomicOrder {
+            id: open.order_id,
+            price: open.price,
+            size: open.remaining_size,
+        };
+        match open.side {
+            Side::Buy => OrderBookEvent::Open(
+                Bid(order, OrderType::Limit), open.sequence),
+            Side::Sell => OrderBookEvent::Open(
+                Ask( order, OrderType::Limit), open.sequence),
+        }
     }
 }
 
@@ -386,7 +431,7 @@ pub struct CoinbaseOrderBookL3Change {
     pub reason: String,
     #[serde(deserialize_with = "de_ob_l3_optional_floats", default = "serde_default_none")]
     pub old_size: Option<f64>,
-    #[serde(deserialize_with = "de_ob_l3_floats")]
+    #[serde(deserialize_with = "de_floats")]
     pub new_size: f64,
     #[serde(deserialize_with = "de_ob_l3_optional_floats", default = "serde_default_none")]
     pub price: Option<f64>,
@@ -446,15 +491,6 @@ where
 }
 
 /// Todo:
-pub fn de_ob_l3_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let num_str: &str = Deserialize::deserialize(deserializer)?;
-    num_str.parse().map_err(|_| Error::custom("Float parsing error"))
-}
-
-/// Todo:
 pub fn de_ob_l3_optional_floats<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
 where
     D: serde::de::Deserializer<'de>,
@@ -471,6 +507,16 @@ where
     }
 }
 
+/// Todo:
+pub fn de_reorder_cb_snapshot_order_fields<'de, D>(deserializer: D) -> Result<Vec<AtomicOrder>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let order_tuple_vec: Result<Vec<CoinbaseL3SnapshotOrder>, D::Error> = serde::de::Deserialize::deserialize(deserializer);
+    order_tuple_vec.map(|vec| vec.into_iter().map(AtomicOrder::from).collect())
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -478,6 +524,10 @@ mod tests {
     use serde::de::Error;
     use std::str::FromStr;
     use barter_integration::model::Side::Sell;
+    use std::fs::File;
+    use std::io::BufReader;
+    use coinbase_pro_api::*;
+    use serde_json;
 
     #[test]
     fn test_deserialise_coinbase_subscription_response() {
@@ -723,6 +773,72 @@ mod tests {
     }
 
     #[test]
+    fn test_l3_orderbook_snapshot() {
+        struct TestCase {
+            input: &'static str,
+            expected: serde_json::Result<CoinbaseRestAPIResponse>,
+        }
+        let cases = vec![
+            TestCase {
+                // TC0: Valid CoinbaseRESTAPIResponse Received
+                input:
+                r#"{ "bids": [
+                        ["1498.01", "1.25478367", "2b9c6c1e-b2ae-4b1a-a64c-5fd69881e14e"],
+                        ["1498", "2.80318188", "d25117b8-6ff9-4445-8d0b-763c3185f9a4"],
+                        ["1498", "0.33377729", "6d3cd211-3ea6-45d6-b016-d4d914b978ca"]],
+                    "asks": [
+                        ["1498.81", "0.3", "3eb92c7e-4bf7-48d7-bbc3-92d0d9e6de0f"],
+                        ["1498.82", "0.3", "8083da45-90ac-4b12-aa18-f3727838ff72"],
+                        ["1498.82", "0.76768357", "f88fe077-668a-4d32-a7d0-dd1411d29035"]],
+                    "sequence": 35140793720,
+                    "auction_mode": false,
+                    "auction": null }"#,
+                expected: Ok(CoinbaseRestAPIResponse::OrderBookL3Snapshot(
+                    CoinbaseOrderBookL3Snapshot {
+                        bids: vec![
+                            AtomicOrder { id: "2b9c6c1e-b2ae-4b1a-a64c-5fd69881e14e".to_string(), price: 1498.01, size: 1.25478367 },
+                            AtomicOrder { id: "d25117b8-6ff9-4445-8d0b-763c3185f9a4".to_string(), price: 1498.0, size: 2.80318188 },
+                            AtomicOrder { id: "6d3cd211-3ea6-45d6-b016-d4d914b978ca".to_string(), price: 1498.0, size: 0.33377729 },
+                        ],
+                        asks: vec![
+                            AtomicOrder { id: "3eb92c7e-4bf7-48d7-bbc3-92d0d9e6de0f".to_string(), price: 1498.81, size: 0.3 },
+                            AtomicOrder { id: "8083da45-90ac-4b12-aa18-f3727838ff72".to_string(), price: 1498.82, size: 0.3 },
+                            AtomicOrder { id: "f88fe077-668a-4d32-a7d0-dd1411d29035".to_string(), price: 1498.82, size: 0.76768357 }
+                        ],
+                        sequence: 35140793720,
+                        auction_mode: false,
+                        auction: serde_json::Value::Null
+                    }
+                ))
+            },
+            TestCase {
+                // TC1: Invalid CoinbaseRESTAPIResponse
+                input:
+                r#"{ "bids: [], "asks": [],
+                    "sequence": 35140793720,
+                    "auction_mode": false,
+                    "auction": null }"#,
+                expected: Err(serde_json::Error::custom("")),
+            }
+        ];
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = serde_json::from_str::<CoinbaseRestAPIResponse>(test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_deserialise_coinbase_message() {
         struct TestCase {
             input: &'static str,
@@ -860,5 +976,21 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn load_local_snapshot() {
+        let f = File::open("Coinbase_orderbook_snapshot_ETH-USD_35140793720_20220830-183202.json").unwrap();
+        let mut reader = BufReader::new(f);
+        let snapshot: CoinbaseOrderBookL3Snapshot = serde_json::from_reader(reader).unwrap();
+    }
+
+    #[tokio::test]
+    async fn load_response_snapshot() {
+        let rest_api_client = coinbase_pro_api::CoinbasePublicClient::new();
+        let snapshot_json = rest_api_client
+            .get_product_orderbook("eth-usd", OBLevel::Level3).await.unwrap();
+        let snapshot: CoinbaseOrderBookL3Snapshot = serde_json::from_str(&snapshot_json).unwrap();
+        println!("{:?}", snapshot);
     }
 }

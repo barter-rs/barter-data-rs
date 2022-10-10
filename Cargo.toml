@@ -15,7 +15,7 @@ categories = ["accessibility", "simulation"]
 
 [dependencies]
 # Rest API
-coinbase-pro-api = "0.1.1"
+coinbase-pro-api = "0.2.0"
 
 # Barter Ecosystem
 barter-integration = "0.3.4"

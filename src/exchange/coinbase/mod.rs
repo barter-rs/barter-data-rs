@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use coinbase_pro_api::*;
 
 /// [`Coinbase`] specific data structures and errors.
 mod model;
