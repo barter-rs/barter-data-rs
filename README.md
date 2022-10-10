@@ -47,7 +47,7 @@ arbitrary number of exchange `MarketStreams` using an input `Subscription`. Simp
 ```rust,no_run
 use barter_data::{
     builder::Streams,
-    model::{Interval, MarketEvent, SubKind},
+    model::{MarketEvent, subscription::{Interval, SubKind}},
     ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
