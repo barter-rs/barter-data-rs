@@ -515,6 +515,19 @@ mod tests {
                     kind: SubKind::Candle(Interval::Minute5),
                 }),
             },
+            TestCase {
+                // TC11: Valid Subscription w/ Bitfinex Spot Trades
+                input: Subscription {
+                    exchange: ExchangeId::Bitfinex,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Bitfinex,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Trade,
+                }),
+            },
         ];
 
         for (index, test) in cases.into_iter().enumerate() {

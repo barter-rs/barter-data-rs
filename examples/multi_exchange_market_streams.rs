@@ -1,10 +1,10 @@
 use barter_data::{
     builder::Streams,
-    ExchangeId,
     model::{
+        subscription::{Interval, SubKind},
         MarketEvent,
-        subscription::{Interval, SubKind}
     },
+    ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
@@ -26,13 +26,34 @@ async fn main() {
         //     ],
         // )
         .subscribe([
-            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
+            (
+                ExchangeId::Bitfinex,
+                "btc",
+                "usd",
+                InstrumentKind::Spot,
+                SubKind::Candle(Interval::Minute1),
+            ),
+            (
+                ExchangeId::Bitfinex,
+                "eth",
+                "usd",
+                InstrumentKind::Spot,
+                SubKind::Candle(Interval::Minute1),
+            ),
+            (
+                ExchangeId::Bitfinex,
+                "eth",
+                "usd",
+                InstrumentKind::Spot,
+                SubKind::Trade,
+            ),
+            // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
+            // (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
+            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
+            // (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
         ])
         .init()
         .await
@@ -42,8 +63,7 @@ async fn main() {
     // Note: Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
     let mut joined_stream = streams.join_map::<MarketEvent>().await;
 
-    while let Some((exchange, event)) = joined_stream.next().await {
-        println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
+    while let Some((_, event)) = joined_stream.next().await {
+        println!("MarketEvent: {:?}", event);
     }
 }
-
