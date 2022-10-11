@@ -16,9 +16,6 @@ pub mod kraken;
 /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
 pub mod coinbase;
 
-/// Bitfinex 'ExchangeTransformer' & 'Subscriber' implementations.
-pub mod bitfinex;
-
 /// Kucoin ''ExchangeTransformer' & 'Subscriber' implementations.
 pub mod kucoin;
 

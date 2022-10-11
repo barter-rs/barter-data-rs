@@ -189,13 +189,6 @@ impl StreamBuilder {
                         exchange_tx,
                     ));
                 }
-                ExchangeId::Bitfinex => {
-                    tokio::spawn(consume::<ExchangeWsStream<Bitfinex>>(
-                        exchange,
-                        subscriptions,
-                        exchange_tx,
-                    ));
-                }
                 not_supported => {
                     return Err(SocketError::Subscribe(format!(
                         "Streams::init() does not support: {}",

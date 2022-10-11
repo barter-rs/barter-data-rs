@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::mpsc;
 
-use crate::{model::{SubscriptionIds, Subscription, SubKind}, exchange::get_time, ExchangeTransformer, ExchangeId};
+use crate::{model::subscription::{SubscriptionIds, Subscription, SubKind}, exchange::get_time, ExchangeTransformer, ExchangeId};
 
 /// [`Kucoin`] specific data structures.
 pub mod model;
