@@ -208,16 +208,16 @@ impl From<BinanceLiquidation> for Liquidation {
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceLiquidationOrder {
-    #[serde(alias = "s", deserialize_with = "de_order_book_subscription_id")]
+    #[serde(alias = "s", deserialize_with = "de_liquidation_subscription_id")]
     pub subscription_id: SubscriptionId,
 
     #[serde(alias = "S")]
     pub side: Side,
 
-    #[serde(deserialize_with = "crate::exchange::de_str")]
+    #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
     pub price: f64,
 
-    #[serde(deserialize_with = "crate::exchange::de_str")]
+    #[serde(alias = "q", deserialize_with = "crate::exchange::de_str")]
     pub quantity: f64,
 
     #[serde(
@@ -263,6 +263,17 @@ where
 {
     serde::de::Deserialize::deserialize(deserializer).map(|market| {
         BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_ORDER_BOOK, market)
+    })
+}
+
+/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "forceOrder|BTCUSDT").
+pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer).map(|market| {
+        BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_LIQUIDATIONS, market)
     })
 }
 
@@ -407,6 +418,36 @@ mod tests {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
+            },
+            TestCase {
+                input: r#"{
+                    "e": "forceOrder",
+                    "E": 1665523974222,
+                    "o": {
+                      "s": "BTCUSDT",
+                      "S": "SELL",
+                      "o": "LIMIT",
+                      "f": "IOC",
+                      "q": "0.009",
+                      "p": "18917.15",
+                      "ap": "18990.00",
+                      "X": "FILLED",
+                      "l": "0.009",
+                      "z": "0.009",
+                      "T": 1665523974217
+                    }
+                  }"#,
+                expected: Ok(BinanceMessage::Liquidation(BinanceLiquidation {
+                    order: BinanceLiquidationOrder {
+                        subscription_id: SubscriptionId::from("@forceOrder|BTCUSDT"),
+                        side: Side::Sell,
+                        price: 18917.15,
+                        quantity: 0.009,
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1665523974217,
+                        )),
+                    },
+                })),
             },
         ];
 
