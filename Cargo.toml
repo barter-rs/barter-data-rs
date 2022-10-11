@@ -1,11 +1,11 @@
 [package]
 name = "barter-data"
-version = "0.5.5"
+version = "0.5.7"
 authors = ["keirbailey <keirinvestment@gmail.com>"]
 edition = "2021"
 license = "MIT"
 documentation = "https://docs.rs/barter-data/"
-repository = "https://gitlab.com/open-source-keir/financial-modelling/trading/barter-data-rs"
+repository = "https://github.com/barter-rs/barter-data-rs"
 readme = "README.md"
 description = "High performance & normalised WebSocket intergration for leading cryptocurrency exchanges - batteries included."
 keywords = ["trading", "backtesting", "crypto", "stocks", "investment"]

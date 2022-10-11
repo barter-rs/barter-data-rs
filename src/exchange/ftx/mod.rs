@@ -1,6 +1,9 @@
 use crate::{
-    model::SubKind, ExchangeId, ExchangeTransformer, MarketEvent, Subscriber, Subscription,
-    SubscriptionIds, SubscriptionMeta,
+    model::{
+        subscription::{SubKind, Subscription, SubscriptionIds, SubscriptionMeta},
+        MarketEvent,
+    },
+    ExchangeId, ExchangeTransformer, Subscriber,
 };
 use barter_integration::{
     error::SocketError,
@@ -160,7 +163,7 @@ impl Ftx {
 mod tests {
     use super::*;
     use crate::exchange::ftx::model::FtxTrade;
-    use crate::model::{DataKind, Interval, PublicTrade};
+    use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, Side};
     use chrono::Utc;
 

@@ -47,7 +47,7 @@ arbitrary number of exchange `MarketStreams` using an input `Subscription`. Simp
 ```rust,no_run
 use barter_data::{
     builder::Streams,
-    model::{Interval, MarketEvent, SubKind},
+    model::{MarketEvent, subscription::{Interval, SubKind}},
     ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
@@ -57,8 +57,8 @@ use futures::StreamExt;
 // BinanceFuturesUsd & Coinbase
 #[tokio::main]
 async fn main() {
-    // Initialise `PublicTrade` & `Candle``MarketStream` for `BinanceFuturesUsd`, `Ftx`, `Kraken` 
-    // & Coinbase
+    // Initialise a `PublicTrade`, `Candle` & `OrderBook``MarketStream` for 
+    // `BinanceFuturesUsd`, `Ftx`, `Kraken` & `Coinbase`
     let streams = Streams::builder()
         .subscribe_exchange(
             ExchangeId::Ftx,
@@ -72,10 +72,11 @@ async fn main() {
         .subscribe([
             (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
             (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
             (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
+            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
+            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
         ])
         .init()
         .await
