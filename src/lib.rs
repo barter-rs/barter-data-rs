@@ -321,6 +321,15 @@ impl ExchangeId {
             _ => false,
         }
     }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// liquidation orders market data
+    pub fn supports_liquidations(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            _ => false,
+        }
+    }
 }
 
 /// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the

@@ -1,5 +1,5 @@
 use super::futures::BinanceFuturesUsd;
-use crate::model::{Level, OrderBook};
+use crate::model::{Level, Liquidation, OrderBook};
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -44,6 +44,8 @@ pub enum BinanceMessage {
     Trade(BinanceTrade),
     #[serde(alias = "depthUpdate")]
     OrderBookSnapshot(BinanceOrderBook),
+    #[serde(alias = "forceOrder")]
+    Liquidation(BinanceLiquidation),
 }
 
 impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
@@ -52,6 +54,9 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
             BinanceMessage::Trade(trade) => MarketEvent::from((exchange, instrument, trade)),
             BinanceMessage::OrderBookSnapshot(order_book) => {
                 MarketEvent::from((exchange, instrument, order_book))
+            }
+            BinanceMessage::Liquidation(liquidation) => {
+                MarketEvent::from((exchange, instrument, liquidation))
             }
         }
     }
@@ -157,6 +162,69 @@ impl From<BinanceLevel> for Level {
             quantity: level.quantity,
         }
     }
+}
+
+/// `Binance` Liquidation order message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidation {
+    #[serde(alias = "o")]
+    pub order: BinanceLiquidationOrder,
+}
+
+impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketEvent {
+    fn from(
+        (exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation),
+    ) -> Self {
+        Self {
+            exchange_time: liquidation.order.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::Liquidation(Liquidation {
+                side: liquidation.order.side,
+                price: liquidation.order.price,
+                quantity: liquidation.order.quantity,
+                time: liquidation.order.time,
+            }),
+        }
+    }
+}
+
+impl From<BinanceLiquidation> for Liquidation {
+    fn from(liquidation: BinanceLiquidation) -> Self {
+        Self {
+            side: liquidation.order.side,
+            price: liquidation.order.price,
+            quantity: liquidation.order.quantity,
+            time: liquidation.order.time,
+        }
+    }
+}
+
+/// `Binance` Liquidation order.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidationOrder {
+    #[serde(alias = "s", deserialize_with = "de_order_book_subscription_id")]
+    pub subscription_id: SubscriptionId,
+
+    #[serde(alias = "S")]
+    pub side: Side,
+
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub time: DateTime<Utc>,
 }
 
 /// Deserialize a [`BinanceTrade`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]

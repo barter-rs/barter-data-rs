@@ -98,6 +98,16 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
                     Err(error) => vec![Err(error)],
                 }
             }
+            BinanceMessage::Liquidation(liquidation) => {
+                match self.ids.find_instrument(&liquidation.order.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        BinanceFuturesUsd::EXCHANGE,
+                        instrument,
+                        liquidation,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -114,6 +124,11 @@ impl BinanceFuturesUsd {
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
     pub const CHANNEL_ORDER_BOOK: &'static str = "@depth20@100ms";
 
+    /// [`BinanceFuturesUsd`] liquidation orders channel name
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+    pub const CHANNEL_LIQUIDATIONS: &'static str = "@forceOrder";
+
     /// Determine the [`BinanceFuturesUsd`] channel metadata associated with an input
     /// Barter [`Subscription`]. This includes the [`BinanceFuturesUsd`] `&str` channel
     /// identifier, and a `String` market identifier. Both are used to build a
@@ -129,6 +144,7 @@ impl BinanceFuturesUsd {
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
             SubKind::OrderBook => Self::CHANNEL_ORDER_BOOK,
+            SubKind::Liquidation => Self::CHANNEL_LIQUIDATIONS,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: BinanceFuturesUsd::EXCHANGE.as_str(),
