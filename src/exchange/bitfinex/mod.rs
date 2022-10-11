@@ -37,10 +37,10 @@ use self::model::{
 };
 use crate::{
     model::{
-        subscription::{Interval, SubKind, Subscription, SubscriptionIds, SubscriptionMeta},
-        Candle, MarketEvent,
+        MarketEvent,
+        subscription::{Subscription, SubKind, SubscriptionIds, SubscriptionMeta, Interval}, Candle,
     },
-    ExchangeId, ExchangeTransformer, Subscriber,
+    ExchangeId, ExchangeTransformer, Subscriber
 };
 use async_trait::async_trait;
 use barter_integration::{
