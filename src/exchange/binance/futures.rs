@@ -185,7 +185,10 @@ impl BinanceFuturesUsd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::binance::model::BinanceTrade;
+    use crate::exchange::binance::model::{
+        BinanceLiquidation, BinanceLiquidationOrder, BinanceTrade,
+    };
+    use crate::model::Liquidation;
     use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
@@ -199,6 +202,13 @@ mod tests {
                         (SubKind::Trade, InstrumentKind::FuturePerpetual) => {
                             BinanceFuturesUsd::subscription_id(
                                 BinanceFuturesUsd::CHANNEL_TRADES,
+                                &format!("{}{}", sub.instrument.base, sub.instrument.quote)
+                                    .to_uppercase(),
+                            )
+                        }
+                        (SubKind::Liquidation, InstrumentKind::FuturePerpetual) => {
+                            BinanceFuturesUsd::subscription_id(
+                                BinanceFuturesUsd::CHANNEL_LIQUIDATIONS,
                                 &format!("{}{}", sub.instrument.base, sub.instrument.quote)
                                     .to_uppercase(),
                             )
@@ -290,13 +300,22 @@ mod tests {
 
     #[test]
     fn test_binance_transform() {
-        let mut transformer = binance_futures_usd(vec![Subscription::from((
-            ExchangeId::BinanceFuturesUsd,
-            "btc",
-            "usdt",
-            InstrumentKind::FuturePerpetual,
-            SubKind::Trade,
-        ))]);
+        let mut transformer = binance_futures_usd(vec![
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Liquidation,
+            )),
+        ]);
 
         let time = Utc::now();
 
@@ -340,6 +359,30 @@ mod tests {
                         price: 1000.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                    }),
+                })],
+            },
+            TestCase {
+                // TC2: BinanceMessage FuturePerpetual liquidation
+                input: BinanceMessage::Liquidation(BinanceLiquidation {
+                    order: BinanceLiquidationOrder {
+                        subscription_id: SubscriptionId::from("@forceOrder|BTCUSDT"),
+                        side: Side::Buy,
+                        price: 1.0,
+                        quantity: 20.0,
+                        time,
+                    },
+                }),
+                expected: vec![Ok(MarketEvent {
+                    exchange_time: time,
+                    received_time: time,
+                    exchange: Exchange::from(ExchangeId::BinanceFuturesUsd),
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::FuturePerpetual)),
+                    kind: DataKind::Liquidation(Liquidation {
+                        side: Side::Buy,
+                        price: 1.0,
+                        quantity: 20.0,
+                        time,
                     }),
                 })],
             },
