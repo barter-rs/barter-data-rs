@@ -453,7 +453,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC4: Valid Subscription w/ Ftx Spot Trades
+                // TC6: Valid Subscription w/ Ftx Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -478,7 +478,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC6: Invalid Subscription w/ BinanceFuturesUsd FuturePerpetual Candles
+                // TC8: Invalid Subscription w/ BinanceFuturesUsd FuturePerpetual Candles
                 input: Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
@@ -490,7 +490,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC7: Valid Subscription w/ Kraken Spot Candles
+                // TC9: Valid Subscription w/ Kraken Spot Candles
                 input: Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -499,6 +499,32 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                }),
+            },
+            TestCase {
+                // TC10: Valid Subscription w/ Bitfinex Spot Candles
+                input: Subscription {
+                    exchange: ExchangeId::Bitfinex,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Bitfinex,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                }),
+            },
+            TestCase {
+                // TC11: Valid Subscription w/ Kucoin Spot Candles
+                input: Subscription {
+                    exchange: ExchangeId::Kucoin,
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Kucoin,
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
                     kind: SubKind::Candle(Interval::Minute5),
                 }),
             },

@@ -216,6 +216,10 @@ pub enum ExchangeId {
     Coinbase,
     Ftx,
     Kraken,
+    /// Bitfinex spot server
+    Bitfinex,
+    /// Kucoin spot server
+    Kucoin,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -240,6 +244,8 @@ impl ExchangeId {
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Kucoin => "kucoin",
         }
     }
 
@@ -251,6 +257,8 @@ impl ExchangeId {
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Kucoin => "kucoin",
         }
     }
 
@@ -290,6 +298,7 @@ impl ExchangeId {
     pub fn supports_candles(&self) -> bool {
         match self {
             ExchangeId::Kraken => true,
+            ExchangeId::Bitfinex => true,
             _ => false,
         }
     }
