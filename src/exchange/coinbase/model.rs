@@ -2,7 +2,7 @@ use super::Coinbase;
 use crate::{
     exchange::de_str,
     model::{DataKind, Level, LevelDelta, OrderbookL2, OrderBookDelta, PublicTrade,
-            OrderBookEvent, OrderType, Order::Bid, Order::Ask, AtomicOrder,
+            OrderbookEvent, OrderType, Order::Bid, Order::Ask, AtomicOrder,
             de_floats},
     ExchangeId, MarketEvent, Validator,
 };
@@ -292,13 +292,13 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Received)> for MarketEvent
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookEvent(
-                OrderBookEvent::from(received)
+                OrderbookEvent::from(received)
             )
         }
     }
 }
 
-impl From<CoinbaseOrderBookL3Received> for OrderBookEvent {
+impl From<CoinbaseOrderBookL3Received> for OrderbookEvent {
     fn from(received: CoinbaseOrderBookL3Received) -> Self {
         let order = AtomicOrder {
             id: received.order_id,
@@ -306,9 +306,9 @@ impl From<CoinbaseOrderBookL3Received> for OrderBookEvent {
             size: received.size,
         };
         match received.side {
-            Side::Buy => OrderBookEvent::Received(
+            Side::Buy => OrderbookEvent::Received(
                 Bid(order, received.order_type), received.sequence),
-            Side::Sell => OrderBookEvent::Received(
+            Side::Sell => OrderbookEvent::Received(
                 Ask( order, received.order_type), received.sequence),
         }
     }
@@ -346,13 +346,13 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Open)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookEvent(
-                OrderBookEvent::from(open)
+                OrderbookEvent::from(open)
             )
         }
     }
 }
 
-impl From<CoinbaseOrderBookL3Open> for OrderBookEvent {
+impl From<CoinbaseOrderBookL3Open> for OrderbookEvent {
     fn from(open: CoinbaseOrderBookL3Open) -> Self {
         let order = AtomicOrder {
             id: open.order_id,
@@ -360,9 +360,9 @@ impl From<CoinbaseOrderBookL3Open> for OrderBookEvent {
             size: open.remaining_size,
         };
         match open.side {
-            Side::Buy => OrderBookEvent::Open(
+            Side::Buy => OrderbookEvent::Open(
                 Bid(order, OrderType::Limit), open.sequence),
-            Side::Sell => OrderBookEvent::Open(
+            Side::Sell => OrderbookEvent::Open(
                 Ask( order, OrderType::Limit), open.sequence),
         }
     }
@@ -402,15 +402,15 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Done)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookEvent(
-                OrderBookEvent::from(done)
+                OrderbookEvent::from(done)
             )
         }
     }
 }
 
-impl From<CoinbaseOrderBookL3Done> for OrderBookEvent {
+impl From<CoinbaseOrderBookL3Done> for OrderbookEvent {
     fn from(done: CoinbaseOrderBookL3Done) -> Self {
-        OrderBookEvent::Done(done.order_id,done.sequence)
+        OrderbookEvent::Done(done.order_id, done.sequence)
     }
 }
 
@@ -451,15 +451,15 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Change)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBookEvent(
-                OrderBookEvent::from(change)
+                OrderbookEvent::from(change)
             )
         }
     }
 }
 
-impl From<CoinbaseOrderBookL3Change> for OrderBookEvent {
+impl From<CoinbaseOrderBookL3Change> for OrderbookEvent {
     fn from(change: CoinbaseOrderBookL3Change) -> Self {
-        OrderBookEvent::Change(change.order_id,change.new_size, change.sequence)
+        OrderbookEvent::Change(change.order_id, change.new_size, change.sequence)
     }
 }
 
@@ -523,7 +523,7 @@ mod tests {
     use chrono::NaiveDateTime;
     use serde::de::Error;
     use std::str::FromStr;
-    use barter_integration::model::Side::Sell;
+    // use barter_integration::model::Side::Sell;
     use std::fs::File;
     use std::io::BufReader;
     use coinbase_pro_api::*;
@@ -981,8 +981,8 @@ mod tests {
     #[test]
     fn load_local_snapshot() {
         let f = File::open("Coinbase_orderbook_snapshot_ETH-USD_35140793720_20220830-183202.json").unwrap();
-        let mut reader = BufReader::new(f);
-        let snapshot: CoinbaseOrderBookL3Snapshot = serde_json::from_reader(reader).unwrap();
+        let reader = BufReader::new(f);
+        let _: CoinbaseOrderBookL3Snapshot = serde_json::from_reader(reader).unwrap();
     }
 
     #[tokio::test]

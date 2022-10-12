@@ -32,7 +32,7 @@ pub enum DataKind {
     Candle(Candle),
     OrderBookL2(OrderbookL2),
     OrderBookDelta(OrderBookDelta),
-    OrderBookEvent(OrderBookEvent),
+    OrderBookEvent(OrderbookEvent),
     // OrderBookL3(OrderBookL3Snapshot),
 }
 
@@ -45,10 +45,10 @@ impl DataKind {
             DataKind::OrderBookDelta(delta) => {&delta.update_id}
             DataKind::OrderBookEvent(event) => {
                 match event {
-                    OrderBookEvent::Received(_, sequence) => {sequence}
-                    OrderBookEvent::Open(_, sequence) => {sequence}
-                    OrderBookEvent::Done(_, sequence) => {sequence}
-                    OrderBookEvent::Change(_, _, sequence) => {sequence}
+                    OrderbookEvent::Received(_, sequence) => {sequence}
+                    OrderbookEvent::Open(_, sequence) => {sequence}
+                    OrderbookEvent::Done(_, sequence) => {sequence}
+                    OrderbookEvent::Change(_, _, sequence) => {sequence}
                 }
             },
             // DataKind::OrderBookL3(orderbook) => {&orderbook.sequence}
@@ -157,17 +157,28 @@ impl LevelDelta {
     }
 }
 
-type OrderId = String;
-type NewSize = f64;
-type Sequence = u64;
+pub type OrderId = String;
+pub type NewSize = f64;
+pub type Sequence = u64;
 
 /// Todo:
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub enum OrderBookEvent {
+pub enum OrderbookEvent {
     Received(Order, Sequence),
     Open(Order, Sequence),
     Done(OrderId, Sequence),
     Change(OrderId, NewSize, Sequence),
+}
+
+impl OrderbookEvent {
+    pub fn sequence(&self) -> Sequence {
+        match self {
+            OrderbookEvent::Received(_, seq) => seq.clone(),
+            OrderbookEvent::Open(_, seq) => seq.clone(),
+            OrderbookEvent::Done(_, seq) => seq.clone(),
+            OrderbookEvent::Change(_, _, seq) => seq.clone(),
+        }
+    }
 }
 
 /// Todo: might be useless

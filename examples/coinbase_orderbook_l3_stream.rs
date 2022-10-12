@@ -9,7 +9,7 @@ use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 use tokio::{signal, sync::oneshot};
 use tokio::sync::mpsc;
-use barter_data::model::{DataKind, Subscription};
+use barter_data::model::{DataKind, OrderbookEvent, Subscription};
 
 enum StreamState {
     Snapshot,
@@ -34,8 +34,11 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
 
             response = joined_stream.next() => {
                 if let Some((exchange, market_event)) = response {
-                    let data: DataKind = market_event.kind;
-                    let curr_seq: u64 = data.sequence().to_owned();
+
+                    println!("{:?}", market_event);
+
+                    // let data: DataKind = market_event.kind;
+                    // let curr_seq: u64 = data.sequence().to_owned();
 
                     // // check missed sequences
                     // if last_seq.is_some() && curr_seq != last_seq.unwrap() + 1 {
@@ -43,7 +46,6 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
                     //     println!("{:?}", data);
                     // }
                     // last_seq = Some(curr_seq);
-
 
                 }
             }
@@ -66,8 +68,8 @@ async fn main() {
 
     let (stop_tx, stop_rx) = oneshot::channel::<()>();
 
-    let (order_event_tx, order_event_rx) = mpsc::unbounded_channel();
-
+    let (order_event_tx, order_event_rx)
+        = mpsc::unbounded_channel::<OrderbookEvent>();
 
     let subscriptions: Vec<Subscription> = vec![
         (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::OrderBookL3).into()
