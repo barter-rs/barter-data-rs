@@ -38,3 +38,5 @@ ta = "0.5.0"
 
 # Misc
 chrono = {version = "0.4.21", features = ["serde"]}
+reqwest = "0.11.12"
+rand = "0.8.5"

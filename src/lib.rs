@@ -216,8 +216,9 @@ pub enum ExchangeId {
     Coinbase,
     Ftx,
     Kraken,
+    /// Bitfinex spot server
     Bitfinex,
-    /// Kucoin spot implementation
+    /// Kucoin spot server
     Kucoin,
 }
 

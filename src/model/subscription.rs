@@ -515,6 +515,19 @@ mod tests {
                     kind: SubKind::Candle(Interval::Minute5),
                 }),
             },
+            TestCase {
+                // TC11: Valid Subscription w/ Kucoin Spot Candles
+                input: Subscription {
+                    exchange: ExchangeId::Kucoin,
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::Kucoin,
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+                    kind: SubKind::Candle(Interval::Minute5),
+                }),
+            },
         ];
 
         for (index, test) in cases.into_iter().enumerate() {

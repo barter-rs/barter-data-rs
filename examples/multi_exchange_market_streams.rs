@@ -1,10 +1,10 @@
 use barter_data::{
     builder::Streams,
-    ExchangeId,
     model::{
+        subscription::{Interval, SubKind},
         MarketEvent,
-        subscription::{Interval, SubKind}
     },
+    ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
@@ -36,13 +36,62 @@ async fn main() {
         //     ],
         // )
         .subscribe([
-            (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Trade),
-            (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
+            (
+                ExchangeId::Kucoin,
+                "iota",
+                "usdt",
+                InstrumentKind::Spot,
+                SubKind::Trade,
+            )
+            // (
+            //     ExchangeId::Coinbase,
+            //     "btc",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Coinbase,
+            //     "eth",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Kraken,
+            //     "xbt",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::Kraken,
+            //     "xbt",
+            //     "usd",
+            //     InstrumentKind::Spot,
+            //     SubKind::Candle(Interval::Minute1),
+            // ),
+            // (
+            //     ExchangeId::BinanceFuturesUsd,
+            //     "btc",
+            //     "usdt",
+            //     InstrumentKind::FuturePerpetual,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::BinanceFuturesUsd,
+            //     "eth",
+            //     "usdt",
+            //     InstrumentKind::FuturePerpetual,
+            //     SubKind::Trade,
+            // ),
+            // (
+            //     ExchangeId::BinanceFuturesUsd,
+            //     "btc",
+            //     "usdt",
+            //     InstrumentKind::FuturePerpetual,
+            //     SubKind::OrderBook,
+            // ),
         ])
         .init()
         .await
