@@ -207,7 +207,7 @@ pub enum BitfinexPayload {
     Heartbeat,
     /// Real-time trade message.
     Trade(BitfinexTrade),
-    /// Candle messages
+    /// Candle message.
     Candle(BitfinexCandle),
 }
 
