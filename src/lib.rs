@@ -35,7 +35,7 @@ pub mod exchange;
 /// Initialises [`MarketStream`]s for an arbitrary number of exchanges using generic Barter
 /// [`Subscription`]s.
 pub mod builder;
-mod orderbook;
+pub mod orderbook;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange> =

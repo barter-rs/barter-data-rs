@@ -1,16 +1,24 @@
 #![allow(dead_code)]
 
+use std::collections::HashMap;
 use barter_data::{
     builder::Streams,
     ExchangeId,
     model::{MarketEvent, SubKind},
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::{
+    InstrumentKind,
+    Market,
+};
 use futures::StreamExt;
 use tokio::{signal, sync::oneshot};
 use tokio::sync::mpsc;
 use barter_data::model::{DataKind, Subscription};
-use barter_data::orderbook::OrderbookEvent;
+use barter_data::orderbook::{
+    OrderbookMap,
+    OrderbookL3,
+    OrderbookEvent,
+};
 
 enum StreamState {
     Snapshot,
@@ -19,6 +27,17 @@ enum StreamState {
 }
 
 async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Receiver<()>) {
+
+    // build orderbook for each OrderbookL3 subscription
+    let mut orderbook_map = OrderbookMap::new();
+    subscriptions
+        .iter()
+        .filter(|subscription| subscription.kind == SubKind::OrderBookL3)
+        .for_each(|subscription| {
+            orderbook_map.insert(
+                OrderbookL3::builder().market(Market::from(subscription)).build().unwrap()
+            )
+        });
 
     let streams = Streams::builder()
         .subscribe(subscriptions)
@@ -31,12 +50,21 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
 
     loop {
         tokio::select! {
-            _x = &mut stop_rx => break,
+            _x = &mut stop_rx => {
+                for (.. orderbook) in orderbook_map.map {
+
+                }
+                break
+            },
 
             response = joined_stream.next() => {
                 if let Some((exchange, market_event)) = response {
 
                     println!("{:?}", market_event);
+
+                    match market_event {
+
+                    }
 
                     // let data: DataKind = market_event.kind;
                     // let curr_seq: u64 = data.sequence().to_owned();
