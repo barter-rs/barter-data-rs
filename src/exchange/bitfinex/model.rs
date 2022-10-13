@@ -205,7 +205,7 @@ pub struct BitfinexMessage {
 pub enum BitfinexPayload {
     /// Heartbeat message sent by Bitfinex
     Heartbeat,
-    /// Real-time trade messages
+    /// Real-time trade message.
     Trade(BitfinexTrade),
     /// Candle messages
     Candle(BitfinexCandle),
