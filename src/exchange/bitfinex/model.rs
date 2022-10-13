@@ -213,7 +213,7 @@ pub enum BitfinexPayload {
 
 /// [`Bitfinex`](super::Bitfinex) aggregated candle.
 ///
-/// Format: \[TIME, OPEN, CLOSE, HIGH, LOW, VOLUME]
+/// Format: \[TIME, OPEN, CLOSE, HIGH, LOW, VOLUME\]
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexCandle {
     /// Exchange timestamp for end of the candle.
