@@ -443,7 +443,7 @@ impl<'de> Deserialize<'de> for BitfinexCandle {
             where
                 SeqAccessor: serde::de::SeqAccess<'de>,
             {
-                // Cnadle: [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME]
+                // Candle: [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME]
                 let time_millis = extract_next(&mut seq, "time")?;
                 let open = extract_next(&mut seq, "open")?;
                 let close = extract_next(&mut seq, "close")?;
