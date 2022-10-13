@@ -1,10 +1,10 @@
 use super::Coinbase;
 use crate::{
     exchange::de_str,
-    model::{DataKind, Level, LevelDelta, OrderbookL2, OrderBookDelta, PublicTrade,
-            OrderbookEvent, OrderType, Order::Bid, Order::Ask, AtomicOrder,
-            de_floats},
-    ExchangeId, MarketEvent, Validator,
+    ExchangeId,
+    MarketEvent, model::{DataKind, de_floats, Level, LevelDelta, OrderBookDelta,
+                         OrderbookL2,
+                         PublicTrade}, Validator,
 };
 use barter_integration::{
     error::SocketError,
@@ -13,6 +13,8 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde::de::Error;
+use crate::orderbook::{AtomicOrder, OrderbookEvent, OrderType};
+use crate::orderbook::Order::{Ask, Bid};
 // use coinbase_pro_api::{CoinbasePublicClient, OBLevel};
 
 /// ['Coinbase'] message variants that can be received over ['REST API']

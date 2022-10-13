@@ -14,6 +14,7 @@ use std::{
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
+use crate::orderbook::{OrderbookEvent};
 
 /// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -155,56 +156,6 @@ impl LevelDelta {
             quantity: quantity.into(),
         }
     }
-}
-
-pub type OrderId = String;
-pub type NewSize = f64;
-pub type Sequence = u64;
-
-/// Todo:
-#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub enum OrderbookEvent {
-    Received(Order, Sequence),
-    Open(Order, Sequence),
-    Done(OrderId, Sequence),
-    Change(OrderId, NewSize, Sequence),
-}
-
-impl OrderbookEvent {
-    pub fn sequence(&self) -> Sequence {
-        match self {
-            OrderbookEvent::Received(_, seq) => seq.clone(),
-            OrderbookEvent::Open(_, seq) => seq.clone(),
-            OrderbookEvent::Done(_, seq) => seq.clone(),
-            OrderbookEvent::Change(_, _, seq) => seq.clone(),
-        }
-    }
-}
-
-/// Todo: might be useless
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum OrderType {
-    Limit,
-    Market,
-}
-
-/// Todo:
-#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub enum Order {
-    Bid(AtomicOrder, OrderType),
-    Ask(AtomicOrder, OrderType),
-}
-
-/// Todo:
-/// Most basic order struct - this is how it should look in the orderbook
-#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub struct AtomicOrder {
-    pub id: OrderId,
-    #[serde(deserialize_with = "de_floats")]
-    pub price: f64,
-    #[serde(deserialize_with = "de_floats")]
-    pub size: f64,
 }
 
 impl From<Event<MarketEvent>> for MarketEvent {

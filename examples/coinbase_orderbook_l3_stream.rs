@@ -2,14 +2,15 @@
 
 use barter_data::{
     builder::Streams,
-    model::{MarketEvent, SubKind},
     ExchangeId,
+    model::{MarketEvent, SubKind},
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 use tokio::{signal, sync::oneshot};
 use tokio::sync::mpsc;
-use barter_data::model::{DataKind, OrderbookEvent, Subscription};
+use barter_data::model::{DataKind, Subscription};
+use barter_data::orderbook::OrderbookEvent;
 
 enum StreamState {
     Snapshot,
