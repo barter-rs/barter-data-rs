@@ -203,7 +203,7 @@ pub struct BitfinexMessage {
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub enum BitfinexPayload {
-    /// Heartbeat message sent by Bitfinex
+    /// Heartbeat message sent by `Bitfinex`.
     Heartbeat,
     /// Real-time trade message.
     Trade(BitfinexTrade),
