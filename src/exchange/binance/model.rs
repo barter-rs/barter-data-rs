@@ -141,7 +141,6 @@ impl From<(ExchangeId, Instrument, BinanceOrderBook)> for MarketEvent {
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: DataKind::OrderBook(OrderBook {
-                last_update_time: snapshot.time,
                 last_update_id: snapshot.last_update_id,
                 bids: snapshot.bids.into_iter().map(Level::from).collect(),
                 asks: snapshot.asks.into_iter().map(Level::from).collect(),

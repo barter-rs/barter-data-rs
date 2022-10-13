@@ -25,6 +25,7 @@ pub struct MarketEvent {
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
+    /// Level 2 orderbook snapshot
     OrderBook(OrderBook),
 }
 
@@ -50,10 +51,9 @@ pub struct Candle {
     pub trade_count: u64,
 }
 
-/// Normalised Barter [`OrderBook`] snapshot.
+/// Normalised Barter level 2 [`OrderBook`] snapshot.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
-    pub last_update_time: DateTime<Utc>,
     pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
@@ -86,6 +86,8 @@ impl Level {
         }
     }
 }
+
+
 
 impl From<Event<MarketEvent>> for MarketEvent {
     fn from(event: Event<MarketEvent>) -> Self {

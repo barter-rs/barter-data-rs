@@ -306,9 +306,10 @@ impl ExchangeId {
     /// Determines whether this [`ExchangeId`] supports the collection of OrderBook snapshot
     /// market data.
     #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_order_books(&self) -> bool {
+    pub fn supports_ob_l2_snapshot(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::Kucoin => true,
             _ => false,
         }
     }

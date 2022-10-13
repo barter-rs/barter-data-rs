@@ -128,7 +128,7 @@ impl BinanceFuturesUsd {
         // Determine the BinanceFuturesUsd channel
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
-            SubKind::OrderBook => Self::CHANNEL_ORDER_BOOK,
+            SubKind::L2OrderBookSnapshot(_) => Self::CHANNEL_ORDER_BOOK,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: BinanceFuturesUsd::EXCHANGE.as_str(),

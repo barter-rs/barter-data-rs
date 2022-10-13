@@ -2,7 +2,7 @@ use barter_integration::{Validator, error::SocketError, model::{SubscriptionId, 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::{exchange::datetime_utc_from_epoch_duration, ExchangeId, model::{MarketEvent, PublicTrade}};
+use crate::{exchange::{datetime_utc_from_epoch_duration, de_u64_epoch_ms_as_datetime_utc}, ExchangeId, model::{MarketEvent, PublicTrade, OrderBook, Level}};
 
 use super::Kucoin;
 
@@ -61,15 +61,25 @@ impl Validator for KucoinSubResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
 #[serde(rename_all = "camelCase", tag = "subject")]
 pub enum KucoinMessage {
-    /// Real-time trade messages.
+    /// Real-time trade messages
     #[serde(rename = "trade.l3match")]
     Trade {
-        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message,
+        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message
         #[serde(rename = "topic", deserialize_with = "de_kucoin_trade_subscription_id")]
         subscription_id: SubscriptionId,
-        /// The [`KucoinTrade`] contained within this message.
+        /// The [`KucoinTrade`] contained within this message
         #[serde(alias = "data")]
         trade: KucoinTrade,
+    },
+    /// 100ms orderbook l2 snapshot message, can be depth5 or depth50
+    #[serde(rename = "level2")]
+    Level2Snapshot {
+        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message
+        #[serde(rename = "topic", deserialize_with = "de_kucoin_trade_subscription_id")]
+        subscription_id: SubscriptionId,
+        /// The [`KucoinL2Snapshot`] contained within this message
+        #[serde(alias = "data")]
+        l2_snapshot: KucoinL2Snapshot,
     }
 }
 
@@ -78,8 +88,31 @@ impl From<&KucoinMessage> for SubscriptionId {
         match message {
             KucoinMessage::Trade { subscription_id, ..
             } => subscription_id.clone(),
+            KucoinMessage::Level2Snapshot { subscription_id, .. 
+            } => subscription_id.clone(),
         }
     }
+}
+
+
+/// ['Kucoin'](super::Kucoin) level 2 orderbook snapshot. Can be depth5 or depth50.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[serde(rename_all = "camelCase")]
+pub struct KucoinL2Snapshot {
+    #[serde(rename = "timestamp", deserialize_with = "de_u64_epoch_ms_as_datetime_utc")]
+    pub time: DateTime<Utc>,
+    pub bids: Vec<KucoinLevel>,
+    pub asks: Vec<KucoinLevel>,
+}
+
+/// ['Kucoin'](super::Kucoin) level 2 snapshot level. They are sent as
+/// [price, size] arrays, for example ["9990","32"].
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Copy)]
+pub struct KucoinLevel {
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
 }
 
 /// [`Kucoin`](super::Kucoin) trade match. This is not aggregated.
@@ -130,6 +163,32 @@ impl From<(ExchangeId, Instrument, KucoinTrade)> for MarketEvent {
                 quantity: trade.size,
                 side: trade.side,
             })
+        }
+    }
+}
+
+impl From<(ExchangeId, Instrument, KucoinL2Snapshot)> for MarketEvent {
+    fn from((exchange, instrument, l2_snapshot): (ExchangeId, Instrument, KucoinL2Snapshot)) -> Self {
+        Self {
+            exchange_time: l2_snapshot.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange.as_str()),
+            instrument,
+            kind: crate::model::DataKind::OrderBook(OrderBook {
+                // TODO: This is not provided, what to put instead?
+                last_update_id: 0,
+                bids: l2_snapshot.bids.into_iter().map(Level::from).collect(),
+                asks: l2_snapshot.asks.into_iter().map(Level::from).collect(),
+            })
+        }
+    }
+}
+
+impl From<KucoinLevel> for Level {
+    fn from(lvl: KucoinLevel) -> Self {
+        Self {
+            price: lvl.price,
+            quantity: lvl.quantity
         }
     }
 }
@@ -292,6 +351,34 @@ mod tests {
                         time:  datetime_utc_from_epoch_duration(Duration::from_millis(1665515633638))
                     }
                 })
+            },
+            // TC2: level 2 snapshot
+            TestCase {
+                input: r#"{
+                    "type":"message",
+                    "topic":"/spotMarket/level2Depth5:BTC-USDT",
+                    "subject":"level2",
+                    "data":{
+                        "asks":[["18800.9","0.9175"],
+                                ["18801","0.0675"]],
+                        "bids":[["18795.1","0.0828"],
+                                ["18794.6","0.05422529"]],
+                        "timestamp":1665674855819
+                        }
+                    }"#,
+                expected: Ok(KucoinMessage::Level2Snapshot { 
+                    subscription_id: SubscriptionId::from("/spotMarket/level2Depth5:BTC-USDT"), 
+                    l2_snapshot: KucoinL2Snapshot { 
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1665674855819)), 
+                        asks: vec![
+                            KucoinLevel { price: 18800.9, quantity: 0.9175},
+                            KucoinLevel { price: 18801.0, quantity: 0.0675}
+                        ], 
+                        bids: vec![
+                            KucoinLevel { price: 18795.1, quantity: 0.0828},
+                            KucoinLevel { price: 18794.6, quantity: 0.05422529},
+                        ] 
+                    }})
             }
         ];
 

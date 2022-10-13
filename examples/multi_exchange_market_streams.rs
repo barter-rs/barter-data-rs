@@ -3,7 +3,7 @@ use barter_data::{
     ExchangeId,
     model::{
         MarketEvent,
-        subscription::{Interval, SubKind}
+        subscription::{Interval, SubKind, SnapshotDepth}
     },
 };
 use barter_integration::model::InstrumentKind;
@@ -32,7 +32,7 @@ async fn main() {
             (ExchangeId::Kraken, "xbt", "usd", InstrumentKind::Spot, SubKind::Candle(Interval::Minute1)),
             (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
-            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBook),
+            (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::L2OrderBookSnapshot(SnapshotDepth::Depth5)),
         ])
         .init()
         .await

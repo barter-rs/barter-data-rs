@@ -34,7 +34,7 @@ use tokio::sync::mpsc;
 use crate::{
     exchange::get_time,
     model::{
-        subscription::{SubKind, Subscription, SubscriptionIds, SubscriptionMeta},
+        subscription::{SubKind, Subscription, SubscriptionIds, SubscriptionMeta, SnapshotDepth},
         MarketEvent,
     },
     ExchangeId, ExchangeTransformer, Subscriber,
@@ -86,8 +86,16 @@ struct DefaultMsg {
 impl Kucoin {
     /// [`Kucoin`] trades channel name.
     ///
-    /// See docs:
+    /// See docs: <https://docs.kucoin.com/#match-execution-data>
     pub const CHANNEL_TRADES: &'static str = "/market/match:";
+    /// [`Kucoin`] level 2 snapshot for top 5 bids and asks
+    /// 
+    /// see docs: <https://docs.kucoin.com/#level2-5-best-ask-bid-orders>
+    pub const CHANNEL_L2SNAPSHOT_5: &'static str = "/spotMarket/level2Depth5:";
+    /// [`Kucoin`] level 2 snapshot for top 50 bids and asks
+    /// 
+    /// see docs: <https://docs.kucoin.com/#level2-50-best-ask-bid-orders>
+    pub const CHANNEL_L2SNAPSHOT_50: &'static str = "/spotMarket/level2Depth50:"; 
 
     /// Determine the [`Kucoin`] channel metadata associated with an input Barter [`Subscription`].
     /// This returns the topic message.
@@ -109,6 +117,10 @@ impl Kucoin {
         // Determine Kucoin channel using the Subscription SubKind
         match &sub.kind {
             SubKind::Trade => return Ok(format!("{}{}", Self::CHANNEL_TRADES, market)),
+            SubKind::L2OrderBookSnapshot(depth) => match depth {
+                SnapshotDepth::Depth5 => return Ok(format!("{}{}", Self::CHANNEL_L2SNAPSHOT_5, market)),
+                SnapshotDepth::Depth50 => return Ok(format!("{}{}", Self::CHANNEL_L2SNAPSHOT_50, market)),
+            },
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -137,6 +149,7 @@ impl Kucoin {
     /// the original Barter [`Subscription`].
     ///
     /// ex/ SubscriptionId("/market/match:BTC-USDT")
+    /// ex/ SubscriptionId("/spotMarket/level2Depth5:BTC-USDT")
     pub fn subscription_id(topic: &str) -> SubscriptionId {
         SubscriptionId::from(topic)
     }
@@ -253,6 +266,17 @@ impl Transformer<MarketEvent> for Kucoin {
                 };
 
                 vec![Ok(MarketEvent::from((Kucoin::EXCHANGE, instrument.clone(), trade)))]
+            },
+            KucoinMessage::Level2Snapshot { 
+                subscription_id, 
+                l2_snapshot 
+            } => {
+                let instrument = match self.ids.find_instrument(&subscription_id) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error),]
+                };
+
+                vec![Ok(MarketEvent::from((Kucoin::EXCHANGE, instrument.clone(), l2_snapshot)))]
             }
         }
     }
@@ -260,12 +284,10 @@ impl Transformer<MarketEvent> for Kucoin {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Sub;
-
     use barter_integration::model::{Side, Instrument, Exchange};
     use chrono::Utc;
 
-    use crate::{exchange::kucoin::model::KucoinTrade, model::PublicTrade};
+    use crate::{exchange::{kucoin::model::{KucoinTrade, KucoinLevel, KucoinL2Snapshot}, datetime_utc_from_epoch_duration}, model::{PublicTrade, OrderBook, Level}};
 
     use super::*;
 
@@ -280,6 +302,13 @@ mod tests {
                                 sub.instrument.base.to_string().to_uppercase(),
                                 sub.instrument.quote.to_string().to_uppercase())
                         ),
+                        (SubKind::L2OrderBookSnapshot(SnapshotDepth::Depth5), InstrumentKind::Spot) =>
+                            Kucoin::subscription_id(
+                                &format!("{}{}-{}",
+                                Kucoin::CHANNEL_L2SNAPSHOT_5,
+                                sub.instrument.base.to_string().to_uppercase(),
+                                sub.instrument.quote.to_string().to_uppercase())
+                            ),
                         (_, _) => {panic!("Not supported")},
                     };
 
@@ -336,6 +365,13 @@ mod tests {
                 "usdt",
                 InstrumentKind::Spot,
                 SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::Kucoin,
+                "btc",
+                "usdt",
+                InstrumentKind::Spot,
+                SubKind::L2OrderBookSnapshot(SnapshotDepth::Depth5)
             ))
         ]);
 
@@ -394,6 +430,39 @@ mod tests {
                         quantity: 0.9,
                         side: Side::Buy,
                     }) 
+                })]
+            },
+            TestCase {
+                // TC2: KucoinMessage L2 orderbook snapshot w/ known SubscriptionId
+                input: KucoinMessage::Level2Snapshot { 
+                    subscription_id: SubscriptionId::from("/spotMarket/level2Depth5:BTC-USDT"), 
+                    l2_snapshot: KucoinL2Snapshot { 
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1665674855819)), 
+                        asks: vec![
+                            KucoinLevel { price: 18800.9, quantity: 0.9175},
+                            KucoinLevel { price: 18801.0, quantity: 0.0675}
+                        ], 
+                        bids: vec![
+                            KucoinLevel { price: 18795.1, quantity: 0.0828},
+                            KucoinLevel { price: 18794.6, quantity: 0.05422529},
+                        ] 
+                    }
+                },
+                expected: vec![Ok(MarketEvent { 
+                    exchange_time: datetime_utc_from_epoch_duration(Duration::from_millis(1665674855819)), 
+                    received_time: time, 
+                    exchange: Exchange::from(ExchangeId::Kucoin), 
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)), 
+                    kind: crate::model::DataKind::OrderBook(OrderBook { 
+                        last_update_id: 0, 
+                        asks: vec![
+                            Level { price: 18800.9, quantity: 0.9175 },
+                            Level { price: 18801.0, quantity: 0.0675 }
+                        ], 
+                        bids: vec![
+                            Level { price: 18795.1, quantity: 0.0828 },
+                            Level { price: 18794.6, quantity: 0.05422529}
+                        ] }) 
                 })]
             }
         ];

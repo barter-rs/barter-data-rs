@@ -44,7 +44,7 @@ impl Validator for &Subscription {
         match self.kind {
             SubKind::Trade if self.exchange.supports_trades() => {}
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
-            SubKind::OrderBook if self.exchange.supports_order_books() => {}
+            SubKind::L2OrderBookSnapshot(_) if self.exchange.supports_ob_l2_snapshot() => {}
             other => {
                 return Err(SocketError::Unsupported {
                     entity: self.exchange.as_str(),
@@ -113,9 +113,12 @@ impl Subscription {
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubKind {
+    /// Aggregated trades subscription.
     Trade,
+    /// Candle subscription.
     Candle(Interval),
-    OrderBook,
+    /// Level 2 orderbook snapshots with a specified [`SnapshotDepth`].
+    L2OrderBookSnapshot(SnapshotDepth),
     OrderBookL2Delta,
     OrderBookL3Delta,
 }
@@ -128,9 +131,29 @@ impl Display for SubKind {
             match self {
                 SubKind::Trade => "trade".to_owned(),
                 SubKind::Candle(interval) => format!("candle_{}", interval),
-                SubKind::OrderBook => "order_book".to_owned(),
+                SubKind::L2OrderBookSnapshot(depth) => format!("ob_l2_snapshot_{}", depth),
                 SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
+            }
+        )
+    }
+}
+
+/// Barter orderbook depth used for specifying the depth of a [`SubKind::L2OrderBookSnapshot`].
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum SnapshotDepth {
+    Depth5,
+    Depth50,
+}
+
+impl Display for SnapshotDepth {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                SnapshotDepth::Depth5 => "depth5",
+                SnapshotDepth::Depth50 => "depth50",
             }
         )
     }
