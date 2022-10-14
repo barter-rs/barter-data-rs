@@ -1,17 +1,20 @@
+#![allow(dead_code)]
+
 use crate::ExchangeId;
 use barter_integration::{
     error::SocketError,
+    Event,
     model::{Exchange, Instrument, InstrumentKind, Market, Side, SubscriptionId, Symbol},
-    protocol::websocket::WsMessage,
-    Event, Validator,
+    protocol::websocket::WsMessage, Validator,
 };
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{de::Error, Deserialize, Deserializer, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
+use crate::orderbook::{OrderbookEvent};
 
 /// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -23,14 +26,41 @@ pub struct MarketEvent {
     pub kind: DataKind,
 }
 
+impl MarketEvent {
+    pub fn market(&self) -> Market {
+        Market::from((self.exchange.clone(), self.instrument.clone()))
+    }
+}
+
 /// Defines the type of Barter [`MarketEvent`].
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
-    OrderBook(OrderBook),
+    OrderBookL2(OrderbookL2),
     OrderBookDelta(OrderBookDelta),
-    OrderBookEvent(OrderBookEvent),
+    OrderBookEvent(OrderbookEvent),
+    // OrderBookL3(OrderBookL3Snapshot),
+}
+
+impl DataKind {
+    pub fn sequence(&self) -> &u64 {
+        match self {
+            DataKind::Trade(trade) => {&trade.sequence}
+            DataKind::Candle(_candle) => {&0}  // todo: derive this?
+            DataKind::OrderBookL2(orderbook) => {&orderbook.last_update_id}
+            DataKind::OrderBookDelta(delta) => {&delta.update_id}
+            DataKind::OrderBookEvent(event) => {
+                match event {
+                    OrderbookEvent::Received(_, sequence) => {sequence}
+                    OrderbookEvent::Open(_, sequence) => {sequence}
+                    OrderbookEvent::Done(_, sequence) => {sequence}
+                    OrderbookEvent::Change(_, _, sequence) => {sequence}
+                }
+            },
+            // DataKind::OrderBookL3(orderbook) => {&orderbook.sequence}
+        }
+    }
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -60,7 +90,7 @@ pub struct Candle {
 ///  - Rust docs
 ///  - Will have to add fields to support generic delta updates...
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct OrderBook {
+pub struct OrderbookL2 {
     pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
@@ -134,36 +164,6 @@ impl LevelDelta {
     }
 }
 
-type OrderId = String;
-type NewSize = f64;
-type Sequence = u64;
-
-/// Todo:
-#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub enum OrderBookEvent {
-    Received(Order, Sequence),
-    Open(Order, Sequence),
-    Done(OrderId, Sequence),
-    Change(OrderId, NewSize, Sequence),
-}
-
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum OrderType {
-    Market,
-    Limit,
-}
-
-/// Todo:
-#[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
-pub struct Order {
-    pub id: OrderId,
-    pub side: Side,
-    pub price: f64,
-    pub size: f64,
-    pub order_type: OrderType,
-}
-
 impl From<Event<MarketEvent>> for MarketEvent {
     fn from(event: Event<MarketEvent>) -> Self {
         event.payload
@@ -226,12 +226,6 @@ where
 {
     fn from((exchange, instrument, stream): (ExchangeId, I, SubKind)) -> Self {
         Self::new(exchange, instrument, stream)
-    }
-}
-
-impl From<Subscription> for Market {
-    fn from(subscription: Subscription) -> Self {
-        Self::new(subscription.exchange, subscription.instrument)
     }
 }
 
@@ -380,6 +374,13 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
     {
         HashMap::deserialize(deserializer).map(SubscriptionIds)
     }
+}
+
+/// Todo:
+pub fn de_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
+    where D: Deserializer<'de>, {
+    let num_str: String = Deserialize::deserialize(deserializer)?;
+    num_str.parse().map_err(|_| D::Error::custom("Float parsing error"))
 }
 
 impl SubscriptionIds {
