@@ -45,3 +45,5 @@ chrono = {version = "0.4.21", features = ["serde"]}
 
 # Testing-only
 rand = "0.8.5"
+num-traits = "0.2.15"
+bounded-vec-deque = "0.1.1"

@@ -1,3 +1,26 @@
+//! # Features
+//! - No unsafe rust used (yet?)
+//! - Vector-based bid and ask books with a VecDeque for each price level
+//! - Iteration over entire book, insert/remove/update, liquidity curve (see levels method),
+//! order refs/muts by id, and more
+//! - Sequence-checking: out-of-sequence messages are ignored
+//! - Optional simple factor-based outlier filter. choose a % deviation bound from best bid/ask and
+//! orderbook will skip processing orders with prices outside the bound. This is especially useful for
+//! exchanges which constantly broadcast extreme limit orders that are unlikely to ever fill - these
+//! orders only serve to slow down vector-based books.
+//!
+//! # Todos
+//! - Test the outlier filter
+//! - Implement snapshot loading and sync mechanism (for snapshots retrieved through REST).
+//! - Initially built with coinbase in mind, but should be abstract enough to work with any other
+//! exchanges that support L3 streams.
+//! - Fix matches missing from Coinbase full channel. This doesn't affect orderbook state but makes
+//! it difficult to cleanly model market order impacts before they're confirmed by the websocket.
+//! - Simple stats tracking - can generalize this and add more stats as, right now, it only
+//! counts events processed/skipped and (optionally) collects internally-generated error msgs.
+//! - Add option to swap in other data structures as desired. For example, slab B-tree bid and ask books,
+//! or doubly linked order queues.
+
 // standard
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::cmp::{Ordering, Reverse};
@@ -5,13 +28,16 @@ use std::fmt::{Display, Formatter};
 use std::iter::{Peekable, Rev};
 // external
 use barter_integration::model::{Market, Side};
-use chrono::Utc;
+use chrono::{DateTime, Duration, Utc};
 use thiserror::Error;
 use serde::{Deserialize, Serialize};
 // internal
 use crate::model::de_floats;
+// testing
+use num_traits::identities::Zero;
+use bounded_vec_deque::BoundedVecDeque;
 
-const DEFAULT_OUTLIER_FACTOR: f64 = 2.0;
+const DEFAULT_OUTLIER_FACTOR: f64 = 0.50;
 const DEFAULT_BEST_BID: f64 = 0.0;
 const DEFAULT_BEST_ASK: f64 = 0.0;
 
@@ -200,10 +226,10 @@ impl OrderDeque {
         self.deque.iter().fold(0.0, |a, b| a + b.size)
     }
 
-    // /// get length of deque
-    // fn len(&self) -> usize {
-    //     self.deque.len()
-    // }
+    /// get length of deque
+    fn len(&self) -> usize {
+        self.deque.len()
+    }
 }
 
 /// Simple outlier filter that keeps track of outlier order ids.
@@ -216,6 +242,8 @@ impl OrderDeque {
 /// Enable using the outlier_filter or outlier_filter_default methods in the orderbook builder.
 #[derive(Clone, Debug)]
 pub struct SimpleOutlierFilter {
+    // todo: put sensible bounds on the outlier_factor?
+    // todo: consider separate outlier factors for bids and asks?
     pub outlier_factor: f64,
     pub outlier_ids: HashSet<String>,
     pub outliers_encountered: u64,
@@ -247,7 +275,7 @@ impl SimpleOutlierFilter {
                     Ok(())
                 } else {
                     // update cutoff based on best bid and compare
-                    match order.price().partial_cmp(&(top_level.0 / self.outlier_factor)) {
+                    match order.price().partial_cmp(&(top_level.0 * (1.0 - self.outlier_factor))) {
                         Some(Ordering::Less) => {
                             self.outlier_ids.insert(order.id().to_owned());
                             Err(OrderbookError::Outlier)
@@ -262,7 +290,7 @@ impl SimpleOutlierFilter {
                     Ok(())
                 } else {
                     // update cutoff based on best ask and compare
-                    match order.price().partial_cmp(&(top_level.1 * self.outlier_factor)) {
+                    match order.price().partial_cmp(&(top_level.1 * (1.0 + self.outlier_factor))) {
                         Some(Ordering::Greater) => {
                             self.outlier_ids.insert(order.id().to_owned());
                             Err(OrderbookError::Outlier)
@@ -282,7 +310,7 @@ impl SimpleOutlierFilter {
 pub struct OrderbookStats {
     pub events_processed: u64,
     pub events_not_processed: u64,
-    pub error_msgs: Option<HashSet<String>>,
+    pub error_msgs: Option<Vec<String>>,
 }
 
 impl OrderbookStats {
@@ -291,7 +319,7 @@ impl OrderbookStats {
             events_processed: 0,
             events_not_processed: 0,
             error_msgs: match track_errors {
-                true => Some(HashSet::<String>::new()),
+                true => Some(Vec::<String>::new()),
                 false => None,
             },
         }
@@ -304,6 +332,7 @@ pub struct OrderbookL3 {
     // info
     pub market: Market,
     pub last_sequence: u64,
+    pub start_time: DateTime<Utc>,
 
     // data structures
     pub bids: Vec<OrderDeque>,
@@ -311,8 +340,11 @@ pub struct OrderbookL3 {
     // todo: consider replacing (Side, NonNan) with raw pointer or Arc Mutex to OrderDeque
     pub order_id_map: HashMap<String, (Side, NonNan)>,
 
+    // optional features
     pub outlier_filter: Option<SimpleOutlierFilter>,
     pub stats: Option<OrderbookStats>,
+    pub panic_button: bool,
+    pub last_n_events: Option<BoundedVecDeque<OrderbookEvent>>
 }
 
 /// todo: refactor insert/remove/update to reuse code
@@ -330,6 +362,19 @@ impl OrderbookL3 {
     /// returns ask level count
     pub fn num_ask_levels(&self) -> usize {
         self.asks.len()
+    }
+
+    /// returns order count in book
+    pub fn len(&self) -> usize { self.iter().count() }
+
+    /// returns bid count in book
+    pub fn bid_count(&self) -> usize {
+        self.bids.iter().fold(0,|sum, x| sum + x.len())
+    }
+
+    /// returns ask count in book
+    pub fn ask_count(&self) -> usize {
+        self.asks.iter().fold(0, |sum, x| sum + x.len())
     }
 
     /// returns best bid in orderbook.
@@ -361,8 +406,33 @@ impl OrderbookL3 {
         (self.best_bid(), self.best_ask())
     }
 
+    /// for debugging only - panics if best_bid goes above best_ask.
+    /// Enabled by calling add_panic_button on the orderbook builder.
+    pub fn panic_button(&self) {
+        if self.panic_button
+        && !self.best_bid().is_zero()
+        && !self.best_ask().is_zero()
+        && self.best_bid() > self.best_ask() {
+            self.print_info(true);
+            self.print_book();
+            panic!()
+        }
+    }
+
+    /// for debugging. Store last n events in a bounded VecDeque.
+    /// Enabled by calling last_n_events on the orderbook builder.
+    pub fn store_event(&mut self, event: &OrderbookEvent) {
+        if self.last_n_events.is_some() {
+            self.last_n_events.as_mut().unwrap().push_back(event.clone());
+        }
+    }
+
     /// process an OrderbookEvent
     pub fn process(&mut self, event: OrderbookEvent) {
+
+        // for debugging only
+        self.store_event(&event);
+
         let sequence = event.sequence();
         let result: Result<(), OrderbookError> = match &sequence.cmp(&self.last_sequence) {
             Ordering::Greater => {
@@ -378,6 +448,9 @@ impl OrderbookL3 {
             _ => Err(OrderbookError::OutOfSequence(event))
         };
         self.update_sequence_and_stats(result, sequence);
+
+        // for debugging only
+        self.panic_button()
     }
 
     /// update sequence, update stats if enabled (and error msgs if both stats and error msgs
@@ -398,7 +471,7 @@ impl OrderbookL3 {
                     stats.error_msgs
                         .as_mut()
                         .map(|map| {
-                            map.insert(format!("{:?} - {:?} - {:?}", Utc::now(), sequence, error))
+                            map.push(format!("{:?} - sequence {:?} - {:?}", Utc::now(), self.last_sequence, error))
                         });
                 });
             },
@@ -476,6 +549,7 @@ impl OrderbookL3 {
     /// Finds order's deque and removes it by index, and then removes it from order_id_map.
     /// If order deque is left with no orders, remove it too.
     fn remove(&mut self, order_id: &str) -> Result<(), OrderbookError> {
+        let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         match self.get_deque_pos_mut_by_id(order_id) {
             Ok((side, idx, maybe_deque)) => {
                 let deque = maybe_deque?;
@@ -485,7 +559,7 @@ impl OrderbookL3 {
                         self.delete_deque_if_empty(side, idx);
                         Ok(())
                     }
-                    None => Err(OrderbookError::OrderNotFoundInDeque(order_id.to_owned())),
+                    None => Err(OrderbookError::OrderNotFoundInDeque(not_found_in_deque_msg)),
                 }
             }
             Err(OrderbookError::Outlier) => {
@@ -589,21 +663,23 @@ impl OrderbookL3 {
 
     /// Get reference to an order in the book by its id
     pub fn get_order_ref(&self, order_id: &str) -> Result<&AtomicOrder, OrderbookError> {
+        let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         let (.., maybe_deque) = self.get_deque_pos_by_id(order_id)?;
         let deque = maybe_deque?;
         match deque.get_ref(order_id) {
             Some(order) => Ok(order),
-            None => Err(OrderbookError::OrderNotFoundInDeque(order_id.to_owned()))
+            None => Err(OrderbookError::OrderNotFoundInDeque(not_found_in_deque_msg)),
         }
     }
 
     /// Get mutable reference to an order in the book by its id
     pub fn get_order_mut(&mut self, order_id: &str) -> Result<&mut AtomicOrder, OrderbookError> {
+        let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         let (.., maybe_deque) = self.get_deque_pos_mut_by_id(order_id)?;
         let deque = maybe_deque?;
         match deque.get_mut(order_id) {
             Some(order) => Ok(order),
-            None => Err(OrderbookError::OrderNotFoundInDeque(order_id.to_owned()))
+            None => Err(OrderbookError::OrderNotFoundInDeque(not_found_in_deque_msg))
         }
     }
 
@@ -660,42 +736,80 @@ impl OrderbookL3 {
         iter
     }
 
+    pub fn time_elapsed(&self) -> Duration {
+        Utc::now() - self.start_time
+    }
+
+    pub fn hms(duration: Duration) -> String {
+        let seconds = duration.num_seconds() % 60;
+        let minutes = duration.num_minutes() % 60;
+        let hours = duration.num_hours();
+        format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+    }
+
+    pub fn print_book(&self) {
+        println!("-------All orders in book:-------");
+        self.iter().for_each(|order| println!("{:?}", order));
+        println!("----------------------------------")
+    }
+
     pub fn print_info(&self, include_errors: bool) {
-        println!("-------------------------------------------");
-        println!("\n{:?} Stats", self.market);
-        println!("Bid/Ask: {:?} / {:?}", self.best_bid(), self.best_ask());
+        println!("\n-------------------------------------------");
+        println!("Orderbook Stats for {:?}", self.market);
+        println!("Last sequence: {:?}", self.last_sequence);
+        println!("Best Bid/Ask: {:?} / {:?}", self.best_bid(), self.best_ask());
         println!("First 10 Bid Levels: {:?}", self.levels(Side::Buy, Some(10)));
         println!("First 10 Ask Levels: {:?}", self.levels(Side::Sell, Some(10)));
+        println!("Bid/Ask/Total Counts: {:?} / {:?} / {:?}", self.bid_count(), self.ask_count(), self.len());
         self.print_stats(include_errors);
         self.print_outlier_stats();
+        self.print_last_n_events();
+        println!("Time elapsed: {}", Self::hms(self.time_elapsed()));
+        println!("---------------------------------------------\n");
     }
 
     pub fn print_stats(&self, include_errors: bool) {
         self.stats.as_ref().map(|stats| {
-            stats.
-        })
+            println!("Events processed successfully: {:?}", stats.events_processed);
+            println!("Events not processed: {:?}", stats.events_not_processed);
 
+            if include_errors {
+                match stats.error_msgs.as_ref() {
+                    None => {
+                        println!("Error messages not captured! Enable error message capturing by \
+                        calling stats(track_errors: true) on the orderbook builder, when building \
+                        an orderbook.");
+                    }
+                    Some(msgs) => {
+                        println!("Error messages encountered: ");
+                        msgs.iter().for_each(|msg| println!("{:?}", msg))
+                    }
+                }
+            }
+
+        });
     }
 
-    pub fn get_error_msgs(&self) -> Option<&HashSet<String>> {
+    pub fn get_error_msgs(&self) -> Option<&Vec<String>> {
         self.stats.as_ref().map(|stats| {
             stats.error_msgs.as_ref()
         }).flatten()
     }
 
     pub fn print_outlier_stats(&self) {
-        self.outlier_filter.map(|filter| {
-            println!("")
-        };
+        self.outlier_filter.as_ref().map(|filter| {
+            println!("Outlier factor used: {:?}", filter.outlier_factor);
+            println!("Outliers encountered: {:?}", filter.outliers_encountered);
+        });
     }
 
-    pub fn print_error_msgs(&self) {
-        self.stats.as_ref().map(|stats| {
-            stats.error_msgs.as_ref().map(|msgs| {
-                println!("Errors encountered:");
-                msgs.iter().for_each(|str| println!("{}", str))
-            })
-        });
+    pub fn print_last_n_events(&self) {
+        if self.last_n_events.is_some() {
+            println!("---------last {} events--------", self.last_n_events.as_ref().unwrap().len());
+            self.last_n_events.as_ref().map(|events| {
+                events.iter().for_each(|event| println!("{:?}", event))
+            });
+        }
     }
 }
 
@@ -774,6 +888,8 @@ pub struct OrderbookBuilder {
     pub market: Option<Market>,
     pub outlier_filter: Option<SimpleOutlierFilter>,
     pub stats: Option<OrderbookStats>,
+    pub panic_button: bool,
+    pub last_n_events: Option<BoundedVecDeque<OrderbookEvent>>,
 }
 
 impl OrderbookBuilder {
@@ -782,6 +898,8 @@ impl OrderbookBuilder {
             market: None,
             outlier_filter: None,
             stats: None,
+            panic_button: false,
+            last_n_events: None,
         }
     }
 
@@ -811,10 +929,26 @@ impl OrderbookBuilder {
 
     /// enable stats tracking
     ///
-    /// pass true to track_errors to collect any orderbook errors into a set
+    /// pass true to collect any orderbook errors into a vector
     pub fn stats(self, track_errors: bool) -> Self {
         Self {
             stats: Some(OrderbookStats::new(track_errors)),
+            ..self
+        }
+    }
+
+    /// panics if best_bid > best_ask
+    pub fn add_panic_button(self) -> Self {
+        Self {
+            panic_button: true,
+            ..self
+        }
+    }
+
+    /// enable storing last n events
+    pub fn last_n_events(self, n: usize) -> Self {
+        Self {
+            last_n_events: Some(BoundedVecDeque::new(n)),
             ..self
         }
     }
@@ -826,11 +960,14 @@ impl OrderbookBuilder {
         Ok(OrderbookL3 {
             market,
             last_sequence: 0,
+            start_time: Utc::now(),
             bids: vec![],
             asks: vec![],
             order_id_map: HashMap::new(),
             outlier_filter: self.outlier_filter,
             stats: self.stats,
+            panic_button: self.panic_button,
+            last_n_events: self.last_n_events,
         })
     }
 }
@@ -1030,6 +1167,7 @@ mod tests {
         assert_eq!(orderbook.num_ask_levels(), 2);
         assert_eq!(orderbook.num_bid_levels(), 2);
 
-    }
+        orderbook.print_info(true);
 
+    }
 }

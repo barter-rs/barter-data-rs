@@ -26,6 +26,12 @@ pub struct MarketEvent {
     pub kind: DataKind,
 }
 
+impl MarketEvent {
+    pub fn market(&self) -> Market {
+        Market::from((self.exchange.clone(), self.instrument.clone()))
+    }
+}
+
 /// Defines the type of Barter [`MarketEvent`].
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
@@ -220,12 +226,6 @@ where
 {
     fn from((exchange, instrument, stream): (ExchangeId, I, SubKind)) -> Self {
         Self::new(exchange, instrument, stream)
-    }
-}
-
-impl From<Subscription> for Market {
-    fn from(subscription: Subscription) -> Self {
-        Self::new(subscription.exchange, subscription.instrument)
     }
 }
 

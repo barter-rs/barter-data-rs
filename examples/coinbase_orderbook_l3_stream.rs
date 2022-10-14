@@ -1,30 +1,22 @@
-#![allow(dead_code)]
-
-use std::collections::HashMap;
 use barter_data::{
     builder::Streams,
     ExchangeId,
     model::{MarketEvent, SubKind},
 };
-use barter_integration::model::{
-    InstrumentKind,
-    Market,
-};
+use barter_integration::model::{InstrumentKind, Market, Side};
 use futures::StreamExt;
 use tokio::{signal, sync::oneshot};
-use tokio::sync::mpsc;
 use barter_data::model::{DataKind, Subscription};
 use barter_data::orderbook::{
     OrderbookMap,
     OrderbookL3,
-    OrderbookEvent,
 };
 
-enum StreamState {
-    Snapshot,
-    Backfill,
-    Normal,
-}
+// enum StreamState {
+//     Snapshot,
+//     Backfill,
+//     Normal,
+// }
 
 async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Receiver<()>) {
 
@@ -35,7 +27,15 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
         .filter(|subscription| subscription.kind == SubKind::OrderBookL3)
         .for_each(|subscription| {
             orderbook_map.insert(
-                OrderbookL3::builder().market(Market::from(subscription)).build().unwrap()
+                OrderbookL3::builder()
+                    .market(Market::from(
+                        (subscription.exchange.clone(), subscription.instrument.clone())
+                    ))
+                    .stats(true)
+                    .add_panic_button()
+                    .last_n_events(10)
+                    .build()
+                    .unwrap()
             )
         });
 
@@ -45,45 +45,66 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
 
     let mut joined_stream = streams.join_map::<MarketEvent>().await;
 
-    // let mut last_seq: Option<u64> = None;
-    let mut last_seq: u64;
-
     loop {
         tokio::select! {
             _x = &mut stop_rx => {
-                for (.. orderbook) in orderbook_map.map {
-
+                for (.., orderbook) in orderbook_map.map {
+                    orderbook.print_info(true)
                 }
                 break
             },
 
             response = joined_stream.next() => {
-                if let Some((exchange, market_event)) = response {
+                if let Some((_exchange, market_event)) = response {
 
-                    println!("{:?}", market_event);
+                    // println!("{:?}", market_event.kind);
 
-                    match market_event {
+                    // todo: make this work with a subscription ONLY to full channel
+                    pretty_print_trade(&market_event);
 
+                    match market_event.kind {
+                        DataKind::OrderBookEvent(ref event) => {
+                            orderbook_map
+                                .get_mut(&market_event.market())
+                                .unwrap()
+                                .process(event.clone())
+                        },
+                        _ => {}
                     }
-
-                    // let data: DataKind = market_event.kind;
-                    // let curr_seq: u64 = data.sequence().to_owned();
-
-                    // // check missed sequences
-                    // if last_seq.is_some() && curr_seq != last_seq.unwrap() + 1 {
-                    //     print!("missed sequence: {} - ", last_seq.unwrap());
-                    //     println!("{:?}", data);
-                    // }
-                    // last_seq = Some(curr_seq);
-
                 }
             }
         }
     }
 }
 
-async fn orderbook_handler() {
-    // let orderbook = OrderBookL3::new();
+fn pretty_print_trade(event: &MarketEvent) {
+    match &event.kind {
+        DataKind::Trade(trade) => {
+            let (side, price, volume) = match trade.side {
+                Side::Buy => {(
+                    "Buy",
+                    format!("{:.2}", trade.price),
+                    format!("${:.2}", (trade.quantity * trade.price)),
+                )},
+                Side::Sell => {(
+                    "Sell",
+                    format!("{:.2}", trade.price),
+                    format!("${:.2}", (trade.quantity * trade.price)),
+                )},
+            };
+            let left_align = format!(
+                "{} --- {} {} {}-{} at ${}",
+                event.exchange_time,
+                side,
+                trade.quantity,
+                event.instrument.base,
+                event.instrument.quote,
+                price,
+            );
+            println!("{:<80} {:>25}",left_align, volume);
+        },
+        _ => {}
+    }
 }
 
 /// Send kill signal when hitting ctrl+c for graceful shutdown
@@ -97,11 +118,9 @@ async fn main() {
 
     let (stop_tx, stop_rx) = oneshot::channel::<()>();
 
-    let (order_event_tx, order_event_rx)
-        = mpsc::unbounded_channel::<OrderbookEvent>();
-
     let subscriptions: Vec<Subscription> = vec![
-        (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::OrderBookL3).into()
+        (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::OrderBookL3).into(),
+        (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade).into(),
     ];
 
     let _stream_thread = tokio::spawn(run_streams(subscriptions, stop_rx));
