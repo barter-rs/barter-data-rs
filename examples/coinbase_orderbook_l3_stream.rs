@@ -31,9 +31,9 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
                     .market(Market::from(
                         (subscription.exchange.clone(), subscription.instrument.clone())
                     ))
-                    .stats(true)
-                    .add_panic_button()
-                    .last_n_events(10)
+                    .stats(false)
+                    // .add_panic_button()
+                    .last_n_events(5)
                     .build()
                     .unwrap()
             )

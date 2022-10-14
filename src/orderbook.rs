@@ -199,15 +199,15 @@ impl OrderDeque {
         self.deque.push_back(order)
     }
 
-    /// remove an order by its index
-    fn remove(&mut self, order_idx: usize) -> Option<AtomicOrder> {
-        self.deque.remove(order_idx)
+    /// remove an order by its id
+    fn remove(&mut self, order_id: &str) -> Option<AtomicOrder> {
+        self.deque.remove(self.get_idx(order_id)?)
     }
 
-    // /// get an order's index by its order id
-    // fn get_idx(&self, order_id: &str) -> Option<usize> {
-    //     self.deque.iter().position(|order| order.id == *order_id)
-    // }
+    /// get an order's index by its order id
+    fn get_idx(&self, order_id: &str) -> Option<usize> {
+        self.deque.iter().position(|order| order.id == *order_id)
+    }
 
     /// get a reference to an order by its order id
     fn get_ref(&self, order_id: &str) -> Option<&AtomicOrder> {
@@ -415,7 +415,7 @@ impl OrderbookL3 {
         && self.best_bid() > self.best_ask() {
             self.print_info(true);
             self.print_book();
-            panic!()
+            panic!("best bid > best ask, panicking!");
         }
     }
 
@@ -551,12 +551,11 @@ impl OrderbookL3 {
     fn remove(&mut self, order_id: &str) -> Result<(), OrderbookError> {
         let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         match self.get_deque_pos_mut_by_id(order_id) {
-            Ok((side, idx, maybe_deque)) => {
-                let deque = maybe_deque?;
-                match deque.remove(idx) {
+            Ok((side, deque_idx, maybe_deque)) => {
+                match maybe_deque?.remove(order_id) {
                     Some(_order) => {
                         self.order_id_map.remove(order_id);
-                        self.delete_deque_if_empty(side, idx);
+                        self.delete_deque_if_empty(side, deque_idx);
                         Ok(())
                     }
                     None => Err(OrderbookError::OrderNotFoundInDeque(not_found_in_deque_msg)),
@@ -756,6 +755,7 @@ impl OrderbookL3 {
     pub fn print_info(&self, include_errors: bool) {
         println!("\n-------------------------------------------");
         println!("Orderbook Stats for {:?}", self.market);
+        println!("Time elapsed: {}", Self::hms(self.time_elapsed()));
         println!("Last sequence: {:?}", self.last_sequence);
         println!("Best Bid/Ask: {:?} / {:?}", self.best_bid(), self.best_ask());
         println!("First 10 Bid Levels: {:?}", self.levels(Side::Buy, Some(10)));
@@ -764,7 +764,6 @@ impl OrderbookL3 {
         self.print_stats(include_errors);
         self.print_outlier_stats();
         self.print_last_n_events();
-        println!("Time elapsed: {}", Self::hms(self.time_elapsed()));
         println!("---------------------------------------------\n");
     }
 
