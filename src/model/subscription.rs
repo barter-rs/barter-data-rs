@@ -351,6 +351,15 @@ mod tests {
                 input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "unknown"}"##,
                 expected: Err(serde_json::Error::custom("")),
             },
+            TestCase {
+                // Valid BinanceFuturesUsd btc_usd FuturePerpetual Liquidation Subscription,
+                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "liquidation"}"##,
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
+                }),
+            },
         ];
 
         for (index, test) in cases.into_iter().enumerate() {
@@ -503,6 +512,19 @@ mod tests {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Candle(Interval::Minute5),
+                }),
+            },
+            TestCase {
+                // Valid Subscription /w BinanceFuturesUsd FuturePerpetual Liquidation
+                input: Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
                 }),
             },
         ];
