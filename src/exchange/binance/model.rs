@@ -420,6 +420,7 @@ mod tests {
                 }),
             },
             TestCase {
+                // TC4: valid BinanceMessage FuturePerpetualUsd Liquidation
                 input: r#"{
                     "e": "forceOrder",
                     "E": 1665523974222,
