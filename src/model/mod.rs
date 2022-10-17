@@ -1,14 +1,16 @@
 use barter_integration::{
-    model::{Exchange, Instrument, Side},
+    model::{Exchange, Instrument, Market, Side},
     Event,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::model::orderbook::OrderBookEvent;
 
 /// Barter data structures that support subscribing to exchange specific market data.
 ///
 /// eg/ `Subscription`, `SubscriptionId`, etc.
 pub mod subscription;
+pub mod orderbook;
 
 /// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -20,12 +22,19 @@ pub struct MarketEvent {
     pub kind: DataKind,
 }
 
+impl MarketEvent {
+    pub fn market(&self) -> Market {
+        Market::from((self.exchange.clone(), self.instrument.clone()))
+    }
+}
+
 /// Defines the type of Barter [`MarketEvent`].
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
     OrderBook(OrderBook),
+    OrderBookEvent(OrderBookEvent),
     Liquidation(Liquidation),
 }
 

@@ -83,6 +83,46 @@ impl Transformer<MarketEvent> for Coinbase {
                     )))],
                     Err(error) => vec![Err(error)],
                 }
+            },
+            CoinbaseMessage::OrderBookL3Received(received) => {
+                match self.ids.find_instrument(&received.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        received,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
+            CoinbaseMessage::OrderBookL3Open(open) => {
+                match self.ids.find_instrument(&open.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        open,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
+            CoinbaseMessage::OrderBookL3Done(done) => {
+                match self.ids.find_instrument(&done.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        done,
+                    )))],
+                    Err(error) => vec![Err(error)]
+                }
+            }
+            CoinbaseMessage::OrderBookL3Change(change) => {
+                match self.ids.find_instrument(&change.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        Coinbase::EXCHANGE,
+                        instrument,
+                        change,
+                    )))],
+                    Err(error) => vec![Err(error)]
+                }
             }
         }
     }
@@ -93,6 +133,11 @@ impl Coinbase {
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
     pub const CHANNEL_TRADES: &'static str = "matches";
+
+    /// [`Coinbase`] L3 OrderBook channel name.
+    ///
+    /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#full-channel>
+    pub const CHANNEL_ORDER_BOOK_L3: &'static str = "full";
 
     /// Determine the [`Coinbase`] channel metadata associated with an input Barter [`Subscription`].
     /// This includes the [`Coinbase`] &str channel, and a `String` market identifier. Both are
@@ -107,6 +152,7 @@ impl Coinbase {
         // Determine Coinbase channel using the Subscription SubKind
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::OrderBookL3Delta => Self::CHANNEL_ORDER_BOOK_L3,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -216,6 +262,15 @@ mod tests {
                     entity: "",
                     item: "".to_string(),
                 }),
+            },
+            TestCase {
+                // TC3: Supported InstrumentKind::Spot full subscription
+                input: Subscription::new(
+                    ExchangeId::Coinbase,
+                    ("btc", "usd", InstrumentKind::Spot),
+                    SubKind::OrderBookL3Delta,
+                ),
+                expected: Ok(("full", "BTC-USD".to_owned())),
             },
         ];
 

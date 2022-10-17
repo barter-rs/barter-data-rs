@@ -11,6 +11,7 @@ use std::{
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
+use serde::de::Error;
 
 /// Barter [`Subscription`] used to subscribe to a market [`SubKind`] for a particular
 /// [`Exchange`]'s [`Instrument`].
@@ -45,6 +46,7 @@ impl Validator for &Subscription {
             SubKind::Trade if self.exchange.supports_trades() => {}
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
             SubKind::OrderBook if self.exchange.supports_order_books() => {}
+            SubKind::OrderBookL3Delta if self.exchange.supports_order_book_l3_deltas() => {}
             SubKind::Liquidation if self.exchange.supports_liquidations() => {}
             other => {
                 return Err(SocketError::Unsupported {
@@ -117,6 +119,7 @@ pub enum SubKind {
     Trade,
     Candle(Interval),
     OrderBook,
+    OrderBookL3,
     OrderBookL2Delta,
     OrderBookL3Delta,
     Liquidation,
@@ -131,6 +134,7 @@ impl Display for SubKind {
                 SubKind::Trade => "trade".to_owned(),
                 SubKind::Candle(interval) => format!("candle_{}", interval),
                 SubKind::OrderBook => "order_book".to_owned(),
+                SubKind::OrderBookL3 => "order_book_l3".to_owned(),
                 SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
                 SubKind::Liquidation => "liquidation".to_owned(),
@@ -263,6 +267,12 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
     {
         HashMap::deserialize(deserializer).map(SubscriptionIds)
     }
+}
+
+pub fn de_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
+    where D: Deserializer<'de>, {
+    let num_str: String = Deserialize::deserialize(deserializer)?;
+    num_str.parse().map_err(|_| D::Error::custom("Float parsing error"))
 }
 
 impl SubscriptionIds {

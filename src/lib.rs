@@ -318,6 +318,7 @@ impl ExchangeId {
     #[allow(clippy::match_like_matches_macro)]
     pub fn supports_order_book_l3_deltas(&self) -> bool {
         match self {
+            ExchangeId::Coinbase => true,
             _ => false,
         }
     }
