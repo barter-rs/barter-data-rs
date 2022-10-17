@@ -409,7 +409,7 @@ pub mod test_util {
                 low: 950.0,
                 close: 1000.0,
                 volume: 100000.0,
-                trade_count: 1000,
+                trade_count: Some(1000),
             }),
         }
     }

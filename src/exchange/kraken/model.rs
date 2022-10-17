@@ -349,7 +349,7 @@ impl From<(ExchangeId, Instrument, KrakenCandleData)> for MarketEvent {
                 low: candle.low,
                 close: candle.close,
                 volume: candle.volume,
-                trade_count: candle.trade_count,
+                trade_count: Some(candle.trade_count),
             }),
         }
     }

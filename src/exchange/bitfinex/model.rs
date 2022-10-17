@@ -1,6 +1,6 @@
 use crate::{
     exchange::{datetime_utc_from_epoch_duration, extract_next},
-    model::{DataKind, MarketEvent, PublicTrade},
+    model::{DataKind, MarketEvent, PublicTrade, Candle},
     ExchangeId,
 };
 use barter_integration::{
@@ -214,6 +214,8 @@ pub enum BitfinexPayload {
 /// [`Bitfinex`](super::Bitfinex) aggregated candle.
 ///
 /// Format: \[TIME, OPEN, CLOSE, HIGH, LOW, VOLUME\]
+/// 
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-candles>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexCandle {
     /// Exchange timestamp for end of the candle.
@@ -228,6 +230,27 @@ pub struct BitfinexCandle {
     pub low: f64,
     /// Quantity traded within the timeframe in the base currency.
     pub volume: f64,
+}
+
+impl From<(ExchangeId, Instrument, BitfinexCandle, DateTime<Utc>)> for MarketEvent {
+    fn from((exchange_id, instrument, candle, start_time): (ExchangeId, Instrument, BitfinexCandle, DateTime<Utc>)) -> Self {
+        Self {
+            exchange_time: candle.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::Candle(Candle {
+                start_time,
+                end_time: candle.time,
+                open: candle.open,
+                high: candle.high,
+                low: candle.low,
+                close: candle.close,
+                volume: candle.volume,
+                trade_count: None,
+            }),
+        }
+    }
 }
 
 /// [`Bitfinex`](super::Bitfinex) real-time trade message.
@@ -291,14 +314,6 @@ impl<'de> Deserialize<'de> for Status {
     }
 }
 
-// TODO: This can be adding latency
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-enum IntermedDeser {
-    ChannelTag(String),
-    Candle(BitfinexCandle),
-}
-
 impl<'de> Deserialize<'de> for BitfinexMessage {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -324,24 +339,26 @@ impl<'de> Deserialize<'de> for BitfinexMessage {
                 // Heartbeat: [ CHANNEL_ID, "hb" ]
                 // Candle: [CHANNEL_ID, [MTS, OPEN, CLOSE, HIGH, LOW, VOLUME]]
 
+                // Required because Candle has no tag (eg/ "te")
+                // '--> therefore second element could be a tag or the candle data
+                #[derive(Deserialize)]
+                #[serde(untagged)]
+                enum TagOrData {
+                    Tag(String),
+                    Candle(BitfinexCandle),
+                }
+
                 // Extract CHANNEL_ID used to identify SubscriptionId: 1st element of the sequence
                 let channel_id: u32 = extract_next(&mut seq, "channel_id")?;
+                // Extract message tag or payload data (eg/ Candle): 2nd element of the sequence
+                let tag_or_data: TagOrData = extract_next(&mut seq, "Unknown")?;
 
-                let second_elem: IntermedDeser = extract_next(&mut seq, "Unknown")?;
-
-                // Deconstruct the deserialized second element
-                match second_elem {
-                    IntermedDeser::Candle(candle) => {
-                        let payload = BitfinexPayload::Candle(candle);
-                        while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
-                        return Ok(BitfinexMessage {
-                            channel_id,
-                            payload,
-                        });
-                    }
-                    IntermedDeser::ChannelTag(message_tag) => {
-                        // Use message tag to extract the payload: 3rd element of sequence
-                        let payload = match message_tag.as_str() {
+                // If Tag: BitfinexPayload extracted using the tag to identify the type
+                // If Candle: BitfinexPayload constructed directly (no more elements to extract)
+                let payload = match tag_or_data {
+                    // Use message tag to extract the payload: 3rd element of sequence
+                    TagOrData::Tag(message_tag) => {
+                        match message_tag.as_str() {
                             // Filter "tu" Trades since they are identical but slower
                             // '--> use as additional Heartbeat
                             "hb" | "tu" => BitfinexPayload::Heartbeat,
@@ -354,16 +371,18 @@ impl<'de> Deserialize<'de> for BitfinexMessage {
                                     &["heartbeat (hb)", "trade (te | tu)"],
                                 ))
                             }
-                        };
-                        // Ignore any additional elements or SerDe will fail
-                        //  '--> Bitfinex may add fields without warning
-                        while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
-                        return Ok(BitfinexMessage {
-                            channel_id,
-                            payload,
-                        });
+                        }
                     }
-                }
+                    // 2nd element was the final array element containing the Candle payload data
+                    TagOrData::Candle(candle) => BitfinexPayload::Candle(candle),
+                };
+                // Ignore any additional elements or SerDe will fail
+                //  '--> Bitfinex may add fields without warning
+                while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
+                Ok(BitfinexMessage {
+                    channel_id,
+                    payload,
+                })
             }
         }
 

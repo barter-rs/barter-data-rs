@@ -1,10 +1,9 @@
 //!
 //! Websocket implementation for Bitfinex v2 websocket API.
-//!
-//! TODO:
-//! - Candle trade count is not given in API, should be set to default 0?
-//! - Implement validity checks for newest candles. See section "Candle Socket Quirk" to get an overview of the
-//! problem.
+//! 
+//! The currently supported streams are:
+//! - [`Trades`](crate::model::subscription::SubKind::Trade): Aggregated trades.
+//! - [`Candles`](crate::model::subscription::SubKind::Candle): OHLC candles.
 //!
 //! ## Notes:
 //! ### SubscriptionId
@@ -27,9 +26,9 @@
 //! - Therefore, tag="tu" trades are filtered out and considered only as additional Heartbeats.
 //!
 //! ### Candle Socket Quirk
-//! The Candle socket sends multiple messages with the same timestamp. Most of these are duplicates, but
-//! sometimes the newest value will have strictly greater trade volume. It could be the case
-//! that these are updated values of that candle, as it is forming.
+//! The Candle socket sends multiple messages with the same timestamp. Most of the time the new message is
+//! an update of the current timestamp, that is one of low, high, or close will have changed. Sometimes there
+//! is no change if there has been no activity for a while.
 
 use self::model::{
     BitfinexMessage, BitfinexPayload, BitfinexPlatformStatus, BitfinexSubResponse,
@@ -38,7 +37,7 @@ use self::model::{
 use crate::{
     model::{
         MarketEvent,
-        subscription::{Subscription, SubKind, SubscriptionIds, SubscriptionMeta, Interval}, Candle,
+        subscription::{Subscription, SubKind, SubscriptionIds, SubscriptionMeta, Interval},
     },
     ExchangeId, ExchangeTransformer, Subscriber
 };
@@ -59,6 +58,35 @@ use tracing::debug;
 
 /// [`Bitfinex`] specific data structures.
 pub mod model;
+
+/// The Barter supported websocket subscription channels for [`Bitfinex`]. 
+/// 
+/// See docs: <https://docs.bitfinex.com/docs/ws-public>.
+#[derive(Debug, Clone, Copy, PartialEq)]
+ enum BitfinexChannel { 
+    /// Aggregated trades channel.
+    Trades,
+    /// OHLC candles channel.
+    Candles,
+}
+
+impl BitfinexChannel {
+    fn as_str(&self) -> &'static str {
+        match &self {
+            BitfinexChannel::Trades => "trades",
+            BitfinexChannel::Candles => "candles",
+        }
+    }
+}
+
+impl ToString for BitfinexChannel {
+    fn to_string(&self) -> String {
+        match &self {
+            BitfinexChannel::Trades => String::from("trades"),
+            BitfinexChannel::Candles => String::from("candles"),
+        }
+    }
+}
 
 /// `Bitfinex` [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` data.
@@ -95,7 +123,7 @@ impl Subscriber for Bitfinex {
                 // eg/ SubscriptionId("trades|BTC/USDT")
                 // '--> later switched to SubscriptionId(CHANNEL_ID) during subscription validation
                 ids.insert(
-                    Bitfinex::subscription_id(channel, &market),
+                    Bitfinex::subscription_id(channel.as_str(), &market),
                     subscription.clone(),
                 );
 
@@ -231,16 +259,16 @@ impl Bitfinex {
     /// [`Subscription`]. This includes the `Bitfinex` &str channel, and a `String` market
     /// identifier. Both are used to build a `Bitfinex` subscription payload.
     ///
-    /// Example Ok Return: Ok("trades", "tBTCUSD")
-    /// Example Ok Return: Ok("candles", "trade:1m:tBTCUSD")
-    /// where channel == "trades" & market == "tBTCUSD".
-    fn build_channel_meta(sub: &Subscription) -> Result<(&str, String), SocketError> {
+    /// Example Ok Return: Ok(BitfinexChannel::Trades, "tBTCUSD")
+    /// Example Ok Return: Ok(BitfinexChannel::Candles, "trade:1m:tBTCUSD")
+    /// where channel == BitfinexChannel::Trades & market == "tBTCUSD".
+    fn build_channel_meta(sub: &Subscription) -> Result<(BitfinexChannel, String), SocketError> {
         let sub = sub.validate()?;
 
         // Determine Bitfinex channel
         let channel = match &sub.kind {
-            SubKind::Trade => Self::CHANNEL_TRADES,
-            SubKind::Candle(_) => Self::CHANNEL_CANDLES,
+            SubKind::Trade => BitfinexChannel::Trades,
+            SubKind::Candle(_) => BitfinexChannel::Candles,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: Self::EXCHANGE.as_str(),
@@ -256,7 +284,10 @@ impl Bitfinex {
                 sub.instrument.base.to_string().to_uppercase(),
                 sub.instrument.quote.to_string().to_uppercase()
             ),
-            InstrumentKind::FuturePerpetual => todo!(),
+            other => return Err(SocketError::Unsupported {
+                entity: Self::EXCHANGE.as_str(),
+                item: other.to_string(),
+            }),
         };
 
         // Modify for a candle subscription
@@ -272,27 +303,21 @@ impl Bitfinex {
     /// Build a [`Bitfinex`] compatible subscription message using the channel & market provided.
     ///
     /// Example arguments: channel = "trades", market = "tBTCUSD"
-    fn build_subscription_message(channel: &str, market: &str) -> WsMessage {
+    fn build_subscription_message(channel: BitfinexChannel, market: &str) -> WsMessage {
         match channel {
-            "trades" => WsMessage::Text(
+            BitfinexChannel::Trades => WsMessage::Text(
                 json!({
                     "event": "subscribe",
-                    "channel": channel,
+                    "channel": Bitfinex::CHANNEL_TRADES,
                     "symbol": market,
                 })
                 .to_string(),
             ),
-            "candles" => WsMessage::Text(
+            BitfinexChannel::Candles => WsMessage::Text(
                 json!({
                     "event": "subscribe",
-                    "channel": channel,
+                    "channel": Bitfinex::CHANNEL_CANDLES,
                     "key": market,
-                })
-                .to_string(),
-            ),
-            other => WsMessage::Text(
-                json!({
-                    "event": "error",
                 })
                 .to_string(),
             ),
@@ -340,73 +365,75 @@ impl Transformer<MarketEvent> for Bitfinex {
                 }
             }
             BitfinexPayload::Candle(candle) => {
-                // Check validity of the new candle
-                // TODO: Make sure that the newest candle information gets propagated
+                // Check validity of the new candle, as Bitfinex will send candles with outdated timestamps.
+                // A current candle may be sent numerous times, with the understanding that each new message
+                // is an update on the current candle (for example high or low has changed).
                 if let Some(most_recent_time) = self.candles_stamps.get(&channel_id) {
-                    if &candle.time <= most_recent_time {
+                    // If the candle is outdated don't return data
+                    if &candle.time < most_recent_time {
                         return vec![];
                     }
+                    // If the time has advanced update latest timestamp
+                    else if &candle.time > most_recent_time {
+                        self.candles_stamps.insert(channel_id, candle.time.clone());
+                    }
                 }
-                // Insert newest timestamp
-                self.candles_stamps.insert(channel_id, candle.time.clone());
-                // Format the barter candle and send it out
+                else {
+                    // Make note of first timestamp
+                    self.candles_stamps.insert(channel_id, candle.time.clone());
+                }
+
+                // Get the start time of this candle
                 let sub = self
                     .ids
                     .get(&SubscriptionId(channel_id.to_string()))
                     .unwrap();
                 let start_time = match sub.kind {
-                    SubKind::Candle(interval) => get_start_time(interval, &candle.time),
-                    _ => Utc::now(),
-                };
-                let barter_candle = Candle {
-                    start_time,
-                    open: candle.open,
-                    close: candle.close,
-                    high: candle.high,
-                    low: candle.low,
-                    volume: candle.volume,
-                    // TODO: What to do about this value?
-                    trade_count: 0,
-                    end_time: candle.time,
+                    SubKind::Candle(interval) => {
+                        match calculate_start_time(interval, &candle.time) {
+                            Ok(start_time) => start_time,
+                            Err(err) => return vec![Err(err)]
+                        }
+                    },
+                    _ => return vec![Err(SocketError::Unidentifiable(SubscriptionId(channel_id.to_string())))],
                 };
 
-                vec![Ok(MarketEvent {
-                    exchange: barter_integration::model::Exchange::from(Bitfinex::EXCHANGE),
-                    exchange_time: candle.time,
-                    received_time: Utc::now(),
-                    instrument: sub.instrument.clone(),
-                    kind: crate::model::DataKind::Candle(barter_candle),
-                })]
+                // Determine Instrument associated with this Bitfinex Candle
+                let instrument = match self.ids.find_instrument(&SubscriptionId(channel_id.to_string())) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error)],
+                };
+
+                vec![Ok(MarketEvent::from((
+                    Bitfinex::EXCHANGE,
+                    instrument,
+                    candle,
+                    start_time
+                )))]
             }
         }
     }
 }
 
-// TODO: add 3 hour candle
-fn get_start_time(interval: Interval, end_time: &DateTime<Utc>) -> DateTime<Utc> {
+fn calculate_start_time(interval: Interval, end_time: &DateTime<Utc>) -> Result<DateTime<Utc>, SocketError> {
     match interval {
-        Interval::Minute1 => *end_time - Duration::minutes(1),
-        // NOT SUPPORTED
-        Interval::Minute3 => *end_time - Duration::minutes(3),
-        Interval::Minute5 => *end_time - Duration::minutes(5),
-        Interval::Minute15 => *end_time - Duration::minutes(15),
-        Interval::Minute30 => *end_time - Duration::minutes(30),
-        Interval::Hour1 => *end_time - Duration::hours(1),
-        // NOT SUPPORTED
-        Interval::Hour2 => *end_time - Duration::hours(2),
-        // NOT SUPPORTED
-        Interval::Hour4 => *end_time - Duration::hours(4),
-        Interval::Hour6 => *end_time - Duration::hours(6),
-        // NOT SUPPORTED
-        Interval::Hour8 => *end_time - Duration::hours(8),
-        Interval::Hour12 => *end_time - Duration::hours(12),
-        Interval::Day1 => *end_time - Duration::days(1),
-        // NOT SUPPORTED
-        Interval::Day3 => *end_time - Duration::days(3),
-        Interval::Week1 => *end_time - Duration::weeks(1),
-        Interval::Month1 => *end_time - Duration::weeks(4),
-        // NOT SUPPORTED
-        Interval::Month3 => *end_time - Duration::weeks(12),
+        Interval::Minute1 => Ok(*end_time - Duration::minutes(1)),
+        Interval::Minute5 => Ok(*end_time - Duration::minutes(5)),
+        Interval::Minute15 => Ok(*end_time - Duration::minutes(15)),
+        Interval::Minute30 => Ok(*end_time - Duration::minutes(30)),
+        Interval::Hour1 => Ok(*end_time - Duration::hours(1)),
+        Interval::Hour6 => Ok(*end_time - Duration::hours(6)),
+        Interval::Hour12 => Ok(*end_time - Duration::hours(12)),
+        Interval::Day1 => Ok(*end_time - Duration::days(1)),
+        Interval::Week1 => Ok(*end_time - Duration::weeks(1)),
+        Interval::Month1 => Ok(*end_time - Duration::weeks(4)),
+        // Return error on unsupported intervals
+        other => {
+            return Err(SocketError::Unsupported {
+                entity: Bitfinex::EXCHANGE.as_str(),
+                item: other.to_string(),
+            })
+        }
     }
 }
 
@@ -424,8 +451,8 @@ mod tests {
     use super::Bitfinex;
     use crate::{
         exchange::bitfinex::{
-            get_start_time,
-            model::{BitfinexCandle, BitfinexMessage, BitfinexPayload, BitfinexTrade},
+            calculate_start_time,
+            model::{BitfinexCandle, BitfinexMessage, BitfinexPayload, BitfinexTrade}, BitfinexChannel,
         },
         model::{
             subscription::{Interval, SubKind, Subscription, SubscriptionIds},
@@ -456,7 +483,7 @@ mod tests {
     fn test_build_channel_meta() {
         struct TestCase {
             input: Subscription,
-            expected: Result<(&'static str, String), SocketError>,
+            expected: Result<(BitfinexChannel, String), SocketError>,
         }
 
         let cases = vec![
@@ -467,7 +494,7 @@ mod tests {
                     ("btc", "usd", InstrumentKind::Spot),
                     SubKind::Candle(Interval::Minute1),
                 ),
-                expected: Ok(("candles", "trade:1m:tBTCUSD".to_owned())),
+                expected: Ok((BitfinexChannel::Candles, "trade:1m:tBTCUSD".to_owned())),
             },
             // Trades
             TestCase {
@@ -476,7 +503,7 @@ mod tests {
                     ("btc", "usd", InstrumentKind::Spot),
                     SubKind::Trade,
                 ),
-                expected: Ok(("trades", "tBTCUSD".to_owned())),
+                expected: Ok((BitfinexChannel::Trades, "tBTCUSD".to_owned())),
             },
         ];
 
@@ -574,14 +601,14 @@ mod tests {
                     exchange: Exchange::from(ExchangeId::Bitfinex),
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: crate::model::DataKind::Candle(Candle {
-                        start_time: get_start_time(Interval::Minute1, &time),
+                        start_time: calculate_start_time(Interval::Minute1, &time).unwrap(),
                         end_time: time,
                         open: 30.1,
                         high: 30.9,
                         low: 30.05,
                         close: 30.8,
                         volume: 3250.35,
-                        trade_count: 0,
+                        trade_count: None,
                     }),
                 })],
             },
