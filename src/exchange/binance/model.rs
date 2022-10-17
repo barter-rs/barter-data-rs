@@ -1,5 +1,5 @@
 use super::futures::BinanceFuturesUsd;
-use crate::model::{Level, OrderBook};
+use crate::model::{Level, Liquidation, OrderBook};
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -44,6 +44,8 @@ pub enum BinanceMessage {
     Trade(BinanceTrade),
     #[serde(alias = "depthUpdate")]
     OrderBookSnapshot(BinanceOrderBook),
+    #[serde(alias = "forceOrder")]
+    Liquidation(BinanceLiquidation),
 }
 
 impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
@@ -52,6 +54,9 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
             BinanceMessage::Trade(trade) => MarketEvent::from((exchange, instrument, trade)),
             BinanceMessage::OrderBookSnapshot(order_book) => {
                 MarketEvent::from((exchange, instrument, order_book))
+            }
+            BinanceMessage::Liquidation(liquidation) => {
+                MarketEvent::from((exchange, instrument, liquidation))
             }
         }
     }
@@ -159,6 +164,69 @@ impl From<BinanceLevel> for Level {
     }
 }
 
+/// `Binance` Liquidation order message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidation {
+    #[serde(alias = "o")]
+    pub order: BinanceLiquidationOrder,
+}
+
+impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketEvent {
+    fn from(
+        (exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation),
+    ) -> Self {
+        Self {
+            exchange_time: liquidation.order.time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::Liquidation(Liquidation {
+                side: liquidation.order.side,
+                price: liquidation.order.price,
+                quantity: liquidation.order.quantity,
+                time: liquidation.order.time,
+            }),
+        }
+    }
+}
+
+impl From<BinanceLiquidation> for Liquidation {
+    fn from(liquidation: BinanceLiquidation) -> Self {
+        Self {
+            side: liquidation.order.side,
+            price: liquidation.order.price,
+            quantity: liquidation.order.quantity,
+            time: liquidation.order.time,
+        }
+    }
+}
+
+/// `Binance` Liquidation order.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidationOrder {
+    #[serde(alias = "s", deserialize_with = "de_liquidation_subscription_id")]
+    pub subscription_id: SubscriptionId,
+
+    #[serde(alias = "S")]
+    pub side: Side,
+
+    #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+
+    #[serde(alias = "q", deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub time: DateTime<Utc>,
+}
+
 /// Deserialize a [`BinanceTrade`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
 /// (eg/ "@aggTrade|BTCUSDT").
 pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
@@ -195,6 +263,17 @@ where
 {
     serde::de::Deserialize::deserialize(deserializer).map(|market| {
         BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_ORDER_BOOK, market)
+    })
+}
+
+/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "forceOrder|BTCUSDT").
+pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer).map(|market| {
+        BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_LIQUIDATIONS, market)
     })
 }
 
@@ -339,6 +418,37 @@ mod tests {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
+            },
+            TestCase {
+                // TC4: valid BinanceMessage FuturePerpetualUsd Liquidation
+                input: r#"{
+                    "e": "forceOrder",
+                    "E": 1665523974222,
+                    "o": {
+                      "s": "BTCUSDT",
+                      "S": "SELL",
+                      "o": "LIMIT",
+                      "f": "IOC",
+                      "q": "0.009",
+                      "p": "18917.15",
+                      "ap": "18990.00",
+                      "X": "FILLED",
+                      "l": "0.009",
+                      "z": "0.009",
+                      "T": 1665523974217
+                    }
+                  }"#,
+                expected: Ok(BinanceMessage::Liquidation(BinanceLiquidation {
+                    order: BinanceLiquidationOrder {
+                        subscription_id: SubscriptionId::from("@forceOrder|BTCUSDT"),
+                        side: Side::Sell,
+                        price: 18917.15,
+                        quantity: 0.009,
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1665523974217,
+                        )),
+                    },
+                })),
             },
         ];
 
