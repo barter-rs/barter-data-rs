@@ -95,7 +95,7 @@ pub struct Bitfinex {
     /// Mapping of exchange-specific subscription Id to the [`Subscription`].
     pub ids: SubscriptionIds,
     /// Mapping of candle channel to most recently received timestamp. Used to deduplicate candle stream.
-    pub candles_stamps: HashMap<u32, DateTime<Utc>>,
+    candles_stamps: HashMap<u32, DateTime<Utc>>,
 }
 
 #[async_trait]
