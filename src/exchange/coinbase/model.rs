@@ -2,7 +2,7 @@ use super::Coinbase;
 use crate::{
     exchange::de_str,
     model::{
-        orderbook::{OrderBookEvent, OrderType, Order::Bid, Order::Ask, AtomicOrder},
+        orderbook::{OrderBookEvent, AtomicOrder},
         DataKind,
         PublicTrade,
         subscription::de_floats,
@@ -16,6 +16,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde::de::Error;
+use crate::model::orderbook::{LimitOrder, MarketOrder, Order};
 
 /// [`Coinbase`] message received in response to WebSocket subscription requests.
 ///
@@ -79,7 +80,13 @@ pub enum CoinbaseMessage {
     OrderBookL3Change(CoinbaseOrderBookL3Change),
 }
 
-/// [`Coinbase`] trade message.
+/// [`Coinbase`] trade message - these are sent through either the dedicated 'matches' channel,
+/// or amongst orderbook delta messages in the 'full' channel.
+///
+/// Sample: {"trade_id": 348217732, "maker_order_id": "15d4d667-855e-43fe-8ef3-4525e28630b3",
+/// "taker_order_id": "2d383d4c-8b13-481b-b4de-3dda6333423d", "size": "0.5",
+/// "price": "1498.31", "type": "match", "side": "sell", "product_id": "ETH-USD",
+/// "time": "2022-08-30T18:32:01.306789Z", "sequence": 35140793377}
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
@@ -116,6 +123,15 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
 /// Used to populate optional missing key-value pairs as None during deserialization.
 fn serde_default_none<T>() -> Option<T> { None }
 
+/// Enum representing order types that may be encountered in
+/// an L3 orderbook delta stream's received message.
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OrderType {
+    Limit,
+    Market,
+}
+
 /// Coinbase sends a Received message to indicate that its matching engine has received an order
 /// and accepted it for processing.
 ///
@@ -130,10 +146,12 @@ pub struct CoinbaseOrderBookL3Received {
     pub subscription_id: SubscriptionId,
     pub order_id: String,
     pub order_type: OrderType,
-    #[serde(deserialize_with = "de_floats")]
-    pub size: f64,
-    #[serde(deserialize_with = "de_floats")]
-    pub price: f64,
+    #[serde(deserialize_with = "de_ob_l3_optional_floats", default="serde_default_none")]
+    pub size: Option<f64>,
+    #[serde(deserialize_with = "de_ob_l3_optional_floats", default="serde_default_none")]
+    pub price: Option<f64>,
+    #[serde(deserialize_with = "de_ob_l3_optional_floats", default="serde_default_none")]
+    pub funds: Option<f64>,
     pub client_oid: String,
     pub side: Side,
     pub time: DateTime<Utc>,
@@ -159,16 +177,47 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Received)> for MarketEvent
 
 impl From<CoinbaseOrderBookL3Received> for OrderBookEvent {
     fn from(received: CoinbaseOrderBookL3Received) -> Self {
-        let order = AtomicOrder {
-            id: received.order_id,
-            price: received.price,
-            size: received.size,
-        };
-        match received.side {
-            Side::Buy => OrderBookEvent::Received(
-                Bid(order, received.order_type), received.sequence),
-            Side::Sell => OrderBookEvent::Received(
-                Ask( order, received.order_type), received.sequence),
+        match received.order_type {
+            OrderType::Limit => {
+                match received.side {
+                    Side::Buy => OrderBookEvent::Received(Order::LimitOrder(
+                        LimitOrder::Bid(
+                            AtomicOrder {
+                                id: received.order_id,
+                                price: received.price.unwrap_or(0.0),
+                                size: received.size.unwrap_or(0.0),
+                            }
+                        )
+                    ), received.sequence),
+                    Side::Sell => OrderBookEvent::Received(Order::LimitOrder(
+                        LimitOrder::Ask(
+                            AtomicOrder {
+                                id: received.order_id,
+                                price: received.price.unwrap_or(0.0),
+                                size: received.size.unwrap_or(0.0),
+                            }
+                        )
+                    ), received.sequence)
+                }
+            },
+            OrderType::Market => {
+                match received.side {
+                    Side::Buy => OrderBookEvent::Received(Order::MarketOrder(
+                        match (received.funds, received.size) {
+                            (Some(funds), None) => MarketOrder::BuyWithFunds(funds),
+                            (None, Some(size)) => MarketOrder::BuySize(size),
+                            _ => MarketOrder::BuySize(0.0),
+                        }
+                    ), received.sequence),
+                    Side::Sell => OrderBookEvent::Received(Order::MarketOrder(
+                        match (received.funds, received.size) {
+                            (Some(funds), None) => MarketOrder::SellForFunds(funds),
+                            (None, Some(size)) => MarketOrder::SellSize(size),
+                            _ => MarketOrder::SellSize(0.0),
+                        }
+                    ), received.sequence)
+                }
+            }
         }
     }
 }
@@ -222,9 +271,9 @@ impl From<CoinbaseOrderBookL3Open> for OrderBookEvent {
         };
         match open.side {
             Side::Buy => OrderBookEvent::Open(
-                Bid(order, OrderType::Limit), open.sequence),
+                LimitOrder::Bid(order), open.sequence),
             Side::Sell => OrderBookEvent::Open(
-                Ask( order, OrderType::Limit), open.sequence),
+                LimitOrder::Ask(order), open.sequence),
         }
     }
 }
@@ -520,7 +569,7 @@ mod tests {
 
         let cases = vec![
             TestCase {
-                // TC0: Valid CoinbaseMessage Received
+                // TC0: Valid CoinbaseMessage Received Limit Buy
                 input: r#"{"order_id": "bdfe8f61-7f29-44e4-bd80-059f3ba9c408", "order_type": "limit",
                 "size": "0.00998808", "price": "1501.79", "client_oid": "3c5523dc-6885-f82c-c40b-4f57be40fee4",
                 "type": "received", "side": "buy", "product_id": "ETH-USD",
@@ -530,8 +579,9 @@ mod tests {
                         subscription_id: SubscriptionId::from("full|ETH-USD"),
                         order_id: "bdfe8f61-7f29-44e4-bd80-059f3ba9c408".to_string(),
                         order_type: OrderType::Limit,
-                        size: 0.00998808,
-                        price: 1501.79,
+                        size: Some(0.00998808),
+                        price: Some(1501.79),
+                        funds: None,
                         client_oid: "3c5523dc-6885-f82c-c40b-4f57be40fee4".to_string(),
                         side: Side::Buy,
                         time: DateTime::from_utc(
@@ -546,7 +596,61 @@ mod tests {
                 ))
             },
             TestCase {
-                // TC1: Valid CoinbaseMessage Open
+                // TC1: Valid CoinbaseMessage Received Market Sell Size
+                input: r#"{"order_id": "ba3148f1-877e-439e-ad77-1a3e9237b8c0", "order_type": "market",
+                "size": "0.47673728", "client_oid": "2881edb9-1aee-498c-9555-d854f3f26786",
+                "type": "received", "side": "sell", "product_id": "ETH-USD",
+                "time": "2022-08-30T18:33:47.651822Z", "sequence": 35140939951}"#,
+                expected: Ok(CoinbaseMessage::OrderBookL3Received(
+                    CoinbaseOrderBookL3Received {
+                        subscription_id: SubscriptionId::from("full|ETH-USD"),
+                        order_id: "ba3148f1-877e-439e-ad77-1a3e9237b8c0".to_string(),
+                        order_type: OrderType::Market,
+                        size: Some(0.47673728),
+                        price: None,
+                        funds: None,
+                        client_oid: "2881edb9-1aee-498c-9555-d854f3f26786".to_string(),
+                        side: Side::Sell,
+                        time: DateTime::from_utc(
+                            NaiveDateTime::parse_from_str(
+                                "2022-08-30T18:33:47.651822Z",
+                                "%Y-%m-%dT%H:%M:%S.%6fZ",
+                            ).unwrap(),
+                            Utc,
+                        ),
+                        sequence: 35140939951,
+                    }
+                ))
+            },
+            TestCase {
+                // TC2: Valid CoinbaseMessage Received Market Buy with Funds
+                input: r#"{"order_id": "fd565fd1-806f-4f37-bb73-c5ab8d5e9ec0", "order_type": "market",
+                "funds": "795.228618834", "client_oid": "57546ae1-29e2-4a23-efdf-cc1904e60b61",
+                "type": "received", "side": "buy", "product_id": "ETH-USD",
+                "time": "2022-08-30T18:34:06.143789Z", "sequence": 35140967372}"#,
+                expected: Ok(CoinbaseMessage::OrderBookL3Received(
+                    CoinbaseOrderBookL3Received {
+                        subscription_id: SubscriptionId::from("full|ETH-USD"),
+                        order_id: "fd565fd1-806f-4f37-bb73-c5ab8d5e9ec0".to_string(),
+                        order_type: OrderType::Market,
+                        size: None,
+                        price: None,
+                        funds: Some(795.228618834),
+                        client_oid: "57546ae1-29e2-4a23-efdf-cc1904e60b61".to_string(),
+                        side: Side::Buy,
+                        time: DateTime::from_utc(
+                            NaiveDateTime::parse_from_str(
+                                "2022-08-30T18:34:06.143789Z",
+                                "%Y-%m-%dT%H:%M:%S.%6fZ",
+                            ).unwrap(),
+                            Utc,
+                        ),
+                        sequence: 35140967372,
+                    }
+                ))
+            },
+            TestCase {
+                // TC3: Valid CoinbaseMessage Open
                 input: r#"{"price": "1501.49", "order_id": "ee79e321-06f2-4967-8052-635bb68e1fa5",
                  "remaining_size": "0.0937345", "type": "open", "side": "buy", "product_id": "ETH-USD",
                  "time": "2022-08-30T18:33:16.741365Z", "sequence": 35140902908}"#,
@@ -569,7 +673,7 @@ mod tests {
                 ))
             },
             TestCase {
-                // TC2: Valid CoinbaseMessage Done
+                // TC4: Valid CoinbaseMessage Done
                 input: r#"{"order_id": "2a878d12-d790-4ea2-99ab-14c7481ab63c", "reason": "canceled",
                  "price": "1318.65", "remaining_size": "3.18557088", "type": "done", "side": "sell",
                  "product_id": "ETH-USD", "time": "2022-09-27T19:31:30.580366Z", "sequence": 36673387904}"#,
@@ -593,7 +697,7 @@ mod tests {
                 ))
             },
             TestCase {
-                // TC3: Valid CoinbaseMessage Change
+                // TC5: Valid CoinbaseMessage Change
                 input: r#"{"price": "1679.23", "old_size": "9.01473019", "new_size": "4.0147302",
                     "order_id": "d8b8fef6-62f2-435d-b70b-a6f077da05f0", "reason": "STP", "type": "change",
                     "side": "buy", "product_id": "ETH-USD", "time": "2022-08-26T00:17:41.266856Z",
@@ -619,7 +723,7 @@ mod tests {
                 ))
             },
             TestCase {
-                // TC4: Valid Coinbase Message Done with missing price, size, side
+                // TC6: Valid Coinbase Message Done with missing price, size, side
                 input: r#"{"order_id": "2a878d12-d790-4ea2-99ab-14c7481ab63c", "reason": "canceled", "type": "done",
                  "product_id": "ETH-USD", "time": "2022-09-27T19:31:30.580366Z", "sequence": 36673387904}"#,
                 expected: Ok(CoinbaseMessage::OrderBookL3Done(
@@ -642,7 +746,7 @@ mod tests {
                 ))
             },
             TestCase {
-                // TC5: Invalid CoinbaseMessage Open - incorrect keys
+                // TC7: Invalid CoinbaseMessage Open - incorrect keys
                 input: r#"{"order_id": "2a878d12-d790-4ea2-99ab-14c7481ab63c", "reason": "canceled", "type": "open",
                  "product_id": "ETH-USD", "time": "2022-09-27T19:31:30.580366Z", "sequence": 36673387904}"#,
                 expected: Err(SocketError::Serde {

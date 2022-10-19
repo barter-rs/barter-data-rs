@@ -11,6 +11,7 @@ use barter_data::{
 use barter_integration::model::{InstrumentKind, Market, Side};
 use futures::StreamExt;
 use tokio::{signal, sync::oneshot};
+use tracing_subscriber;
 
 // enum StreamState {
 //     Snapshot,
@@ -58,9 +59,6 @@ async fn run_streams(subscriptions: Vec<Subscription>, mut stop_rx: oneshot::Rec
             response = joined_stream.next() => {
                 if let Some((_exchange, market_event)) = response {
 
-                    // println!("{:?}", market_event.kind);
-
-                    // todo: make this work with a subscription ONLY to full channel
                     pretty_print_trade(&market_event);
 
                     match market_event.kind {
@@ -117,13 +115,14 @@ async fn ctrl_c_watch(tx: oneshot::Sender<()>) {
 #[tokio::main]
 async fn main() {
 
+    tracing_subscriber::fmt().init();
+
     let (stop_tx, stop_rx) = oneshot::channel::<()>();
 
     let subscriptions: Vec<Subscription> = vec![
         (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::OrderBookL3Delta).into(),
-        (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade).into(),
-        (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::OrderBookL3Delta).into(),
-        (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::Trade).into(),
+        // (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, SubKind::Trade).into(),
+        // (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, SubKind::OrderBookL3Delta).into(),
     ];
 
     let _stream_thread = tokio::spawn(run_streams(subscriptions, stop_rx));
