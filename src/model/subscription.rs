@@ -515,7 +515,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // Valid Subscription /w BinanceFuturesUsd FuturePerpetual Liquidation
+                // TC10: Valid Subscription /w BinanceFuturesUsd FuturePerpetual Liquidation
                 input: Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
@@ -528,7 +528,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC10: Valid Subscription w/ Bitfinex Spot Candles
+                // TC11: Valid Subscription w/ Bitfinex Spot Candles
                 input: Subscription {
                     exchange: ExchangeId::Bitfinex,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
@@ -541,7 +541,7 @@ mod tests {
                 }),
             },
             TestCase {
-                // TC11: Valid Subscription w/ Bitfinex Spot Trades
+                // TC12: Valid Subscription w/ Bitfinex Spot Trades
                 input: Subscription {
                     exchange: ExchangeId::Bitfinex,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
