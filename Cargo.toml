@@ -21,7 +21,7 @@ barter-integration = "0.3.4"
 tracing = "0.1.37"
 
 # Async
-tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread", "signal", "time"] }
 tokio-stream = { version = "0.1.9", features = ["sync"] }
 futures = "0.3.21"
 async-trait = "0.1.57"
@@ -44,3 +44,4 @@ bounded-vec-deque = "0.1.1"
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+coinbase-pro-api = "0.2.0"

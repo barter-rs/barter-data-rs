@@ -13,7 +13,7 @@ use barter_integration::model::Instrument;
 use tokio::sync::mpsc;
 
 /// [`Coinbase`] specific data structures.
-mod model;
+pub mod model;
 
 /// [`Coinbase`] [`Subscriber`] & [`ExchangeTransformer`] implementor for the collection
 /// of `Spot` & `Futures` data.
@@ -312,7 +312,7 @@ mod tests {
                     received_time: time,
                     exchange: Exchange::from(ExchangeId::Coinbase),
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: DataKind::OrderBookEvent(OrderBookEvent::Received(Order::LimitOrder(
+                    kind: DataKind::OBEvent(OrderBookEvent::Received(Order::LimitOrder(
                         LimitOrder::Bid(
                             AtomicOrder {
                                 id: "3".to_string(),
@@ -320,7 +320,7 @@ mod tests {
                                 size: 2.0
                             },
                         ))
-                    , 123456))
+                                                                     , 123456))
                 })]
             },
             TestCase {

@@ -37,6 +37,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{warn};
 // internal
 use crate::model::subscription::de_floats;
+use crate::model::OrderBookL3Snapshot;
 // testing
 use bounded_vec_deque::BoundedVecDeque;
 
@@ -50,34 +51,10 @@ pub type OrderDequePos<'a> = (Side, usize, Result<&'a OrderDeque, OrderBookError
 pub type OrderDequePosMut<'a> = (Side, usize, Result<&'a mut OrderDeque, OrderBookError>);
 pub type TopLevel = (f64, f64);
 
-/// Collection of ['OrderBookL3'] structs.
-#[derive(Debug)]
-pub struct OrderbookMap {
-    pub map: HashMap<Market, OrderbookL3>
-}
-
-impl OrderbookMap {
-    pub fn new() -> Self {
-        OrderbookMap { map: HashMap::new() }
-    }
-
-    /// Insert orderbook into the orderbook map
-    pub fn insert(&mut self, orderbook: OrderbookL3) {
-        self.map.insert(orderbook.market.clone(), orderbook);
-    }
-
-    pub fn get(&self, market: &Market) -> Option<&OrderbookL3>{
-        self.map.get(market)
-    }
-
-    pub fn get_mut(&mut self, market: &Market) -> Option<&mut OrderbookL3> {
-        self.map.get_mut(market)
-    }
-}
-
 /// Represents the types of orderbook events
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub enum OrderBookEvent {
+    Snapshot(OrderBookL3Snapshot, Sequence),
     Received(Order, Sequence),
     Open(LimitOrder, Sequence),
     Done(String, Sequence),
@@ -87,6 +64,7 @@ pub enum OrderBookEvent {
 impl OrderBookEvent {
     pub fn sequence(&self) -> Sequence {
         match self {
+            OrderBookEvent::Snapshot(_, seq) => seq.clone(),
             OrderBookEvent::Received(_, seq) => seq.clone(),
             OrderBookEvent::Open(_, seq) => seq.clone(),
             OrderBookEvent::Done(_, seq) => seq.clone(),
@@ -346,7 +324,7 @@ impl OrderbookStats {
 
 /// Todo: consider alternative data structures for bids and asks
 #[derive(Clone, Debug)]
-pub struct OrderbookL3 {
+pub struct OrderBookL3 {
     // info
     pub market: Market,
     pub last_sequence: u64,
@@ -365,7 +343,7 @@ pub struct OrderbookL3 {
 }
 
 /// todo: refactor insert/remove/update to reuse code
-impl OrderbookL3 {
+impl OrderBookL3 {
     /// return a builder that will can instantiate an orderbook
     pub fn builder() -> OrderbookBuilder {
         OrderbookBuilder::new()
@@ -445,6 +423,7 @@ impl OrderbookL3 {
                 }
 
                 match &event {
+                    OrderBookEvent::Snapshot(snapshot, _) => self.load(snapshot),
                     // todo: received orders do not change state of orderbook but may be used to model
                     // market order impacts before ensuing order limit close messages arrive
                     OrderBookEvent::Received(_order, _) => Ok(()),
@@ -518,6 +497,19 @@ impl OrderbookL3 {
         if self.outlier_filter.is_some() {
             self.outlier_filter.as_mut().unwrap().outlier_ids.remove(&*order_id)
         } else { false }
+    }
+
+    /// Loads snapshot of type ['OrderBookL3Snapshot'] into orderbook.
+    ///
+    /// Will ignore any errors from inserting individual orders from snapshot.
+    fn load(&mut self, snapshot: &OrderBookL3Snapshot) -> Result<(), OrderBookError> {
+        snapshot.bids.iter().for_each(|bid| {
+            let _ = self.insert(&LimitOrder::Bid(bid.clone()));
+        });
+        snapshot.asks.iter().for_each(|ask| {
+            let _ = self.insert(&LimitOrder::Ask(ask.clone()));
+        });
+        Ok(())
     }
 
     /// Find order deque and push order to the back. If order deque does not exist,
@@ -956,10 +948,10 @@ impl OrderbookBuilder {
     }
 
     /// build orderbook
-    pub fn build(self) -> Result<OrderbookL3, OrderBookError> {
+    pub fn build(self) -> Result<OrderBookL3, OrderBookError> {
         let market = self.market.ok_or(OrderBookError::BuilderIncomplete("missing Market"))?;
 
-        Ok(OrderbookL3 {
+        Ok(OrderBookL3 {
             market,
             last_sequence: 0,
             start_time: Utc::now(),
@@ -1001,13 +993,47 @@ mod tests {
     use crate::ExchangeId;
     use super::*;
     use tracing_subscriber;
+    use std::path::PathBuf;
+    use std::env::current_dir;
+    use std::fs;
+    use serde_json;
+    use crate::exchange::coinbase::model::CoinbaseOrderBookL3Snapshot;
+
+    static SNAPSHOT_FILEPATH: &str = "test_data/snapshot_coinbase_(eth_usd, spot)_20221020_192044.json";
+
+    #[test]
+    pub fn load_coinbase_snapshot() {
+        let mut snapshot_filepath: PathBuf = current_dir().unwrap();
+        snapshot_filepath.push(SNAPSHOT_FILEPATH);
+        let snapshot_str = fs::read_to_string(snapshot_filepath)
+            .expect("Unable to read snapshot file");
+        let snapshot: OrderBookL3Snapshot
+            = serde_json::from_str::<CoinbaseOrderBookL3Snapshot>(&snapshot_str)
+            .unwrap().into();
+        let snapshot_sequence = snapshot.last_update_id.clone();
+        let snapshot_event: OrderBookEvent = OrderBookEvent::Snapshot(
+            snapshot,
+            snapshot_sequence
+        );
+
+        let instrument = Instrument::from(("eth", "usd", InstrumentKind::Spot));
+        let exchange = Exchange::from(ExchangeId::Coinbase);
+        let mut orderbook = OrderBookL3::builder()
+            .market(Market::from((exchange.clone(), instrument.clone())))
+            .stats(true)
+            .outlier_filter_default()
+            .build().unwrap();
+
+        orderbook.process(snapshot_event);
+        orderbook.print_info(true);
+    }
 
     #[test]
     pub fn orderbook_l3_basics() {
         tracing_subscriber::fmt().init();
         let instrument = Instrument::from(("eth", "usd", InstrumentKind::Spot));
         let exchange = Exchange::from(ExchangeId::Coinbase);
-        let mut orderbook = OrderbookL3::builder()
+        let mut orderbook = OrderBookL3::builder()
             .market(Market::from((exchange.clone(), instrument.clone())))
             .stats(true)
             .outlier_filter_default()

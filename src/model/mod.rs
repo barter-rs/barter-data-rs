@@ -4,7 +4,7 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::model::orderbook::OrderBookEvent;
+use crate::model::orderbook::{AtomicOrder, OrderBookEvent};
 
 /// Barter data structures that support subscribing to exchange specific market data.
 ///
@@ -33,8 +33,9 @@ impl MarketEvent {
 pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
-    OrderBook(OrderBook),
-    OrderBookEvent(OrderBookEvent),
+    OrderBook(OrderBookL2Snapshot),
+    OBL3Snapshot(OrderBookL3Snapshot),
+    OBEvent(OrderBookEvent),
     Liquidation(Liquidation),
 }
 
@@ -62,11 +63,20 @@ pub struct Candle {
 
 /// Normalised Barter [`OrderBook`] snapshot.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct OrderBook {
+pub struct OrderBookL2Snapshot {
     pub last_update_time: DateTime<Utc>,
     pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
+}
+
+/// Normalised Barter [`OrderBook`] snapshot.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct OrderBookL3Snapshot {
+    pub last_update_time: DateTime<Utc>,
+    pub last_update_id: u64,
+    pub bids: Vec<AtomicOrder>,
+    pub asks: Vec<AtomicOrder>,
 }
 
 /// Normalised Barter [`OrderBook`] [`Level`].

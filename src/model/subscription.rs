@@ -272,7 +272,7 @@ impl<'de> Deserialize<'de> for SubscriptionIds {
 pub fn de_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
     where D: Deserializer<'de>, {
     let num_str: String = Deserialize::deserialize(deserializer)?;
-    num_str.parse().map_err(|_| D::Error::custom("Float parsing error"))
+    num_str.parse().map_err(|_| D::Error::custom(format!("Float parsing error for {:?}", num_str)))
 }
 
 impl SubscriptionIds {

@@ -5,6 +5,7 @@ use crate::{
         orderbook::{OrderBookEvent, AtomicOrder},
         DataKind,
         PublicTrade,
+        OrderBookL3Snapshot,
         subscription::de_floats,
     },
     ExchangeId, MarketEvent, Validator,
@@ -16,7 +17,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde::de::Error;
-use crate::model::orderbook::{LimitOrder, MarketOrder, Order};
+use crate::model::orderbook::{MarketOrder, Order, LimitOrder};
 
 /// [`Coinbase`] message received in response to WebSocket subscription requests.
 ///
@@ -168,7 +169,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Received)> for MarketEvent
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBookEvent(
+            kind: DataKind::OBEvent(
                 OrderBookEvent::from(received)
             )
         }
@@ -255,7 +256,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Open)> for MarketEvent {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBookEvent(
+            kind: DataKind::OBEvent(
                 OrderBookEvent::from(open)
             )
         }
@@ -312,7 +313,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Done)> for MarketEvent {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBookEvent(
+            kind: DataKind::OBEvent(
                 OrderBookEvent::from(done)
             )
         }
@@ -362,7 +363,7 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Change)> for MarketEvent {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBookEvent(
+            kind: DataKind::OBEvent(
                 OrderBookEvent::from(change)
             )
         }
@@ -372,6 +373,66 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Change)> for MarketEvent {
 impl From<CoinbaseOrderBookL3Change> for OrderBookEvent {
     fn from(change: CoinbaseOrderBookL3Change) -> Self {
         OrderBookEvent::Change(change.order_id, change.new_size, change.sequence)
+    }
+}
+
+/// Struct used as an intermediary between order arrays in json snapshot and
+/// generalized AtomicOrder struct
+#[derive(Debug, Deserialize)]
+struct CoinbaseL3SnapshotOrder(
+    #[serde(deserialize_with = "de_floats")]
+    f64,
+    #[serde(deserialize_with = "de_floats")]
+    f64,
+    String
+);
+
+impl From<CoinbaseL3SnapshotOrder> for AtomicOrder {
+    fn from(tuple: CoinbaseL3SnapshotOrder) -> Self {
+        AtomicOrder {
+            id: tuple.2,
+            price: tuple.0,
+            size: tuple.1,
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+pub struct CoinbaseOrderBookL3Snapshot {
+    #[serde(deserialize_with = "de_reorder_cb_snapshot_order_fields")]
+    pub bids: Vec<AtomicOrder>,
+    #[serde(deserialize_with = "de_reorder_cb_snapshot_order_fields")]
+    pub asks: Vec<AtomicOrder>,
+    pub sequence: u64,
+    pub auction_mode: bool,
+    pub auction: serde_json::Value,
+}
+
+impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Snapshot)> for MarketEvent {
+    fn from(
+        (exchange_id, instrument, snapshot): (ExchangeId, Instrument, CoinbaseOrderBookL3Snapshot),
+    ) -> Self {
+
+        Self {
+            exchange_time: Utc::now(),
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::OBL3Snapshot(
+                OrderBookL3Snapshot::from(snapshot)
+            )
+        }
+    }
+}
+
+impl From<CoinbaseOrderBookL3Snapshot> for OrderBookL3Snapshot {
+    fn from(snapshot: CoinbaseOrderBookL3Snapshot) -> Self {
+        OrderBookL3Snapshot {
+            last_update_time: Utc::now(),
+            last_update_id: snapshot.sequence,
+            bids: snapshot.bids,
+            asks: snapshot.asks,
+        }
     }
 }
 
@@ -405,11 +466,20 @@ where
         Some(num_str) => {
             match num_str.parse::<f64>() {
                 Ok(float) => Ok(Some(float)),
-                Err(_) => Err(Error::custom("Float parsing error")),
+                Err(_) => Err(Error::custom(format!("Float parsing error for {:?}", num_str))),
             }
         },
         None => Ok(None)
     }
+}
+
+/// Deserialize Coinbase orderbook snapshot's array of order tuples into vectors of atomic orders
+pub fn de_reorder_cb_snapshot_order_fields<'de, D>(deserializer: D) -> Result<Vec<AtomicOrder>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    let order_tuple_vec: Result<Vec<CoinbaseL3SnapshotOrder>, D::Error> = serde::de::Deserialize::deserialize(deserializer);
+    order_tuple_vec.map(|vec| vec.into_iter().map(AtomicOrder::from).collect())
 }
 
 #[cfg(test)]
@@ -501,6 +571,72 @@ mod tests {
         for (index, test) in cases.into_iter().enumerate() {
             let actual = test.input_response.validate().is_ok();
             assert_eq!(actual, test.is_valid, "TestCase {} failed", index);
+        }
+    }
+
+    #[test]
+    fn test_l3_orderbook_snapshot() {
+        struct TestCase {
+            input: &'static str,
+            expected: serde_json::Result<CoinbaseOrderBookL3Snapshot>,
+        }
+        let cases = vec![
+            TestCase {
+                // TC0: Valid CoinbaseRESTAPIResponse Received
+                input:
+                r#"{ "bids": [
+                        ["1498.01", "1.25478367", "2b9c6c1e-b2ae-4b1a-a64c-5fd69881e14e"],
+                        ["1498", "2.80318188", "d25117b8-6ff9-4445-8d0b-763c3185f9a4"],
+                        ["1498", "0.33377729", "6d3cd211-3ea6-45d6-b016-d4d914b978ca"]],
+                    "asks": [
+                        ["1498.81", "0.3", "3eb92c7e-4bf7-48d7-bbc3-92d0d9e6de0f"],
+                        ["1498.82", "0.3", "8083da45-90ac-4b12-aa18-f3727838ff72"],
+                        ["1498.82", "0.76768357", "f88fe077-668a-4d32-a7d0-dd1411d29035"]],
+                    "sequence": 35140793720,
+                    "auction_mode": false,
+                    "auction": null }"#,
+                expected: Ok(
+                    CoinbaseOrderBookL3Snapshot {
+                        bids: vec![
+                            AtomicOrder { id: "2b9c6c1e-b2ae-4b1a-a64c-5fd69881e14e".to_string(), price: 1498.01, size: 1.25478367 },
+                            AtomicOrder { id: "d25117b8-6ff9-4445-8d0b-763c3185f9a4".to_string(), price: 1498.0, size: 2.80318188 },
+                            AtomicOrder { id: "6d3cd211-3ea6-45d6-b016-d4d914b978ca".to_string(), price: 1498.0, size: 0.33377729 },
+                        ],
+                        asks: vec![
+                            AtomicOrder { id: "3eb92c7e-4bf7-48d7-bbc3-92d0d9e6de0f".to_string(), price: 1498.81, size: 0.3 },
+                            AtomicOrder { id: "8083da45-90ac-4b12-aa18-f3727838ff72".to_string(), price: 1498.82, size: 0.3 },
+                            AtomicOrder { id: "f88fe077-668a-4d32-a7d0-dd1411d29035".to_string(), price: 1498.82, size: 0.76768357 }
+                        ],
+                        sequence: 35140793720,
+                        auction_mode: false,
+                        auction: serde_json::Value::Null
+                    }
+                )
+            },
+            TestCase {
+                // TC1: Invalid CoinbaseRESTAPIResponse
+                input:
+                r#"{ "bids: [], "asks": [],
+                    "sequence": 35140793720,
+                    "auction_mode": false,
+                    "auction": null }"#,
+                expected: Err(serde_json::Error::custom("")),
+            }
+        ];
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = serde_json::from_str::<CoinbaseOrderBookL3Snapshot>(test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
         }
     }
 
