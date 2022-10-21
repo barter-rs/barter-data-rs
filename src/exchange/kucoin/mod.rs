@@ -13,7 +13,7 @@
 //! - Maximum of 100 batch subscriptions at a time.
 //! 
 //! ## Quirks
-//! - The timestamp on trades has 6 trailing zeros, so it must be divided to yield the UNIX ms timestamp.
+//! - The timestamp on trades has 6 trailing zeros, so it must be divided by 1000000 to yield the UNIX millisecond timestamp.
 
 
 use std::{time::Duration, collections::HashMap};
