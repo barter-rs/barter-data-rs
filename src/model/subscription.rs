@@ -45,6 +45,7 @@ impl Validator for &Subscription {
             SubKind::Trade if self.exchange.supports_trades() => {}
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
             SubKind::L2OrderBookSnapshot(_) if self.exchange.supports_ob_l2_snapshot() => {}
+            SubKind::Liquidation if self.exchange.supports_liquidations() => {}
             other => {
                 return Err(SocketError::Unsupported {
                     entity: self.exchange.as_str(),
@@ -121,6 +122,7 @@ pub enum SubKind {
     L2OrderBookSnapshot(SnapshotDepth),
     OrderBookL2Delta,
     OrderBookL3Delta,
+    Liquidation,
 }
 
 impl Display for SubKind {
@@ -134,6 +136,7 @@ impl Display for SubKind {
                 SubKind::L2OrderBookSnapshot(depth) => format!("ob_l2_snapshot_{}", depth),
                 SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
+                SubKind::Liquidation => "liquidation".to_owned(),
             }
         )
     }
@@ -223,23 +226,6 @@ impl Display for Interval {
     }
 }
 
-/// Barter OrderBook depth used for specifying the depth of an [`SubKind::OrderBook`] snapshot.
-#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct Depth(u16);
-
-impl Display for Depth {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Deref for Depth {
-    type Target = u16;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 /// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
 /// specific subscription payloads that are sent to the exchange.
@@ -370,6 +356,15 @@ mod tests {
                 // TC7: Invalid Subscription w/ unknown SubKind
                 input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "unknown"}"##,
                 expected: Err(serde_json::Error::custom("")),
+            },
+            TestCase {
+                // Valid BinanceFuturesUsd btc_usd FuturePerpetual Liquidation Subscription,
+                input: r##"{"exchange": "binance_futures_usd", "base": "btc", "quote": "usd", "instrument_type": "future_perpetual", "type": "liquidation"}"##,
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
+                }),
             },
         ];
 
@@ -523,6 +518,19 @@ mod tests {
                     exchange: ExchangeId::Kraken,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
                     kind: SubKind::Candle(Interval::Minute5),
+                }),
+            },
+            TestCase {
+                // Valid Subscription /w BinanceFuturesUsd FuturePerpetual Liquidation
+                input: Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
+                },
+                expected: Ok(Subscription {
+                    exchange: ExchangeId::BinanceFuturesUsd,
+                    instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
+                    kind: SubKind::Liquidation,
                 }),
             },
             TestCase {

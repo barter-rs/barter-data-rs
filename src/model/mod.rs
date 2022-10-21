@@ -27,6 +27,7 @@ pub enum DataKind {
     Candle(Candle),
     /// Level 2 orderbook snapshot
     OrderBook(OrderBook),
+    Liquidation(Liquidation),
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -64,6 +65,15 @@ pub struct OrderBook {
 pub struct Level {
     pub price: f64,
     pub quantity: f64,
+}
+
+/// Normalised Barter [`Liquidation`] model.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct Liquidation {
+    pub side: Side,
+    pub price: f64,
+    pub quantity: f64,
+    pub time: DateTime<Utc>,
 }
 
 impl<T> From<(T, T)> for Level

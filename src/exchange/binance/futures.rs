@@ -98,6 +98,16 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
                     Err(error) => vec![Err(error)],
                 }
             }
+            BinanceMessage::Liquidation(liquidation) => {
+                match self.ids.find_instrument(&liquidation.order.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        BinanceFuturesUsd::EXCHANGE,
+                        instrument,
+                        liquidation,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -114,6 +124,11 @@ impl BinanceFuturesUsd {
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
     pub const CHANNEL_ORDER_BOOK: &'static str = "@depth20@100ms";
 
+    /// [`BinanceFuturesUsd`] liquidation orders channel name
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+    pub const CHANNEL_LIQUIDATIONS: &'static str = "@forceOrder";
+
     /// Determine the [`BinanceFuturesUsd`] channel metadata associated with an input
     /// Barter [`Subscription`]. This includes the [`BinanceFuturesUsd`] `&str` channel
     /// identifier, and a `String` market identifier. Both are used to build a
@@ -129,6 +144,7 @@ impl BinanceFuturesUsd {
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
             SubKind::L2OrderBookSnapshot(_) => Self::CHANNEL_ORDER_BOOK,
+            SubKind::Liquidation => Self::CHANNEL_LIQUIDATIONS,
             other => {
                 return Err(SocketError::Unsupported {
                     entity: BinanceFuturesUsd::EXCHANGE.as_str(),
@@ -169,7 +185,10 @@ impl BinanceFuturesUsd {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::binance::model::BinanceTrade;
+    use crate::exchange::binance::model::{
+        BinanceLiquidation, BinanceLiquidationOrder, BinanceTrade,
+    };
+    use crate::model::Liquidation;
     use crate::model::{subscription::Interval, DataKind, PublicTrade};
     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
     use chrono::Utc;
@@ -183,6 +202,13 @@ mod tests {
                         (SubKind::Trade, InstrumentKind::FuturePerpetual) => {
                             BinanceFuturesUsd::subscription_id(
                                 BinanceFuturesUsd::CHANNEL_TRADES,
+                                &format!("{}{}", sub.instrument.base, sub.instrument.quote)
+                                    .to_uppercase(),
+                            )
+                        }
+                        (SubKind::Liquidation, InstrumentKind::FuturePerpetual) => {
+                            BinanceFuturesUsd::subscription_id(
+                                BinanceFuturesUsd::CHANNEL_LIQUIDATIONS,
                                 &format!("{}{}", sub.instrument.base, sub.instrument.quote)
                                     .to_uppercase(),
                             )
@@ -274,13 +300,22 @@ mod tests {
 
     #[test]
     fn test_binance_transform() {
-        let mut transformer = binance_futures_usd(vec![Subscription::from((
-            ExchangeId::BinanceFuturesUsd,
-            "btc",
-            "usdt",
-            InstrumentKind::FuturePerpetual,
-            SubKind::Trade,
-        ))]);
+        let mut transformer = binance_futures_usd(vec![
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Trade,
+            )),
+            Subscription::from((
+                ExchangeId::BinanceFuturesUsd,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                SubKind::Liquidation,
+            )),
+        ]);
 
         let time = Utc::now();
 
@@ -324,6 +359,30 @@ mod tests {
                         price: 1000.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                    }),
+                })],
+            },
+            TestCase {
+                // TC2: BinanceMessage FuturePerpetual liquidation
+                input: BinanceMessage::Liquidation(BinanceLiquidation {
+                    order: BinanceLiquidationOrder {
+                        subscription_id: SubscriptionId::from("@forceOrder|BTCUSDT"),
+                        side: Side::Buy,
+                        price: 1.0,
+                        quantity: 20.0,
+                        time,
+                    },
+                }),
+                expected: vec![Ok(MarketEvent {
+                    exchange_time: time,
+                    received_time: time,
+                    exchange: Exchange::from(ExchangeId::BinanceFuturesUsd),
+                    instrument: Instrument::from(("btc", "usdt", InstrumentKind::FuturePerpetual)),
+                    kind: DataKind::Liquidation(Liquidation {
+                        side: Side::Buy,
+                        price: 1.0,
+                        quantity: 20.0,
+                        time,
                     }),
                 })],
             },
