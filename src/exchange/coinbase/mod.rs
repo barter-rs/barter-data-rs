@@ -279,6 +279,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Ok(MarketEvent {
                     exchange_time: time,
@@ -290,6 +291,7 @@ mod tests {
                         price: 1.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                        sequence: Some(1),
                     }),
                 })],
             },
@@ -332,6 +334,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
                     "unknown",
@@ -476,6 +479,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Ok(MarketEvent {
                     exchange_time: time,
@@ -487,6 +491,7 @@ mod tests {
                         price: 1.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                        sequence: Some(1),
                     }),
                 })],
             },
@@ -499,6 +504,7 @@ mod tests {
                     quantity: 1.0,
                     side: Side::Buy,
                     time,
+                    sequence: 1,
                 }),
                 expected: vec![Err(SocketError::Unidentifiable(SubscriptionId::from(
                     "unknown",

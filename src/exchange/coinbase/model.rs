@@ -102,6 +102,7 @@ pub struct CoinbaseTrade {
     #[serde(deserialize_with = "de_str")]
     pub price: f64,
     pub side: Side,
+    pub sequence: u64,
 }
 
 impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
@@ -116,6 +117,7 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.quantity,
                 side: trade.side,
+                sequence: Some(trade.sequence),
             }),
         }
     }
@@ -413,13 +415,16 @@ impl From<(ExchangeId, Instrument, CoinbaseOrderBookL3Snapshot)> for MarketEvent
         (exchange_id, instrument, snapshot): (ExchangeId, Instrument, CoinbaseOrderBookL3Snapshot),
     ) -> Self {
 
+        let snapshot = OrderBookL3Snapshot::from(snapshot);
+        let sequence = snapshot.sequence.clone();
+
         Self {
             exchange_time: Utc::now(),
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OBL3Snapshot(
-                OrderBookL3Snapshot::from(snapshot)
+            kind: DataKind::OBEvent(
+                OrderBookEvent::Snapshot(snapshot, sequence)
             )
         }
     }
@@ -429,7 +434,7 @@ impl From<CoinbaseOrderBookL3Snapshot> for OrderBookL3Snapshot {
     fn from(snapshot: CoinbaseOrderBookL3Snapshot) -> Self {
         OrderBookL3Snapshot {
             last_update_time: Utc::now(),
-            last_update_id: snapshot.sequence,
+            sequence: snapshot.sequence,
             bids: snapshot.bids,
             asks: snapshot.asks,
         }
@@ -675,6 +680,7 @@ mod tests {
                         NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),
                         Utc,
                     ),
+                    sequence: 50,
                 })),
             },
         ];

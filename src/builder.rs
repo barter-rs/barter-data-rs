@@ -1,6 +1,7 @@
 use crate::{
     exchange::{binance::futures::BinanceFuturesUsd, coinbase::Coinbase, ftx::Ftx, kraken::Kraken},
     model::subscription::{SubKind, Subscription},
+    shutdown::ShutdownListener,
     ExchangeId, ExchangeWsStream, MarketEvent, MarketStream,
 };
 use barter_integration::{
@@ -10,9 +11,9 @@ use barter_integration::{
 };
 use futures::{stream::Map, StreamExt};
 use std::{collections::HashMap, time::Duration};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc};
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
-use tracing::{error, info, warn};
+use tracing::{error, info, warn, debug};
 
 /// Initial duration that the [`consume`] function should wait before attempting to re-initialise
 /// a [`MarketStream`]. This duration will increase exponentially as a result of repeated
@@ -81,6 +82,7 @@ impl Streams {
 #[derive(Debug)]
 pub struct StreamBuilder {
     pub exchange_subscriptions: HashMap<ExchangeId, Vec<Subscription>>,
+    pub maybe_shutdown: Option<ShutdownListener>,
 }
 
 impl StreamBuilder {
@@ -88,6 +90,15 @@ impl StreamBuilder {
     fn new() -> Self {
         Self {
             exchange_subscriptions: HashMap::new(),
+            maybe_shutdown: None,
+        }
+    }
+
+    /// Enable graceful ending of streams by passing in a ['watch::Receiver<()>'].
+    pub fn graceful_kill(self, shutdown_listener: ShutdownListener) -> Self {
+        Self {
+            maybe_shutdown: Some(shutdown_listener),
+            ..self
         }
     }
 
@@ -159,6 +170,9 @@ impl StreamBuilder {
             // Create channel for this ExchangeId stream
             let (exchange_tx, exchange_rx) = mpsc::unbounded_channel();
 
+            // Clone the shutdown receiver
+            let maybe_shutdown = self.maybe_shutdown.clone();
+
             // Spawn a MarketStream consumer loop with this exchange's Subscriptions
             match exchange {
                 ExchangeId::BinanceFuturesUsd => {
@@ -166,6 +180,7 @@ impl StreamBuilder {
                         exchange,
                         subscriptions,
                         exchange_tx,
+                        maybe_shutdown,
                     ));
                 }
                 ExchangeId::Coinbase => {
@@ -173,6 +188,7 @@ impl StreamBuilder {
                         exchange,
                         subscriptions,
                         exchange_tx,
+                        maybe_shutdown,
                     ));
                 }
                 ExchangeId::Ftx => {
@@ -180,6 +196,7 @@ impl StreamBuilder {
                         exchange,
                         subscriptions,
                         exchange_tx,
+                        maybe_shutdown,
                     ));
                 }
                 ExchangeId::Kraken => {
@@ -187,6 +204,7 @@ impl StreamBuilder {
                         exchange,
                         subscriptions,
                         exchange_tx,
+                        maybe_shutdown,
                     ));
                 }
                 not_supported => {
@@ -238,7 +256,8 @@ pub async fn consume<Stream>(
     exchange: ExchangeId,
     subscriptions: Vec<Subscription>,
     exchange_tx: mpsc::UnboundedSender<Event<MarketEvent>>,
-) -> SocketError
+    mut maybe_shutdown: Option<ShutdownListener>,
+) -> Result<(), SocketError>
 where
     Stream: MarketStream,
 {
@@ -249,11 +268,13 @@ where
         "MarketStream consumer loop running",
     );
 
+    debug!("Graceful shutdown enabled: {}", maybe_shutdown.is_some());
+
     // Consumer loop retry parameters
     let mut attempt: u32 = 0;
     let mut backoff_ms: u64 = STARTING_RECONNECT_BACKOFF_MS;
 
-    loop {
+    'outer: loop {
         // Increment retry parameters at start of every iteration
         attempt += 1;
         backoff_ms *= 2;
@@ -270,40 +291,61 @@ where
             Err(error) => {
                 error!(%exchange, attempt, ?error, "failed to initialise MarketStream");
 
-                // Exit function function if Stream::init failed the first attempt, else retry
+                // Exit function if Stream::init failed the first attempt, else retry
                 if attempt == 1 {
-                    return error;
+                    return Err(error);
                 } else {
                     continue;
                 }
             }
         };
 
-        // Consume Result<Event<MarketData>, SocketError> from MarketStream
-        while let Some(event_result) = stream.next().await {
-            match event_result {
-                // If Ok: send Event<MarketData> to exchange receiver
-                Ok(market_event) => {
-                    let _ = exchange_tx.send(market_event).map_err(|err| {
-                        error!(
-                            payload = ?err.0,
-                            why = "receiver dropped",
-                            "failed to send Event<MarketData> to Exchange receiver"
-                        );
-                    });
+        'inner: loop {
+
+            // tokio select evaluates async expressions even if the precondition fails,
+            // so maybe_shutdown must be handled in a wrapper, separately.
+            // relevant discussion can be found here:
+            // https://stackoverflow.com/questions/72263644/tokio-select-macro-conditions-and-arm-evaluation
+            let shutdown = async {
+                match maybe_shutdown.as_mut() {
+                    None => None,
+                    Some(listener) => Some(listener.recv().await),
                 }
-                // If SocketError: log & continue to next Result<Event<MarketData>, SocketError>
-                Err(error) => {
-                    warn!(
-                        %exchange,
-                        %error,
-                        action = "skipping message",
-                        "consumed SocketError from MarketStream",
-                    );
-                    continue;
+            };
+
+            tokio::select! {
+                Some(_) = shutdown => {
+                    info!("Received stop signal. Shutting down stream consumption...");
+                    break 'outer Ok(())
+                },
+                result = stream.next() => {
+                    if let Some(event_result) = result {
+                        match event_result {
+                            // If Ok: send Event<MarketData> to exchange receiver
+                            Ok(market_event) => {
+                                let _ = exchange_tx.send(market_event).map_err(|err| {
+                                    error!(
+                                        payload = ?err.0,
+                                        why = "receiver dropped",
+                                        "failed to send Event<MarketData> to Exchange receiver"
+                                    );
+                                });
+                            }
+                            // If SocketError: log & continue to next Result<Event<MarketData>, SocketError>
+                            Err(error) => {
+                                warn!(
+                                    %exchange,
+                                    %error,
+                                    action = "skipping message",
+                                    "consumed SocketError from MarketStream",
+                                );
+                                continue;
+                            }
+                        }
+                    } else { break 'inner }
                 }
             }
-        }
+        };
 
         // If MarketStream ends unexpectedly, attempt re-connection after backoff_ms
         warn!(

@@ -96,6 +96,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.quantity,
                 side: trade.side,
+                sequence: None,
             }),
         }
     }

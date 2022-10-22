@@ -26,6 +26,14 @@ impl MarketEvent {
     pub fn market(&self) -> Market {
         Market::from((self.exchange.clone(), self.instrument.clone()))
     }
+
+    pub fn sequence(&self) -> Option<u64> {
+        match &self.kind {
+            DataKind::Trade(trade) => Some(trade.sequence).flatten(),
+            DataKind::OBEvent(ob_event) => Some(ob_event.sequence()),
+            _ => None,
+        }
+    }
 }
 
 /// Defines the type of Barter [`MarketEvent`].
@@ -34,7 +42,6 @@ pub enum DataKind {
     Trade(PublicTrade),
     Candle(Candle),
     OrderBook(OrderBookL2Snapshot),
-    OBL3Snapshot(OrderBookL3Snapshot),
     OBEvent(OrderBookEvent),
     Liquidation(Liquidation),
 }
@@ -46,6 +53,11 @@ pub struct PublicTrade {
     pub price: f64,
     pub quantity: f64,
     pub side: Side,
+    pub sequence: Option<u64>,
+}
+
+impl PublicTrade {
+    pub fn sequence(&self) -> Option<u64> {self.sequence}
 }
 
 /// Normalised Barter OHLCV [`Candle`] model.
@@ -74,7 +86,7 @@ pub struct OrderBookL2Snapshot {
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBookL3Snapshot {
     pub last_update_time: DateTime<Utc>,
-    pub last_update_id: u64,
+    pub sequence: u64,
     pub bids: Vec<AtomicOrder>,
     pub asks: Vec<AtomicOrder>,
 }

@@ -22,7 +22,7 @@ use std::{
     fmt::{Debug, Display, Formatter},
     time::Duration,
 };
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc};
 use tracing::error;
 
 ///! # Barter-Data
@@ -38,6 +38,10 @@ pub mod exchange;
 /// Initialises [`MarketStream`]s for an arbitrary number of exchanges using generic Barter
 /// [`Subscription`]s.
 pub mod builder;
+
+/// Contains ['ShutdownNotifier'] and ['ShutdownListener']s to support graceful shutdown
+/// of ['ExchangeStreams']
+pub mod shutdown;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange> =
@@ -385,6 +389,7 @@ pub mod test_util {
                 price: 1000.0,
                 quantity: 1.0,
                 side,
+                sequence: Some(7),
             }),
         }
     }

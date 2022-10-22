@@ -329,6 +329,7 @@ impl From<(ExchangeId, Instrument, KrakenTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.quantity,
                 side: trade.side,
+                sequence: None,
             }),
         }
     }

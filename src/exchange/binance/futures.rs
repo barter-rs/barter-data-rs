@@ -359,6 +359,7 @@ mod tests {
                         price: 1000.0,
                         quantity: 1.0,
                         side: Side::Buy,
+                        sequence: None,
                     }),
                 })],
             },

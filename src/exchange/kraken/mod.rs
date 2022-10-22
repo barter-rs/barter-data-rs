@@ -309,6 +309,7 @@ mod tests {
                             price: 1.0,
                             quantity: 1.0,
                             side: Side::Buy,
+                            sequence: None,
                         }),
                     }),
                     Ok(MarketEvent {
@@ -321,6 +322,7 @@ mod tests {
                             price: 2.0,
                             quantity: 2.0,
                             side: Side::Sell,
+                            sequence: None,
                         }),
                     }),
                 ],

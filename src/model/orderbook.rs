@@ -18,9 +18,6 @@
 //!
 //! # Todos
 //! - Consider ways to reduce time complexity of orderbook operations while retaining cache-friendliness.
-//! - Improve sequence-checking: add new error for missing sequences.
-//! - Implement snapshot loading and sync mechanism (for snapshots retrieved through REST).
-//! This is dependent on improved sequence-checking.
 //! - Simple stats tracking - generalize this and add more stats to track.
 //! - Add option to swap in other data structures as desired.
 
@@ -37,9 +34,10 @@ use serde::{Deserialize, Serialize};
 use tracing::{warn};
 // internal
 use crate::model::subscription::de_floats;
-use crate::model::OrderBookL3Snapshot;
+use crate::model::{DataKind, OrderBookL3Snapshot};
 // testing
 use bounded_vec_deque::BoundedVecDeque;
+use crate::MarketEvent;
 
 const DEFAULT_OUTLIER_FACTOR: f64 = 0.50;
 const DEFAULT_BEST_BID: f64 = 0.0;
@@ -322,13 +320,14 @@ impl OrderbookStats {
     }
 }
 
-/// Todo: consider alternative data structures for bids and asks
+/// Main orderbook struct.
 #[derive(Clone, Debug)]
 pub struct OrderBookL3 {
     // info
     pub market: Market,
     pub last_sequence: u64,
     pub start_time: DateTime<Utc>,
+    pub start_sequence: u64,
 
     // data structures
     pub bids: Vec<OrderDeque>,
@@ -339,10 +338,9 @@ pub struct OrderBookL3 {
     // optional features
     pub outlier_filter: Option<SimpleOutlierFilter>,
     pub stats: Option<OrderbookStats>,
-    pub last_n_events: Option<BoundedVecDeque<OrderBookEvent>>
+    pub last_n_events: Option<BoundedVecDeque<MarketEvent>>
 }
 
-/// todo: refactor insert/remove/update to reuse code
 impl OrderBookL3 {
     /// return a builder that will can instantiate an orderbook
     pub fn builder() -> OrderbookBuilder {
@@ -403,26 +401,59 @@ impl OrderBookL3 {
 
     /// for debugging. Store last n events in a bounded VecDeque.
     /// Enabled by calling last_n_events on the orderbook builder.
-    pub fn store_event(&mut self, event: &OrderBookEvent) {
+    pub fn store_event(&mut self, event: &MarketEvent) {
         if self.last_n_events.is_some() {
             self.last_n_events.as_mut().unwrap().push_back(event.clone());
         }
     }
 
-    /// Check an OrderbookEvent's sequence and then process
-    pub fn process(&mut self, event: OrderBookEvent) {
+    /// Validate a market event's market against the orderbook's market.
+    pub fn validate_market(&self, event: MarketEvent) -> Result<MarketEvent, OrderBookError> {
+        if event.market() != self.market { Err(OrderBookError::WrongMarket(event)) }
+        else { Ok(event) }
+    }
+
+    /// Validate a market events' sequence against the orderbook's sequence.
+    ///
+    /// Returns an error if sequence is less than orderbook's last sequence, and only sends
+    /// a warning trace if sequence is skipped.
+    pub fn validate_sequence(&mut self, event: MarketEvent) -> Result<MarketEvent, OrderBookError> {
+        if let Some(sequence) = event.sequence() {
+            if self.start_sequence == 0 { self.start_sequence = sequence };
+            match sequence.cmp(&self.last_sequence) {
+                Ordering::Greater => {
+                    if sequence != self.last_sequence + 1 && sequence != self.start_sequence {
+                        warn!("Missed sequence {}, (got {}, so may have missed {} event(s)",
+                            self.last_sequence + 1,
+                            &sequence,
+                            (sequence as i64 - self.last_sequence as i64 - 1)
+                        );
+                    };
+                    Ok(event)
+                },
+                _ => Err(OrderBookError::StaleSequence(event))
+            }
+        } else { Ok(event) }
+    }
+
+    /// Validate an event and process, if valid.
+    ///
+    /// Can only process ['DataKind::Trade(_)'] and ['DataKind::OBEvent(_)'] variants.
+    pub fn process(&mut self, event: MarketEvent) -> Result<(), OrderBookError> {
+
         self.store_event(&event);
+        let event = self.validate_market(event)?;
+        let event = self.validate_sequence(event)?;
+        let sequence = event.sequence().clone();
 
-        let sequence = event.sequence();
+        let result: Result<(), OrderBookError> = match &event.kind {
+            DataKind::Trade(_) => {
+                // todo: find use for market orders beyond just keeping sequence
+                Ok(())
+            },
 
-        let result: Result<(), OrderBookError> = match &sequence.cmp(&self.last_sequence) {
-            Ordering::Greater => {
-
-                if sequence != self.last_sequence + 1 {
-                    warn!("Missed sequence {} ({:?})", self.last_sequence + 1, event.clone());
-                }
-
-                match &event {
+            DataKind::OBEvent(ob_event) => {
+                match &ob_event {
                     OrderBookEvent::Snapshot(snapshot, _) => self.load(snapshot),
                     // todo: received orders do not change state of orderbook but may be used to model
                     // market order impacts before ensuing order limit close messages arrive
@@ -432,42 +463,66 @@ impl OrderBookL3 {
                     OrderBookEvent::Change(order_id, new_size, _) => self.update(order_id, new_size),
                 }
             },
-            _ => Err(OrderBookError::StaleSequence(event))
+
+            _ => Err(OrderBookError::UnsupportedDataKind(event))
         };
-        self.update_sequence_and_stats(result, sequence);
+
+        self.update_sequence(&result, sequence);
+        self.track_stats_and_errors(&result);
+
+        result
     }
 
-    /// update sequence, update stats if enabled (and error msgs if both stats and error msgs
-    /// are enabled).
-    fn update_sequence_and_stats(&mut self, result: Result<(), OrderBookError>, sequence: Sequence) {
+    /// update sequence if processing result is successful
+    fn update_sequence(&mut self, result: &Result<(), OrderBookError>, sequence: Option<u64>) {
+        match sequence {
+            Some(sequence) => {
+                match result {
+                    Err(OrderBookError::StaleSequence(_)) => {},
+                    _ => self.last_sequence = sequence,
+                }
+            }
+            None => {}
+        };
+    }
+
+    /// update stats, if option is enabled
+    fn track_stats_and_errors(&mut self, result: &Result<(), OrderBookError>) {
         match result {
             Ok(()) => {
-                self.last_sequence = sequence.clone();
                 self.stats.as_mut().map(|stats| stats.events_processed += 1);
             },
             Err(OrderBookError::Outlier) => {
-                self.last_sequence = sequence.clone();
                 self.stats.as_mut().map(|stats| stats.events_not_processed += 1);
             },
             Err(error) => {
-                warn!("Orderbook encountered error: {:?}", error);
 
-                // don't update orderbook's sequence for stale sequence errors
+                // Ignore stale sequence errors from before the first sequence.
+                // This is most relevant for a sequence syncing mechanism that backfills events
+                // into the orderbook after retrieving and loading the snapshot.
+                // Todo: consider constructing a more deterministic snapshot sync mechanism
+                // within this module
                 match error {
-                    OrderBookError::StaleSequence(_) => {},
-                    _ => {self.last_sequence = sequence.clone()}
-                }
+                    OrderBookError::StaleSequence(event) => {
+                        if let Some(sequence) = event.sequence() {
+                            if sequence <= self.start_sequence { return }
+                        }
+                    },
+                    _ => { }
+                };
+
+                warn!("Orderbook encountered error: {:?}", error);
 
                 self.stats.as_mut().map(|stats| {
                     stats.events_not_processed += 1;
                     stats.error_msgs
                         .as_mut()
                         .map(|map| {
-                            map.push(format!("{:?} - sequence {:?} - {:?}", Utc::now(), self.last_sequence, error))
+                            map.push(error.to_string())
                         });
                 });
-            },
-        }
+            }
+        };
     }
 
     /// make a NonNan price out of an order's price
@@ -892,7 +947,7 @@ pub struct OrderbookBuilder {
     pub market: Option<Market>,
     pub outlier_filter: Option<SimpleOutlierFilter>,
     pub stats: Option<OrderbookStats>,
-    pub last_n_events: Option<BoundedVecDeque<OrderBookEvent>>,
+    pub last_n_events: Option<BoundedVecDeque<MarketEvent>>,
 }
 
 impl OrderbookBuilder {
@@ -955,6 +1010,7 @@ impl OrderbookBuilder {
             market,
             last_sequence: 0,
             start_time: Utc::now(),
+            start_sequence: 0,
             bids: vec![],
             asks: vec![],
             order_id_map: HashMap::new(),
@@ -968,7 +1024,9 @@ impl OrderbookBuilder {
 /// All orderbook errors that may occur in this module
 #[derive(Error, Debug, PartialEq)]
 pub enum OrderBookError {
-    StaleSequence(OrderBookEvent),
+    UnsupportedDataKind(MarketEvent),
+    WrongMarket(MarketEvent),
+    StaleSequence(MarketEvent),
     OrderNotFoundInMap(String),
     OrderNotFoundInDeque(String),
     MissingOrderDeque(NonNan),
@@ -995,9 +1053,11 @@ mod tests {
     use tracing_subscriber;
     use std::path::PathBuf;
     use std::env::current_dir;
+    use std::matches;
     use std::fs;
     use serde_json;
     use crate::exchange::coinbase::model::CoinbaseOrderBookL3Snapshot;
+    use crate::model::PublicTrade;
 
     static SNAPSHOT_FILEPATH: &str = "test_data/snapshot_coinbase_(eth_usd, spot)_20221020_192044.json";
 
@@ -1010,21 +1070,28 @@ mod tests {
         let snapshot: OrderBookL3Snapshot
             = serde_json::from_str::<CoinbaseOrderBookL3Snapshot>(&snapshot_str)
             .unwrap().into();
-        let snapshot_sequence = snapshot.last_update_id.clone();
-        let snapshot_event: OrderBookEvent = OrderBookEvent::Snapshot(
-            snapshot,
-            snapshot_sequence
-        );
+        let snapshot_sequence = snapshot.sequence.clone();
 
         let instrument = Instrument::from(("eth", "usd", InstrumentKind::Spot));
         let exchange = Exchange::from(ExchangeId::Coinbase);
+
+        let snapshot_event: MarketEvent = MarketEvent {
+            exchange_time: Utc::now(),
+            received_time: Utc::now(),
+            exchange: exchange.clone(),
+            instrument: instrument.clone(),
+            kind: DataKind::OBEvent(
+                OrderBookEvent::Snapshot(snapshot, snapshot_sequence)
+            )
+        };
+
         let mut orderbook = OrderBookL3::builder()
             .market(Market::from((exchange.clone(), instrument.clone())))
             .stats(true)
             .outlier_filter_default()
             .build().unwrap();
 
-        orderbook.process(snapshot_event);
+        let _ = orderbook.process(snapshot_event);
         orderbook.print_info(true);
     }
 
@@ -1039,6 +1106,8 @@ mod tests {
             .outlier_filter_default()
             .build().unwrap();
 
+        let now = Utc::now();
+
         let invalid_events: Vec<OrderBookEvent> = vec![
             OrderBookEvent::Done("H".to_string(), 1),
             OrderBookEvent::Change("G".to_string(), 30.0, 1),
@@ -1046,10 +1115,27 @@ mod tests {
             OrderBookEvent::Done("ZZ".to_string(), 1),
         ];
 
-        invalid_events.into_iter().for_each(|event| orderbook.process(event));
+        let mut results: Vec<Result<(), OrderBookError>> = Vec::new();
+
+        invalid_events.into_iter().for_each(|event| {
+            results.push(orderbook.process(
+                MarketEvent {
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            ));
+        });
+
+        assert!(matches!(results[0], Err(OrderBookError::OrderNotFoundInMap(..))));
+        assert!(matches!(results[1], Err(OrderBookError::StaleSequence(..))));
+        assert!(matches!(results[2], Err(OrderBookError::StaleSequence(..))));
+        assert!(matches!(results[3], Err(OrderBookError::StaleSequence(..))));
 
         // test empty book
-        assert_eq!(orderbook.market, Market::from((exchange, instrument)));
+        assert_eq!(orderbook.market, Market::from((exchange.clone(), instrument.clone())));
         assert_eq!(orderbook.bids, vec![]);
         assert_eq!(orderbook.asks, vec![]);
         assert_eq!(orderbook.best_ask(), 0.0);
@@ -1058,24 +1144,40 @@ mod tests {
         assert_eq!(orderbook.levels(Side::Buy, None), vec![]);
         assert_eq!(orderbook.num_ask_levels(), 0);
         assert_eq!(orderbook.num_bid_levels(), 0);
-        assert_eq!(orderbook.last_sequence, 0);
-
+        // invalid events may still increment sequence
+        assert_eq!(orderbook.last_sequence, 1);
 
         // 3 ask levels, 4 bid levels post-insert
         let open_events= vec![
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "A".to_string(), price: 1005.0, size: 20.0 }), 1),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "B".to_string(), price: 995.0, size: 5.0 }), 2),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "C".to_string(), price: 1006.0, size: 1.0 }), 3),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "D".to_string(), price: 994.0, size: 2.0 }), 4),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "E".to_string(), price: 1005.0, size: 0.25 }), 5),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "F".to_string(), price: 997.0, size: 10.0 }), 6),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "G".to_string(), price: 1001.0, size: 4.0 }), 7),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "H".to_string(), price: 996.0, size: 3.0 }), 8),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "I".to_string(), price: 1005.0, size: 10.0 }), 9),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "J".to_string(), price: 994.0, size: 6.0 }), 10),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "A".to_string(), price: 1005.0, size: 20.0 }), 2),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "B".to_string(), price: 995.0, size: 5.0 }), 3),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "C".to_string(), price: 1006.0, size: 1.0 }), 4),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "D".to_string(), price: 994.0, size: 2.0 }), 5),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "E".to_string(), price: 1005.0, size: 0.25 }), 6),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "F".to_string(), price: 997.0, size: 10.0 }), 7),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "G".to_string(), price: 1001.0, size: 4.0 }), 8),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "H".to_string(), price: 996.0, size: 3.0 }), 9),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "I".to_string(), price: 1005.0, size: 10.0 }), 10),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "J".to_string(), price: 994.0, size: 6.0 }), 11),
         ];
 
-        open_events.into_iter().for_each(|event| orderbook.process(event));
+        let mut results: Vec<Result<(), OrderBookError>> = Vec::new();
+
+        open_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
+
+        results.into_iter().for_each(|result| {
+            assert!(matches!(result, Ok(())))
+        });
 
         assert_eq!(orderbook.get_order_ref("A").unwrap(), &AtomicOrder { id: "A".to_string(), price: 1005.0, size: 20.0 });
         assert_eq!(orderbook.get_order_ref("B").unwrap(), &AtomicOrder { id: "B".to_string(), price: 995.0, size: 5.0 });
@@ -1092,13 +1194,24 @@ mod tests {
         assert_eq!(orderbook.best_ask(), 1001.0);
 
         let change_events = vec![
-            OrderBookEvent::Change("A".to_string(), 30.0, 11),
-            OrderBookEvent::Change("B".to_string(), 30.0, 12),
-            OrderBookEvent::Change("C".to_string(), 30.0, 13),
-            OrderBookEvent::Change("D".to_string(), 30.0, 14),
+            OrderBookEvent::Change("A".to_string(), 30.0, 12),
+            OrderBookEvent::Change("B".to_string(), 30.0, 13),
+            OrderBookEvent::Change("C".to_string(), 30.0, 14),
+            OrderBookEvent::Change("D".to_string(), 30.0, 15),
         ];
 
-        change_events.into_iter().for_each(|event| orderbook.process(event));
+        change_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
+
         assert_eq!(orderbook.get_order_ref("A").unwrap().size, 30.0);
         assert_eq!(orderbook.get_order_ref("B").unwrap().size, 30.0);
         assert_eq!(orderbook.get_order_ref("C").unwrap().size, 30.0);
@@ -1106,13 +1219,24 @@ mod tests {
 
         // 2 ask levels, 2 bid levels post-removal
         let close_events = vec![
-            OrderBookEvent::Done("E".to_string(), 15),
-            OrderBookEvent::Done("F".to_string(), 16),
-            OrderBookEvent::Done("G".to_string(), 17),
-            OrderBookEvent::Done("H".to_string(), 18),
+            OrderBookEvent::Done("E".to_string(), 16),
+            OrderBookEvent::Done("F".to_string(), 17),
+            OrderBookEvent::Done("G".to_string(), 18),
+            OrderBookEvent::Done("H".to_string(), 19),
         ];
 
-        close_events.into_iter().for_each(|event| orderbook.process(event));
+        close_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
+
         assert_eq!(orderbook.get_order_ref("E"), Err(OrderBookError::OrderNotFoundInMap("E".to_string())));
         assert_eq!(orderbook.get_order_ref("F"), Err(OrderBookError::OrderNotFoundInMap("F".to_string())));
         assert_eq!(orderbook.get_order_ref("G"), Err(OrderBookError::OrderNotFoundInMap("G".to_string())));
@@ -1120,13 +1244,23 @@ mod tests {
 
         // invalid events (out-of-sequence or missing)
         let invalid_events = vec![
-            OrderBookEvent::Done("Z".to_string(), 18),
+            OrderBookEvent::Done("Z".to_string(), 19),
             OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "D".to_string(), price: 994.0, size: 1000.0 }), 4),
             OrderBookEvent::Change("G".to_string(), 30.0, 14),
-            OrderBookEvent::Done("ZZ".to_string(), 19),
+            OrderBookEvent::Done("ZZ".to_string(), 20),
         ];
 
-        invalid_events.into_iter().for_each(|event| orderbook.process(event));
+        invalid_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
 
         // events with some outliers
         // 3 bid levels, 3 ask levels post-insert
@@ -1136,24 +1270,62 @@ mod tests {
         // bid/ask cutoffs should be 497.5 / 1507.5
 
         let outlier_events = vec![
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "K".to_string(), price: 500.0, size: 11.1 }), 19),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "L".to_string(), price: 400.0, size: 12.1 }), 20),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "M".to_string(), price: 300.0, size: 100.0 }), 21),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "N".to_string(), price: 1507.0, size: 13.1 }), 22),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "O".to_string(), price: 1600.0, size: 14.1 }), 23),
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "P".to_string(), price: 10000.0, size: 100.0 }), 24),
-            OrderBookEvent::Done("M".to_string(), 25),
-            OrderBookEvent::Done("P".to_string(), 26),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "K".to_string(), price: 500.0, size: 11.1 }), 21),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "L".to_string(), price: 400.0, size: 12.1 }), 22),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "M".to_string(), price: 300.0, size: 100.0 }), 23),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "N".to_string(), price: 1507.0, size: 13.1 }), 24),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "O".to_string(), price: 1600.0, size: 14.1 }), 25),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "P".to_string(), price: 10000.0, size: 100.0 }), 26),
+            OrderBookEvent::Done("M".to_string(), 27),
+            OrderBookEvent::Done("P".to_string(), 28),
         ];
 
-        outlier_events.into_iter().for_each(|event| orderbook.process(event));
+        outlier_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
 
         let skipped_sequence_events = vec![
-            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "Q".to_string(), price: 1005.0, size: 10.0 }), 28),
-            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "R".to_string(), price: 994.0, size: 6.0 }), 30),
+            OrderBookEvent::Open(LimitOrder::Ask(AtomicOrder { id: "Q".to_string(), price: 1005.0, size: 10.0 }), 30),
+            OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "R".to_string(), price: 994.0, size: 6.0 }), 32),
         ];
 
-        skipped_sequence_events.into_iter().for_each(|event| orderbook.process(event));
+        skipped_sequence_events.into_iter().for_each(|event| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(event)
+                }
+            );
+        });
+
+        let public_trades = vec![
+            PublicTrade { id: "S".to_string(), price: 1005.0, quantity: 1.0, side: Side::Buy, sequence: Some(33) },
+            PublicTrade { id: "T".to_string(), price: 1005.0, quantity: 1.0, side: Side::Buy, sequence: Some(30) },
+            PublicTrade { id: "U".to_string(), price: 994.0, quantity: 1.0, side: Side::Sell, sequence: Some(35) },
+        ];
+
+        public_trades.into_iter().for_each(|trade| {
+            let _ = orderbook.process(
+                MarketEvent {
+                    exchange_time: Utc::now(),
+                    received_time: Utc::now(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::Trade(trade)
+                }
+            );
+        });
 
         let mut expected_remaining = vec![
             LimitOrder::Ask(AtomicOrder { id: "A".to_string(), price: 1005.0, size: 30.0}),
@@ -1185,6 +1357,7 @@ mod tests {
         assert_eq!(orderbook.num_ask_levels(), 3);
         assert_eq!(orderbook.num_bid_levels(), 3);
         assert_eq!(orderbook.outlier_filter.as_ref().unwrap().outliers_encountered, 4);
+        assert_eq!(orderbook.last_sequence, 35);
 
         orderbook.print_info(true);
 
