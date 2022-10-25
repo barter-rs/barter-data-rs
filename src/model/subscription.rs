@@ -5,7 +5,7 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
@@ -273,6 +273,11 @@ pub fn de_floats<'de, D>(deserializer: D) -> Result<f64, D::Error>
     where D: Deserializer<'de>, {
     let num_str: String = Deserialize::deserialize(deserializer)?;
     num_str.parse().map_err(|_| D::Error::custom(format!("Float parsing error for {:?}", num_str)))
+}
+
+pub fn ser_floats<S>(float: &f64, serializer: S) -> Result<S::Ok, S::Error>
+    where S: Serializer, {
+    serializer.serialize_str(&float.to_string())
 }
 
 impl SubscriptionIds {

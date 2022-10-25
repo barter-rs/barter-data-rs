@@ -33,7 +33,7 @@ use thiserror::Error;
 use serde::{Deserialize, Serialize};
 use tracing::{warn};
 // internal
-use crate::model::subscription::de_floats;
+use crate::model::subscription::{de_floats, ser_floats};
 use crate::model::{DataKind, OrderBookL3Snapshot};
 // testing
 use bounded_vec_deque::BoundedVecDeque;
@@ -128,9 +128,9 @@ impl LimitOrder {
 #[derive(Debug, Clone, PartialEq, PartialOrd, Deserialize, Serialize)]
 pub struct AtomicOrder {
     pub id: String,
-    #[serde(deserialize_with = "de_floats")]
+    #[serde(deserialize_with = "de_floats", serialize_with = "ser_floats")]
     pub price: f64,
-    #[serde(deserialize_with = "de_floats")]
+    #[serde(deserialize_with = "de_floats", serialize_with = "ser_floats")]
     pub size: f64,
 }
 

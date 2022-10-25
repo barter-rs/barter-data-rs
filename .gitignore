@@ -1,6 +1,7 @@
 # Rust
 Cargo.lock
 /target
+/data
 
 # IDE
 .idea/
