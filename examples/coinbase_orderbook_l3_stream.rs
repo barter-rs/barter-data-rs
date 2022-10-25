@@ -1,12 +1,31 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_imports)]
-
-use std::collections::{HashMap, VecDeque};
-use std::slice::Iter;
-use std::sync::Arc;
-use std::{env};
-use std::path::PathBuf;
+// standard
+use std::{
+    sync::Arc,
+    collections::HashMap,
+    env,
+    path::PathBuf,
+};
+// external
+use chrono::Utc;
+use tracing::{debug, error, info, warn};
+use tracing_subscriber::{
+    fmt,
+    layer::SubscriberExt,
+};
+use tracing_appender::non_blocking::WorkerGuard;
+use anyhow;
+use futures::{stream::FuturesUnordered, StreamExt};
+use tokio::{
+    fs::File,
+    signal,
+    sync::{mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}, RwLock},
+    time::Duration,
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter},
+};
+// adjacent
+use barter_integration::model::{InstrumentKind, Market, MarketId, Side};
+use coinbase_pro_api::*;
+// internal
 use barter_data::{
     builder::Streams,
     ExchangeId,
@@ -16,31 +35,16 @@ use barter_data::{
         orderbook::OrderBookL3,
         DataKind,
     },
-    shutdown::{shutdown_channel, ShutdownListener, ShutdownNotifier}
+    shutdown::{shutdown_channel, ShutdownListener, ShutdownNotifier},
+    exchange::coinbase::model::CoinbaseOrderBookL3Snapshot,
+    model::{
+        OrderBookL3Snapshot,
+        orderbook::OrderBookEvent,
+    }
 };
-use barter_integration::model::{InstrumentKind, Market, Side};
-use chrono::Utc;
-use futures::StreamExt;
-use tokio::{
-    signal,
-    sync::{watch, mpsc::unbounded_channel, RwLock},
-    time::{sleep, Duration},
-};
-use tracing_subscriber;
-use tracing::{debug, error, info, Level, warn};
-use coinbase_pro_api::*;
-use futures::stream::FuturesUnordered;
-use tokio::fs::File;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader, BufWriter};
-use tokio::runtime::Handle;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tokio::task::JoinHandle;
-use barter_data::exchange::coinbase::model::CoinbaseOrderBookL3Snapshot;
-use barter_data::model::orderbook::OrderBookEvent;
-use barter_data::model::OrderBookL3Snapshot;
-use futures::io::Write;
 
 // Parameters
+static LOG_FOLDER: &str = "logs/";
 static SNAPSHOT_REQUEST_DELAY: Duration = Duration::from_millis(1000); // seconds
 static SAVE_STREAM: bool = true;
 static LOAD_STREAM: bool = false;
@@ -52,6 +56,22 @@ async fn ctrl_c_watch(mut shutdown: ShutdownNotifier) {
     shutdown.send();
 }
 
+/// reference: https://github.com/tokio-rs/tracing/issues/971#issuecomment-690045204
+async fn init_tracing() -> WorkerGuard {
+    tokio::fs::create_dir_all(LOG_FOLDER).await.expect("Failed to create log directory");
+    let file_appender
+        = tracing_appender::rolling::daily(LOG_FOLDER, "orderbook_l3_stream_log");
+    let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
+    tracing::subscriber::set_global_default(
+        fmt::Subscriber::builder()
+            .with_max_level(tracing::Level::DEBUG)
+            .finish()
+            .with(fmt::Layer::default().with_writer(file_writer))
+    ).expect("Unable to set global tracing subscriber");
+    debug!("Tracing initialized.");
+    guard
+}
+
 #[tokio::main]
 async fn main() {
 
@@ -59,9 +79,8 @@ async fn main() {
         panic!("Cannot save and load stream simultaneously! Adjust SAVE_STREAM, LOAD_STREAM params.");
     }
 
-    tracing_subscriber::fmt()
-        .with_max_level(Level::DEBUG)
-        .init();
+    // logging to file and stdout
+    let _guard = init_tracing().await;
 
     let (event_tx, event_rx)
         = unbounded_channel::<MarketEvent>();
@@ -149,7 +168,7 @@ async fn orderbook_handler(
 
     // wait for child processes to conclude
     debug!("Awaiting orderbook processors to conclude...");
-    while let Some(task) = tasks.next().await {}
+    while let Some(_task) = tasks.next().await {}
     debug!("Orderbook processing finished.")
 }
 
@@ -160,13 +179,11 @@ async fn process_orderbook(
 ) {
 
     // get orderbook's market
-    let product_id_str: String;
-    let market: Market;
-    {
+    let market: Market = {
         let reader = orderbook.read().await;
-        product_id_str = format!("{}-{}", reader.market.instrument.base, reader.market.instrument.quote);
-        market = reader.market.clone();
-    }
+        reader.market.clone()
+    };
+    let market_id: MarketId = MarketId::from(&market);
 
     // initialize stream dumper, if enabled
     let mut stream_dumper: Option<StreamDump> = match SAVE_STREAM {
@@ -178,7 +195,7 @@ async fn process_orderbook(
     };
 
     // attempt to fetch snapshot and load
-    match fetch_snapshot_via_api(client, &stream_dumper).await {
+    match fetch_snapshot_via_api(client, orderbook.clone(), &stream_dumper).await {
         Ok(snapshot) => {
             // load snapshot into orderbook
             debug!("Awaiting orderbook write lock...");
@@ -192,9 +209,9 @@ async fn process_orderbook(
                 kind: DataKind::OBEvent(OrderBookEvent::Snapshot(snapshot, snapshot_sequence))
             });
             debug!("Loaded snapshot for {}. Starting sequence = {}. Commencing main event processing",
-                product_id_str, snapshot_sequence);
+               market_id , snapshot_sequence);
         },
-        Err(e) => {
+        Err(error) => {
             error!("Error fetching snapshot: {}", error);
         }
     }
@@ -217,8 +234,17 @@ async fn process_orderbook(
 }
 
 async fn fetch_snapshot_via_api(
-    client: Arc<CoinbasePublicClient>, stream_dumper: &Option<StreamDump>
-) -> serde_json::Result<OrderBookL3Snapshot> {
+    client: Arc<CoinbasePublicClient>,
+    orderbook: Arc<RwLock<OrderBookL3>>,
+    stream_dumper: &Option<StreamDump>
+) -> Result<OrderBookL3Snapshot, anyhow::Error> {
+
+    // derive product_id str from orderbook's market
+    let product_id_str: String = {
+        let reader = orderbook.read().await;
+        format!("{}-{}", reader.market.instrument.base, reader.market.instrument.quote)
+    };
+
     // Coinbase's snapshot timing requires a non-deterministic delay for sequence syncing
     info!("Requesting full orderbook snapshot of {} from Coinbase in {} seconds...",
         product_id_str, SNAPSHOT_REQUEST_DELAY.as_secs_f64());
@@ -256,8 +282,8 @@ async fn run_streams(
 
     let mut joined_stream = streams.join_map::<MarketEvent>().await;
 
-    while let Some((exchange, market_event)) = joined_stream.next().await {
-        // pretty_print_trade(&market_event);
+    while let Some((_exchange, market_event)) = joined_stream.next().await {
+        pretty_print_trade(&market_event);
 
         let _ = event_tx.send(market_event);
     }
@@ -269,7 +295,7 @@ async fn run_streams(
 
 
 async fn run_local_stream(
-    stop_rx: ShutdownListener,
+    _stop_rx: ShutdownListener,
     event_tx: UnboundedSender<MarketEvent>,
 ) {
     let mut reader = StreamRead::init(LOAD_STREAM_PATH).await.unwrap();
@@ -315,7 +341,6 @@ fn pretty_print_trade(event: &MarketEvent) {
 struct OrderbookHandler {
     orderbook: Arc<RwLock<OrderBookL3>>,
     sender: Option<UnboundedSender<MarketEvent>>,
-    join_handle: Option<JoinHandle<()>>,
 }
 
 impl OrderbookHandler {
@@ -326,7 +351,6 @@ impl OrderbookHandler {
         Self {
             orderbook: Arc::new(RwLock::new(orderbook)),
             sender: Some(sender),
-            join_handle: None
         }
     }
 }
@@ -405,19 +429,19 @@ impl StreamDump {
     }
 
     fn make_snapshot_filename(market: &Market) -> String {
+        let market_id = MarketId::from(market);
         format!(
-            "snapshot_{}_{}_{}.json",
-            market.exchange,
-            market.instrument,
+            "snapshot_{}_{}.json",
+            market_id,
             Utc::now().format("%Y%m%d_%H%M%S").to_string()
         )
     }
 
     fn make_stream_dump_filename(market: &Market) -> String {
+        let market_id = MarketId::from(market);
         format!(
-            "stream_dump_{}_{}_{}.jsonl",
-            market.exchange,
-            market.instrument,
+            "market_events_{}_{}.jsonl",
+            market_id,
             Utc::now().format("%Y%m%d_%H%M%S").to_string()
         )
     }

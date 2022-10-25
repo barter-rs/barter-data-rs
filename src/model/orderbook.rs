@@ -3,7 +3,8 @@
 //! - Vector-based bid and ask books with a VecDeque for each price level
 //! - Iteration over entire book, insert/remove/update, liquidity curve (see levels method),
 //! order refs/muts by id, and more
-//! - Crude sequence-checking: messages with a stale sequence are ignored
+//! - Crude sequence-checking: messages with a stale sequence are ignored. Skipped sequences
+//! emit a warning.
 //! - Optional simple factor-based outlier filter. choose a % deviation bound from best bid/ask and
 //! orderbook will skip processing orders with prices outside the bound. This is especially useful for
 //! exchanges which constantly broadcast extreme limit orders that are unlikely to ever fill - these
@@ -22,7 +23,7 @@
 //! - Add option to swap in other data structures as desired.
 
 // standard
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 use std::cmp::{Ordering, Reverse};
 use std::fmt::{Display, Formatter};
 use std::iter::{Peekable, Rev};
@@ -79,12 +80,23 @@ pub enum Order {
 }
 
 /// Market order enum representing the different kinds of market orders
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum MarketOrder {
-    BuyWithFunds(f64),
-    BuySize(f64),
-    SellForFunds(f64),
-    SellSize(f64),
+    BuyWithFunds(String, f64),
+    BuySize(String, f64),
+    SellForFunds(String, f64),
+    SellSize(String, f64),
+}
+
+impl MarketOrder {
+    pub fn id(&self) -> &str {
+        match self {
+            MarketOrder::BuyWithFunds(id, ..) => id,
+            MarketOrder::BuySize(id, ..) => id,
+            MarketOrder::SellForFunds(id, ..) => id,
+            MarketOrder::SellSize(id, ..) => id,
+        }
+    }
 }
 
 /// Limit order enum building off of the AtomicOrder struct.
@@ -229,12 +241,12 @@ impl OrderDeque {
 ///
 /// Enable by calling .outlier_filter() or .outlier_filter_default() methods on
 /// the orderbook builder when instantiating an orderbook.
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct SimpleOutlierFilter {
     // todo: put sensible bounds on the outlier_factor?
     // todo: consider separate outlier factors for bids and asks?
     pub outlier_factor: f64,
-    pub outlier_ids: HashSet<String>,
+    // pub outlier_ids: HashSet<String>,
     pub outliers_encountered: u64,
 }
 
@@ -247,7 +259,6 @@ impl SimpleOutlierFilter {
                     Some(factor) => factor,
                     None => DEFAULT_OUTLIER_FACTOR,
             },
-            outlier_ids: HashSet::<String>::new(),
             outliers_encountered: 0,
         }
     }
@@ -268,7 +279,6 @@ impl SimpleOutlierFilter {
                     match order.price().partial_cmp(&bid_cutoff) {
                         Some(Ordering::Less) => {
                             self.outliers_encountered += 1;
-                            self.outlier_ids.insert(order.id().to_owned());
                             Err(OrderBookError::Outlier)
                         },
                         _ => Ok(())
@@ -285,7 +295,6 @@ impl SimpleOutlierFilter {
                     match order.price().partial_cmp(&ask_cutoff) {
                         Some(Ordering::Greater) => {
                             self.outliers_encountered += 1;
-                            self.outlier_ids.insert(order.id().to_owned());
                             Err(OrderBookError::Outlier)
                         },
                         _ => Ok(())
@@ -320,6 +329,14 @@ impl OrderbookStats {
     }
 }
 
+/// Enum representing all the ways the orderbook may keep track of active orders.
+#[derive(Copy, Clone, Debug)]
+pub enum OrderState {
+    Open(Side, NonNan),
+    Outlier,
+    Received,
+}
+
 /// Main orderbook struct.
 #[derive(Clone, Debug)]
 pub struct OrderBookL3 {
@@ -333,12 +350,12 @@ pub struct OrderBookL3 {
     pub bids: Vec<OrderDeque>,
     pub asks: Vec<OrderDeque>,
     // todo: consider including raw pointer or Arc Mutex to OrderDeque in the value
-    pub order_id_map: HashMap<String, (Side, NonNan)>,
+    pub order_id_map: HashMap<String, OrderState>,
 
     // optional features
     pub outlier_filter: Option<SimpleOutlierFilter>,
     pub stats: Option<OrderbookStats>,
-    pub last_n_events: Option<BoundedVecDeque<MarketEvent>>
+    pub last_n_events: Option<BoundedVecDeque<MarketEvent>>,
 }
 
 impl OrderBookL3 {
@@ -457,7 +474,7 @@ impl OrderBookL3 {
                     OrderBookEvent::Snapshot(snapshot, _) => self.load(snapshot),
                     // todo: received orders do not change state of orderbook but may be used to model
                     // market order impacts before ensuing order limit close messages arrive
-                    OrderBookEvent::Received(_order, _) => Ok(()),
+                    OrderBookEvent::Received(order, _) => self.receive(order),
                     OrderBookEvent::Open(order, _) => self.insert(order),
                     OrderBookEvent::Done(order_id, _) => self.remove(order_id),
                     OrderBookEvent::Change(order_id, new_size, _) => self.update(order_id, new_size),
@@ -531,27 +548,12 @@ impl OrderBookL3 {
     }
 
     /// check if order meets outlier condition
-    fn check_new_outlier(&mut self, order: &LimitOrder) -> Result<(), OrderBookError> {
+    fn check_outlier(&mut self, order: &LimitOrder) -> Result<(), OrderBookError> {
         if self.outlier_filter.is_some() {
             let top_level = self.top_level();
             self.outlier_filter.as_mut().unwrap().check(order, top_level)?;
             Ok(())
         } else { Ok(()) }
-    }
-
-    /// check if order id was one already encountered earlier as an outlier
-    fn check_old_outlier(&self, order_id: &str) -> bool
-    {
-        if self.outlier_filter.is_some() {
-            self.outlier_filter.as_ref().unwrap().outlier_ids.contains(&*order_id)
-        } else { false }
-    }
-
-    /// remove outlier order from outlier filter's set
-    fn remove_old_outlier(&mut self, order_id: &str) -> bool {
-        if self.outlier_filter.is_some() {
-            self.outlier_filter.as_mut().unwrap().outlier_ids.remove(&*order_id)
-        } else { false }
     }
 
     /// Loads snapshot of type ['OrderBookL3Snapshot'] into orderbook.
@@ -567,18 +569,39 @@ impl OrderBookL3 {
         Ok(())
     }
 
+    /// Log an order in the order id map. Received orders do not necessarily result in a
+    /// change in the orderbook's state, but need to be tracked since 'Done' messages
+    /// may reference their order ids.
+    fn receive(&mut self, order: &Order) -> Result<(), OrderBookError> {
+        match order {
+            Order::LimitOrder(order) =>
+                { self.order_id_map.insert(order.id().to_string(), OrderState::Received); },
+            Order::MarketOrder(order) =>
+                { self.order_id_map.insert(order.id().to_string(), OrderState::Received); },
+        }
+        Ok(())
+    }
+
     /// Find order deque and push order to the back. If order deque does not exist,
     /// initialize one with order included and insert into the orderbook.
     ///
-    /// Also inserts {order_id: (Side, Price)} pair into map to assist order retrieval.
+    /// Outlier filter, if enabled, will flag orders that meet its outlier condition.
     ///
     /// Skips insertion of orders with Nan floats.
     fn insert(&mut self, order: &LimitOrder) -> Result<(), OrderBookError> {
         let price= Self::nan_check(&order)?;
-        self.check_new_outlier(&order)?;
+
+        match self.check_outlier(&order) {
+            Err(OrderBookError::Outlier) => {
+                self.order_id_map.insert(order.id().to_string(), OrderState::Outlier);
+                return Ok(())
+            },
+            _ => {}
+        }
+
         match order {
             LimitOrder::Bid(order) => {
-                self.order_id_map.insert(order.id.clone(), (Side::Buy, price.clone()));
+                self.order_id_map.insert(order.id.clone(), OrderState::Open(Side::Buy, price.clone()));
                 let (_side, pos,maybe_deque) = self.get_deque_pos_mut(&Side::Buy, &price);
                 match maybe_deque {
                     Ok(deque) => {
@@ -591,7 +614,7 @@ impl OrderBookL3 {
                 Ok(())
             }
             LimitOrder::Ask(order) => {
-                self.order_id_map.insert(order.id.clone(), (Side::Sell, price.clone()));
+                self.order_id_map.insert(order.id.clone(), OrderState::Open(Side::Sell, price.clone()));
                 let (_side, pos,maybe_deque) = self.get_deque_pos_mut(&Side::Sell, &price);
                 match maybe_deque {
                     Ok(deque) => {
@@ -621,9 +644,9 @@ impl OrderBookL3 {
                     None => Err(OrderBookError::OrderNotFoundInDeque(not_found_in_deque_msg)),
                 }
             }
-            Err(OrderBookError::Outlier) => {
-                self.remove_old_outlier(order_id);
-                Err(OrderBookError::Outlier)
+            Err(OrderBookError::Outlier) | Err(OrderBookError::Received) => {
+                self.order_id_map.remove(order_id);
+                Ok(())
             },
             Err(e) => Err(e)
         }
@@ -693,28 +716,26 @@ impl OrderBookL3 {
     }
 
     /// Get a deque's position (side, index, ref) by an order's id.
-    /// If outlier filter is enabled, check if the outlier filter has caught the order id
-    /// as an outlier and return OrderbookError::Outlier if so.
     fn get_deque_pos_by_id(&self, order_id: &str) -> Result<OrderDequePos<'_>, OrderBookError> {
-        if let Some(order_pos) = self.order_id_map.get(&*order_id) {
-            let (side, price) = order_pos.clone();
-            Ok(self.get_deque_pos(&side, &price))
-        } else if self.check_old_outlier(&order_id) {
-            Err(OrderBookError::Outlier)
+        if let Some(order_state) = self.order_id_map.get(&*order_id) {
+            match order_state {
+                OrderState::Open(side, price) => Ok(self.get_deque_pos(side, price)),
+                OrderState::Received => Err(OrderBookError::Received),
+                OrderState::Outlier => Err(OrderBookError::Outlier),
+            }
         } else {
             Err(OrderBookError::OrderNotFoundInMap(order_id.to_owned()))
         }
     }
 
     /// Get a deque's mutable position (side, index, mut) by an order's id
-    /// If outlier filter is enabled, check if the outlier filter has caught the order id
-    /// as an outlier and return OrderbookError::Outlier if so.
     fn get_deque_pos_mut_by_id(&mut self, order_id: &str) -> Result<OrderDequePosMut<'_>, OrderBookError> {
-        if let Some(order_pos) = self.order_id_map.get(&*order_id) {
-            let (side, price) = order_pos.clone();
-            Ok(self.get_deque_pos_mut(&side, &price))
-        } else if self.check_old_outlier(&order_id) {
-            Err(OrderBookError::Outlier)
+        if let Some(order_state) = self.order_id_map.get(&*order_id) {
+            match order_state {
+                OrderState::Open(side, price) => Ok(self.get_deque_pos_mut(&side.clone(), &price.clone())),
+                OrderState::Received => Err(OrderBookError::Received),
+                OrderState::Outlier => Err(OrderBookError::Outlier),
+            }
         } else {
             Err(OrderBookError::OrderNotFoundInMap(order_id.to_owned()))
         }
@@ -724,8 +745,7 @@ impl OrderBookL3 {
     pub fn get_order_ref(&self, order_id: &str) -> Result<&AtomicOrder, OrderBookError> {
         let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         let (.., maybe_deque) = self.get_deque_pos_by_id(order_id)?;
-        let deque = maybe_deque?;
-        match deque.get_ref(order_id) {
+        match maybe_deque?.get_ref(order_id) {
             Some(order) => Ok(order),
             None => Err(OrderBookError::OrderNotFoundInDeque(not_found_in_deque_msg)),
         }
@@ -735,8 +755,7 @@ impl OrderBookL3 {
     pub fn get_order_mut(&mut self, order_id: &str) -> Result<&mut AtomicOrder, OrderBookError> {
         let not_found_in_deque_msg = format!("{:?}", self.order_id_map.get_key_value(order_id));
         let (.., maybe_deque) = self.get_deque_pos_mut_by_id(order_id)?;
-        let deque = maybe_deque?;
-        match deque.get_mut(order_id) {
+        match maybe_deque?.get_mut(order_id) {
             Some(order) => Ok(order),
             None => Err(OrderBookError::OrderNotFoundInDeque(not_found_in_deque_msg))
         }
@@ -1031,7 +1050,8 @@ pub enum OrderBookError {
     OrderNotFoundInDeque(String),
     MissingOrderDeque(NonNan),
     NanFloat(f64),
-    Outlier,
+    Outlier,  // order deos not have a position in the orderbook because its an outlier
+    Received,  // order does not have a position in the orderbook because it has only been "received"
     BuilderIncomplete(&'static str)
 }
 
@@ -1092,6 +1112,7 @@ mod tests {
             .build().unwrap();
 
         let _ = orderbook.process(snapshot_event);
+        println!("load_coinbase_snapshot test - orderbook info print: ");
         orderbook.print_info(true);
     }
 
@@ -1161,22 +1182,16 @@ mod tests {
             OrderBookEvent::Open(LimitOrder::Bid(AtomicOrder { id: "J".to_string(), price: 994.0, size: 6.0 }), 11),
         ];
 
-        let mut results: Vec<Result<(), OrderBookError>> = Vec::new();
-
         open_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
                 }
             );
-        });
-
-        results.into_iter().for_each(|result| {
-            assert!(matches!(result, Ok(())))
         });
 
         assert_eq!(orderbook.get_order_ref("A").unwrap(), &AtomicOrder { id: "A".to_string(), price: 1005.0, size: 20.0 });
@@ -1203,8 +1218,8 @@ mod tests {
         change_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
@@ -1228,8 +1243,8 @@ mod tests {
         close_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
@@ -1253,8 +1268,8 @@ mod tests {
         invalid_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
@@ -1283,8 +1298,8 @@ mod tests {
         outlier_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
@@ -1300,8 +1315,8 @@ mod tests {
         skipped_sequence_events.into_iter().for_each(|event| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::OBEvent(event)
@@ -1318,13 +1333,33 @@ mod tests {
         public_trades.into_iter().for_each(|trade| {
             let _ = orderbook.process(
                 MarketEvent {
-                    exchange_time: Utc::now(),
-                    received_time: Utc::now(),
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
                     exchange: exchange.clone(),
                     instrument: instrument.clone(),
                     kind: DataKind::Trade(trade)
                 }
             );
+        });
+
+        let received_events = vec![
+            OrderBookEvent::Received(Order::LimitOrder(LimitOrder::Bid(AtomicOrder { id: "inst_fill_A".to_string(), price: 1000.0, size: 10.0 })), 36),
+            OrderBookEvent::Received(Order::LimitOrder(LimitOrder::Ask(AtomicOrder { id: "inst_fill_B".to_string(), price: 1000.0, size: 10.0 })), 37),
+            OrderBookEvent::Done( "inst_fill_A".to_string(), 38),
+            OrderBookEvent::Done( "inst_fill_B".to_string(), 39),
+        ];
+
+        received_events.into_iter().for_each(|received| {
+            let result = orderbook.process(
+                MarketEvent {
+                    exchange_time: now.clone(),
+                    received_time: now.clone(),
+                    exchange: exchange.clone(),
+                    instrument: instrument.clone(),
+                    kind: DataKind::OBEvent(received)
+                }
+            );
+            assert!(matches!(result, Ok(_)))
         });
 
         let mut expected_remaining = vec![
@@ -1357,7 +1392,7 @@ mod tests {
         assert_eq!(orderbook.num_ask_levels(), 3);
         assert_eq!(orderbook.num_bid_levels(), 3);
         assert_eq!(orderbook.outlier_filter.as_ref().unwrap().outliers_encountered, 4);
-        assert_eq!(orderbook.last_sequence, 35);
+        assert_eq!(orderbook.last_sequence, 39);
 
         orderbook.print_info(true);
 

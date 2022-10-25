@@ -207,16 +207,16 @@ impl From<CoinbaseOrderBookL3Received> for OrderBookEvent {
                 match received.side {
                     Side::Buy => OrderBookEvent::Received(Order::MarketOrder(
                         match (received.funds, received.size) {
-                            (Some(funds), None) => MarketOrder::BuyWithFunds(funds),
-                            (None, Some(size)) => MarketOrder::BuySize(size),
-                            _ => MarketOrder::BuySize(0.0),
+                            (Some(funds), None) => MarketOrder::BuyWithFunds(received.order_id, funds),
+                            (None, Some(size)) => MarketOrder::BuySize(received.order_id, size),
+                            _ => MarketOrder::BuySize(received.order_id, 0.0),
                         }
                     ), received.sequence),
                     Side::Sell => OrderBookEvent::Received(Order::MarketOrder(
                         match (received.funds, received.size) {
-                            (Some(funds), None) => MarketOrder::SellForFunds(funds),
-                            (None, Some(size)) => MarketOrder::SellSize(size),
-                            _ => MarketOrder::SellSize(0.0),
+                            (Some(funds), None) => MarketOrder::SellForFunds(received.order_id, funds),
+                            (None, Some(size)) => MarketOrder::SellSize(received.order_id, size),
+                            _ => MarketOrder::SellSize(received.order_id, 0.0),
                         }
                     ), received.sequence)
                 }
