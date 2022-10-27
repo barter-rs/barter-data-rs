@@ -73,14 +73,20 @@ pub struct Level {
 pub struct L2OrderBookUpdate {
     pub sequence_num: u64,
     pub update_type: L2UpdateType,
-    pub price: Option<f64>,
-    pub quantity: Option<f64>,
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum L2UpdateType {
-    RemoveLevel,
-    UpdateLevel,
+    RemoveLevel {
+        /// The price level to be removed
+        price: f64,
+    },
+    UpdateLevel {
+        /// The price level
+        price: f64,
+        /// The quantity of this level
+        quantity: f64,
+    },
 }
 
 /// Normalized Barter Level 2 [ `Order`]
