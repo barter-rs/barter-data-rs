@@ -27,6 +27,8 @@ pub enum DataKind {
     Candle(Candle),
     /// Level 2 orderbook snapshot
     OrderBook(OrderBook),
+    /// Level 2 orderbook update
+    OrderBookUpdate(L2OrderBookUpdate),
     Liquidation(Liquidation),
 }
 
@@ -66,6 +68,22 @@ pub struct Level {
     pub price: f64,
     pub quantity: f64,
 }
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct L2OrderBookUpdate {
+    pub sequence_num: u64,
+    pub update_type: L2UpdateType,
+    pub price: Option<f64>,
+    pub quantity: Option<f64>,
+}
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub enum L2UpdateType {
+    RemoveLevel,
+    UpdateLevel,
+}
+
+/// Normalized Barter Level 2 [ `Order`]
 
 /// Normalised Barter [`Liquidation`] model.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
