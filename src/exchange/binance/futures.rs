@@ -143,7 +143,7 @@ impl BinanceFuturesUsd {
         // Determine the BinanceFuturesUsd channel
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
-            SubKind::L2OrderBookSnapshot(_) => Self::CHANNEL_ORDER_BOOK,
+            SubKind::OrderBookL2Snapshot(_) => Self::CHANNEL_ORDER_BOOK,
             SubKind::Liquidation => Self::CHANNEL_LIQUIDATIONS,
             other => {
                 return Err(SocketError::Unsupported {
@@ -260,7 +260,7 @@ mod tests {
                 input: Subscription::new(
                     ExchangeId::BinanceFuturesUsd,
                     ("btc", "usdt", InstrumentKind::FuturePerpetual),
-                    SubKind::OrderBookL2Delta,
+                    SubKind::OrderBookL2Update,
                 ),
                 expected: Err(SocketError::Unsupported {
                     entity: "",

@@ -317,8 +317,9 @@ impl ExchangeId {
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// L2 OrderBook delta market data.
     #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_order_book_l2_deltas(&self) -> bool {
+    pub fn supports_ob_l2_updates(&self) -> bool {
         match self {
+            ExchangeId::Kucoin => true,
             _ => false,
         }
     }

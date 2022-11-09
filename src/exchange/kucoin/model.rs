@@ -61,25 +61,35 @@ impl Validator for KucoinSubResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
 #[serde(rename_all = "camelCase", tag = "subject")]
 pub enum KucoinMessage {
-    /// Real-time trade messages
+    /// Real-time trade messages.
     #[serde(rename = "trade.l3match")]
     Trade {
-        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message
+        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message.
         #[serde(rename = "topic", deserialize_with = "de_kucoin_trade_subscription_id")]
         subscription_id: SubscriptionId,
-        /// The [`KucoinTrade`] contained within this message
+        /// The [`KucoinTrade`] contained within this message.
         #[serde(alias = "data")]
         trade: KucoinTrade,
     },
-    /// 100ms orderbook l2 snapshot message, can be depth5 or depth50
+    /// 100ms orderbook l2 snapshot message, can be depth5 or depth50.
     #[serde(rename = "level2")]
     Level2Snapshot {
+        /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message.
+        #[serde(rename = "topic", deserialize_with = "de_kucoin_trade_subscription_id")]
+        subscription_id: SubscriptionId,
+        /// The [`KucoinL2Snapshot`] contained within this message.
+        #[serde(alias = "data")]
+        l2_snapshot: KucoinL2Snapshot,
+    },
+    /// Real-time level 2 order book updates
+    #[serde(rename = "trade.l2update")]
+    Level2Update {
         /// The [`SubscriptionId`](barter_integration::model::SubscriptionId) associated with this message
         #[serde(rename = "topic", deserialize_with = "de_kucoin_trade_subscription_id")]
         subscription_id: SubscriptionId,
-        /// The [`KucoinL2Snapshot`] contained within this message
+        /// The [`KucoinL2Updates`] contained within this message
         #[serde(alias = "data")]
-        l2_snapshot: KucoinL2Snapshot,
+        l2_updates: KucoinL2Updates,
     }
 }
 
@@ -90,10 +100,11 @@ impl From<&KucoinMessage> for SubscriptionId {
             } => subscription_id.clone(),
             KucoinMessage::Level2Snapshot { subscription_id, .. 
             } => subscription_id.clone(),
+            KucoinMessage::Level2Update { subscription_id, .. 
+            } => subscription_id.clone(),
         }
     }
 }
-
 
 /// ['Kucoin'](super::Kucoin) level 2 orderbook snapshot. Can be depth5 or depth50.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
@@ -103,6 +114,33 @@ pub struct KucoinL2Snapshot {
     pub time: DateTime<Utc>,
     pub bids: Vec<KucoinLevel>,
     pub asks: Vec<KucoinLevel>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[serde(rename_all = "camelCase")]
+pub struct KucoinL2Updates {
+    pub sequence_start: u64,
+    pub sequence_end: u64,
+    #[serde(deserialize_with = "de_u64_epoch_ms_as_datetime_utc")]
+    pub time: DateTime<Utc>,
+    #[serde(rename = "changes")]
+    pub updates: KucoinL2Changes,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
+pub struct KucoinL2Changes {
+    pub asks: Vec<KucoinL2Update>,
+    pub bids: Vec<KucoinL2Update>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Copy)]
+pub struct KucoinL2Update {
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub sequence_num: u64,
 }
 
 /// ['Kucoin'](super::Kucoin) level 2 snapshot level. They are sent as
@@ -192,6 +230,8 @@ impl From<KucoinLevel> for Level {
         }
     }
 }
+
+
 
 fn de_kucoin_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
@@ -379,6 +419,82 @@ mod tests {
                             KucoinLevel { price: 18794.6, quantity: 0.05422529},
                         ] 
                     }})
+            },
+            // TC3: level 2 update with both levels
+            TestCase {
+                input: r#"{
+                    "type":"message",
+                    "topic":"/market/level2:BTC-USDT",
+                    "subject":"trade.l2update",
+                    "data":{
+                        "changes":{
+                            "asks":[["20543","0","806955264"]],
+                            "bids":[["20537.7","0.005","806955263"]]
+                        },
+                    "sequenceEnd":806955264,
+                    "sequenceStart":806955263,
+                    "symbol":"BTC-USDT",
+                    "time":1666888635920}
+                }"#,
+                expected: Ok(KucoinMessage::Level2Update { 
+                    subscription_id: SubscriptionId::from("/market/level2:BTC-USDT"),
+                    l2_updates: KucoinL2Updates { 
+                        sequence_start: 806955263, 
+                        sequence_end: 806955264, 
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1666888635920)), 
+                        updates: KucoinL2Changes {
+                            asks: vec![
+                                KucoinL2Update {
+                                    price: 20543.0,
+                                    quantity: 0.0,
+                                    sequence_num: 806955264,
+                                }
+                            ],
+                            bids: vec![
+                                KucoinL2Update {
+                                    price: 20537.7,
+                                    quantity: 0.005,
+                                    sequence_num: 806955263,
+                                }
+                            ],
+                        } 
+                    } 
+                })
+            },
+            // TC4: level 2 update with no bid update
+            TestCase {
+                input: r#"{
+                    "type":"message",
+                    "topic":"/market/level2:BTC-USDT",
+                    "subject":"trade.l2update",
+                    "data":{
+                        "changes":{
+                            "asks":[["20543","0","806955264"]],
+                            "bids":[]
+                        },
+                    "sequenceEnd":806955264,
+                    "sequenceStart":806955263,
+                    "symbol":"BTC-USDT",
+                    "time":1666888635920}
+                }"#,
+                expected: Ok(KucoinMessage::Level2Update { 
+                    subscription_id: SubscriptionId::from("/market/level2:BTC-USDT"),
+                    l2_updates: KucoinL2Updates { 
+                        sequence_start: 806955263, 
+                        sequence_end: 806955264, 
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1666888635920)), 
+                        updates: KucoinL2Changes {
+                            asks: vec![
+                                KucoinL2Update {
+                                    price: 20543.0,
+                                    quantity: 0.0,
+                                    sequence_num: 806955264,
+                                }
+                            ],
+                            bids: vec![],
+                        } 
+                    } 
+                })
             }
         ];
 

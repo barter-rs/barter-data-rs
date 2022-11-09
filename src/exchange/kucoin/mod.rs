@@ -21,10 +21,11 @@ use std::{time::Duration, collections::HashMap};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::{InstrumentKind, SubscriptionId},
+    model::{InstrumentKind, SubscriptionId, Exchange},
     protocol::websocket::{connect, WebSocket, WsMessage},
     Transformer, Validator,
 };
+use chrono::Utc;
 use futures::SinkExt;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -35,7 +36,7 @@ use crate::{
     exchange::get_time,
     model::{
         subscription::{SubKind, Subscription, SubscriptionIds, SubscriptionMeta, SnapshotDepth},
-        MarketEvent,
+        MarketEvent, OrderBookL2Update, L2UpdateType,
     },
     ExchangeId, ExchangeTransformer, Subscriber,
 };
@@ -90,12 +91,16 @@ impl Kucoin {
     pub const CHANNEL_TRADES: &'static str = "/market/match:";
     /// [`Kucoin`] level 2 snapshot for top 5 bids and asks
     /// 
-    /// see docs: <https://docs.kucoin.com/#level2-5-best-ask-bid-orders>
+    /// See docs: <https://docs.kucoin.com/#level2-5-best-ask-bid-orders>
     pub const CHANNEL_L2SNAPSHOT_5: &'static str = "/spotMarket/level2Depth5:";
     /// [`Kucoin`] level 2 snapshot for top 50 bids and asks
     /// 
-    /// see docs: <https://docs.kucoin.com/#level2-50-best-ask-bid-orders>
-    pub const CHANNEL_L2SNAPSHOT_50: &'static str = "/spotMarket/level2Depth50:"; 
+    /// See docs: <https://docs.kucoin.com/#level2-50-best-ask-bid-orders>
+    pub const CHANNEL_L2SNAPSHOT_50: &'static str = "/spotMarket/level2Depth50:";
+    /// [`Kucoin`] level 2 updates
+    /// 
+    /// See docs: <https://docs.kucoin.com/#level-2-market-data>
+    pub const CHANNEL_L2UPDATE: &'static str = "/market/level2:";
 
     /// Determine the [`Kucoin`] channel metadata associated with an input Barter [`Subscription`].
     /// This returns the topic message.
@@ -117,7 +122,8 @@ impl Kucoin {
         // Determine Kucoin channel using the Subscription SubKind
         match &sub.kind {
             SubKind::Trade => return Ok(format!("{}{}", Self::CHANNEL_TRADES, market)),
-            SubKind::L2OrderBookSnapshot(depth) => match depth {
+            SubKind::OrderBookL2Update => return Ok(format!("{}{}", Self::CHANNEL_L2UPDATE, market)),
+            SubKind::OrderBookL2Snapshot(depth) => match depth {
                 SnapshotDepth::Depth5 => return Ok(format!("{}{}", Self::CHANNEL_L2SNAPSHOT_5, market)),
                 SnapshotDepth::Depth50 => return Ok(format!("{}{}", Self::CHANNEL_L2SNAPSHOT_50, market)),
             },
@@ -277,6 +283,61 @@ impl Transformer<MarketEvent> for Kucoin {
                 };
 
                 vec![Ok(MarketEvent::from((Kucoin::EXCHANGE, instrument.clone(), l2_snapshot)))]
+            },
+            KucoinMessage::Level2Update { 
+                subscription_id, 
+                l2_updates 
+            } => {
+                let instrument = match self.ids.find_instrument(&subscription_id) {
+                    Ok(instrument) => instrument,
+                    Err(error) => return vec![Err(error),]
+                };
+
+                let mut update_vec: Vec<OrderBookL2Update> = l2_updates.updates.bids
+                    .into_iter()
+                    .map(|bid_update| {
+                        let update_type = if approx::relative_eq!(bid_update.quantity, 0.0) {
+                            L2UpdateType::RemoveLevel { price: bid_update.price }
+                        } else {
+                            L2UpdateType::UpdateLevel { price: bid_update.price, quantity: bid_update.quantity }
+                        };
+                        OrderBookL2Update {
+                            sequence_num: bid_update.sequence_num,
+                            book_side: crate::model::OBSide::Bid,
+                            update_type
+                        }
+                    })
+                    .collect();
+
+                let asks_vec: Vec<OrderBookL2Update> = l2_updates.updates.asks
+                    .into_iter()
+                    .map(|ask_update| {
+                        let update_type = if approx::relative_eq!(ask_update.quantity, 0.0) {
+                            L2UpdateType::RemoveLevel { price: ask_update.price }
+                        } else {
+                            L2UpdateType::UpdateLevel { price: ask_update.price, quantity: ask_update.quantity }
+                        };
+                        OrderBookL2Update {
+                            sequence_num: ask_update.sequence_num,
+                            book_side: crate::model::OBSide::Ask,
+                            update_type
+                        }
+                    })
+                    .collect();
+
+                update_vec.extend(asks_vec);
+
+                update_vec.sort_by_key(|upd| upd.sequence_num);
+
+                update_vec.into_iter().map(|upd| {
+                    Ok(MarketEvent{
+                        exchange_time: l2_updates.time.clone(),
+                        received_time: Utc::now(),
+                        exchange: Exchange::from(Kucoin::EXCHANGE.as_str()),
+                        instrument: instrument.clone(),
+                        kind: crate::model::DataKind::OrderBookL2Update(upd)
+                    })
+                }).collect()
             }
         }
     }
@@ -287,7 +348,7 @@ mod tests {
     use barter_integration::model::{Side, Instrument, Exchange};
     use chrono::Utc;
 
-    use crate::{exchange::{kucoin::model::{KucoinTrade, KucoinLevel, KucoinL2Snapshot}, datetime_utc_from_epoch_duration}, model::{PublicTrade, OrderBook, Level}};
+    use crate::{exchange::{kucoin::model::{KucoinTrade, KucoinLevel, KucoinL2Snapshot, KucoinL2Update, KucoinL2Changes, KucoinL2Updates}, datetime_utc_from_epoch_duration}, model::{PublicTrade, OrderBook, Level}};
 
     use super::*;
 
@@ -302,13 +363,18 @@ mod tests {
                                 sub.instrument.base.to_string().to_uppercase(),
                                 sub.instrument.quote.to_string().to_uppercase())
                         ),
-                        (SubKind::L2OrderBookSnapshot(SnapshotDepth::Depth5), InstrumentKind::Spot) =>
+                        (SubKind::OrderBookL2Snapshot(SnapshotDepth::Depth5), InstrumentKind::Spot) =>
                             Kucoin::subscription_id(
                                 &format!("{}{}-{}",
                                 Kucoin::CHANNEL_L2SNAPSHOT_5,
                                 sub.instrument.base.to_string().to_uppercase(),
                                 sub.instrument.quote.to_string().to_uppercase())
                             ),
+                        (SubKind::OrderBookL2Update, InstrumentKind::Spot) => Kucoin::subscription_id(
+                            &format!("{}{}-{}", Kucoin::CHANNEL_L2UPDATE, 
+                                sub.instrument.base.to_string().to_uppercase(),
+                                sub.instrument.quote.to_string().to_uppercase())
+                        ),
                         (_, _) => {panic!("Not supported")},
                     };
 
@@ -371,7 +437,14 @@ mod tests {
                 "btc",
                 "usdt",
                 InstrumentKind::Spot,
-                SubKind::L2OrderBookSnapshot(SnapshotDepth::Depth5)
+                SubKind::OrderBookL2Snapshot(SnapshotDepth::Depth5)
+            )),
+            Subscription::from((
+                ExchangeId::Kucoin,
+                "btc",
+                "usdt",
+                InstrumentKind::Spot,
+                SubKind::OrderBookL2Update,
             ))
         ]);
 
@@ -464,6 +537,57 @@ mod tests {
                             Level { price: 18794.6, quantity: 0.05422529}
                         ] }) 
                 })]
+            },
+            TestCase {
+                // TC3: Kucoin L2 orderbook update w/ known SubscriptionId
+                input: KucoinMessage::Level2Update { 
+                    subscription_id: SubscriptionId::from("/market/level2:BTC-USDT"),
+                    l2_updates: KucoinL2Updates { 
+                        sequence_start: 806955263, 
+                        sequence_end: 806955264, 
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1666888635920)), 
+                        updates: KucoinL2Changes {
+                            asks: vec![
+                                KucoinL2Update {
+                                    price: 20543.0,
+                                    quantity: 0.0,
+                                    sequence_num: 806955264,
+                                }
+                            ],
+                            bids: vec![
+                                KucoinL2Update {
+                                    price: 20537.7,
+                                    quantity: 0.005,
+                                    sequence_num: 806955263,
+                                }
+                            ],
+                        } 
+                    } 
+                },
+                expected: vec![
+                    Ok(MarketEvent { 
+                        exchange_time: datetime_utc_from_epoch_duration(Duration::from_millis(1666888635920)), 
+                        received_time: time, 
+                        exchange: Exchange::from(ExchangeId::Kucoin), 
+                        instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)), 
+                        kind: crate::model::DataKind::OrderBookL2Update(crate::model::OrderBookL2Update {
+                            sequence_num: 806955263,
+                            book_side: crate::model::OBSide::Bid,
+                            update_type: L2UpdateType::UpdateLevel { price: 20537.7, quantity: 0.005 }
+                        }) 
+                    }),
+                    Ok(MarketEvent { 
+                        exchange_time: datetime_utc_from_epoch_duration(Duration::from_millis(1666888635920)), 
+                        received_time: time, 
+                        exchange: Exchange::from(ExchangeId::Kucoin), 
+                        instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)), 
+                        kind: crate::model::DataKind::OrderBookL2Update(crate::model::OrderBookL2Update {
+                            sequence_num: 806955264,
+                            book_side: crate::model::OBSide::Ask,
+                            update_type: L2UpdateType::RemoveLevel { price: 20543.0 }
+                        }) 
+                    }),
+                ]
             }
         ];
 

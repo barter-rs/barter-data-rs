@@ -28,7 +28,7 @@ pub enum DataKind {
     /// Level 2 orderbook snapshot
     OrderBook(OrderBook),
     /// Level 2 orderbook update
-    OrderBookUpdate(L2OrderBookUpdate),
+    OrderBookL2Update(OrderBookL2Update),
     Liquidation(Liquidation),
 }
 
@@ -70,9 +70,16 @@ pub struct Level {
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct L2OrderBookUpdate {
+pub struct OrderBookL2Update {
     pub sequence_num: u64,
+    pub book_side: OBSide,
     pub update_type: L2UpdateType,
+}
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub enum OBSide {
+    Bid,
+    Ask,
 }
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]

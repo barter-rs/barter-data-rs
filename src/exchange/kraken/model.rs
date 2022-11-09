@@ -653,7 +653,7 @@ mod tests {
             },
             TestCase {
                 // TC3: Kraken unsupported SubKind::OrderBookL2Delta
-                input: SubKind::OrderBookL2Delta,
+                input: SubKind::OrderBookL2Update,
                 expected: Err(SocketError::Unsupported {
                     entity: "kraken",
                     item: "order_books_l2".to_string(),

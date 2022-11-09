@@ -44,7 +44,8 @@ impl Validator for &Subscription {
         match self.kind {
             SubKind::Trade if self.exchange.supports_trades() => {}
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
-            SubKind::L2OrderBookSnapshot(_) if self.exchange.supports_ob_l2_snapshot() => {}
+            SubKind::OrderBookL2Snapshot(_) if self.exchange.supports_ob_l2_snapshot() => {}
+            SubKind::OrderBookL2Update if self.exchange.supports_ob_l2_updates() => {}
             SubKind::Liquidation if self.exchange.supports_liquidations() => {}
             other => {
                 return Err(SocketError::Unsupported {
@@ -119,8 +120,8 @@ pub enum SubKind {
     /// Candle subscription.
     Candle(Interval),
     /// Level 2 orderbook snapshots with a specified [`SnapshotDepth`].
-    L2OrderBookSnapshot(SnapshotDepth),
-    OrderBookL2Delta,
+    OrderBookL2Snapshot(SnapshotDepth),
+    OrderBookL2Update,
     OrderBookL3Delta,
     Liquidation,
 }
@@ -133,8 +134,8 @@ impl Display for SubKind {
             match self {
                 SubKind::Trade => "trade".to_owned(),
                 SubKind::Candle(interval) => format!("candle_{}", interval),
-                SubKind::L2OrderBookSnapshot(depth) => format!("ob_l2_snapshot_{}", depth),
-                SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
+                SubKind::OrderBookL2Snapshot(depth) => format!("ob_l2_snapshot_{}", depth),
+                SubKind::OrderBookL2Update => "ob_l2_update".to_owned(),
                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
                 SubKind::Liquidation => "liquidation".to_owned(),
             }
@@ -335,7 +336,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::Binance,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBookL2Delta,
+                    kind: SubKind::OrderBookL2Update,
                 }),
             },
             TestCase {
@@ -344,7 +345,7 @@ mod tests {
                 expected: Ok(Subscription {
                     exchange: ExchangeId::BinanceFuturesUsd,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::FuturePerpetual)),
-                    kind: SubKind::OrderBookL2Delta,
+                    kind: SubKind::OrderBookL2Update,
                 }),
             },
             TestCase {
@@ -488,7 +489,7 @@ mod tests {
                 input: Subscription {
                     exchange: ExchangeId::Ftx,
                     instrument: Instrument::from(("btc", "usd", InstrumentKind::Spot)),
-                    kind: SubKind::OrderBookL2Delta,
+                    kind: SubKind::OrderBookL2Update,
                 },
                 expected: Err(SocketError::Unsupported {
                     entity: "",
