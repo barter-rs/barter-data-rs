@@ -62,7 +62,7 @@ impl TryFrom<&KrakenSubscription> for WsMessage {
     fn try_from(kraken_sub: &KrakenSubscription) -> Result<Self, Self::Error> {
         serde_json::to_string(&kraken_sub)
             .map(WsMessage::text)
-            .map_err(|error| SocketError::Serde {
+            .map_err(|error| SocketError::Deserialise {
                 error,
                 payload: format!("{kraken_sub:?}"),
             })
