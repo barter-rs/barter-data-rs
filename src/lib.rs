@@ -39,6 +39,9 @@ pub mod exchange;
 /// [`Subscription`]s.
 pub mod builder;
 
+
+pub mod explore;
+
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange> =
     ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
