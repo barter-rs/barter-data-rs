@@ -135,7 +135,7 @@ mod tests {
             TestCase {
                 // TC2: input response is malformed gibberish
                 input: r#"{"type": "gibberish", "help": "please"}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -225,7 +225,7 @@ mod tests {
             TestCase {
                 // TC1: input trades message has invalid tag
                 input: r#"{"channel": "unknown", "market": "BTC/USDT", "type": "update", "data": []}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -233,7 +233,7 @@ mod tests {
             TestCase {
                 // TC2: input trades message data is malformed gibberish
                 input: r#"{"channel": "trades", "market": "BTC/USDT", "type": "update", "data": [gibberish]}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
