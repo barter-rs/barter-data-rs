@@ -5,25 +5,39 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
 
+/// Todo:
+pub trait SubKind
+where
+    Self: Debug + Display,
+{
+    type Event: Debug;
+}
+
 /// Barter [`Subscription`] used to subscribe to a market [`SubKind`] for a particular
 /// [`Exchange`]'s [`Instrument`].
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub struct Subscription {
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+pub struct Subscription<Kind>
+where
+    Kind: SubKind
+{
     pub exchange: ExchangeId,
     #[serde(flatten)]
     pub instrument: Instrument,
     #[serde(alias = "type")]
-    pub kind: SubKind,
+    pub kind: Kind,
 }
 
-impl Validator for &Subscription {
+impl<Kind> Validator for &Subscription<Kind>
+where
+    Kind: SubKind
+{
     fn validate(self) -> Result<Self, SocketError>
     where
         Self: Sized,
@@ -40,65 +54,72 @@ impl Validator for &Subscription {
             }
         };
 
-        // Check if ExchangeId supports the Subscription SubKind
-        match self.kind {
-            SubKind::Trade if self.exchange.supports_trades() => {}
-            SubKind::Candle(_) if self.exchange.supports_candles() => {}
-            SubKind::OrderBook if self.exchange.supports_order_books() => {}
-            SubKind::Liquidation if self.exchange.supports_liquidations() => {}
-            other => {
-                return Err(SocketError::Unsupported {
-                    entity: self.exchange.as_str(),
-                    item: other.to_string(),
-                })
-            }
-        };
+        //Todo:
+
+        // // Check if ExchangeId supports the Subscription SubKind
+        // match self.kind {
+        //     SubKind::Trade if self.exchange.supports_trades() => {}
+        //     SubKind::Candle(_) if self.exchange.supports_candles() => {}
+        //     SubKind::OrderBook if self.exchange.supports_order_books() => {}
+        //     SubKind::Liquidation if self.exchange.supports_liquidations() => {}
+        //     other => {
+        //         return Err(SocketError::Unsupported {
+        //             entity: self.exchange.as_str(),
+        //             item: other.to_string(),
+        //         })
+        //     }
+        // };
 
         Ok(self)
     }
 }
 
-impl Debug for Subscription {
+impl<Kind> Display for Subscription<Kind>
+where
+    Kind: SubKind
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}_{}{}", self.exchange, self.kind, self.instrument)
     }
 }
 
-impl Display for Subscription {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl<S> From<(ExchangeId, S, S, InstrumentKind, SubKind)> for Subscription
+impl<S, Kind> From<(ExchangeId, S, S, InstrumentKind, Kind)> for Subscription<Kind>
 where
     S: Into<Symbol>,
+    Kind: SubKind,
 {
     fn from(
-        (exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, SubKind),
+        (exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, Kind),
     ) -> Self {
         Self::new(exchange, (base, quote, instrument_kind), kind)
     }
 }
 
-impl<I> From<(ExchangeId, I, SubKind)> for Subscription
+impl<I, Kind> From<(ExchangeId, I, Kind)> for Subscription<Kind>
 where
     I: Into<Instrument>,
+    Kind: SubKind,
 {
-    fn from((exchange, instrument, stream): (ExchangeId, I, SubKind)) -> Self {
+    fn from((exchange, instrument, stream): (ExchangeId, I, Kind)) -> Self {
         Self::new(exchange, instrument, stream)
     }
 }
 
-impl From<Subscription> for Market {
-    fn from(subscription: Subscription) -> Self {
+impl<Kind> From<Subscription<Kind>> for Market
+where
+    Kind: SubKind,
+{
+    fn from(subscription: Subscription<Kind>) -> Self {
         Self::new(subscription.exchange, subscription.instrument)
     }
 }
 
-impl Subscription {
+impl<Kind> Subscription<Kind>
+where
+    Kind: SubKind,
+{
     /// Constructs a new [`Subscription`] using the provided configuration.
-    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: SubKind) -> Self
+    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: Kind) -> Self
     where
         I: Into<Instrument>,
     {
@@ -110,34 +131,34 @@ impl Subscription {
     }
 }
 
-/// Possible Barter [`Subscription`] types.
-#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SubKind {
-    Trade,
-    Candle(Interval),
-    OrderBook,
-    OrderBookL2Delta,
-    OrderBookL3Delta,
-    Liquidation,
-}
-
-impl Display for SubKind {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SubKind::Trade => "trade".to_owned(),
-                SubKind::Candle(interval) => format!("candle_{}", interval),
-                SubKind::OrderBook => "order_book".to_owned(),
-                SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
-                SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
-                SubKind::Liquidation => "liquidation".to_owned(),
-            }
-        )
-    }
-}
+// /// Possible Barter [`Subscription`] types.
+// #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+// #[serde(rename_all = "snake_case")]
+// pub enum SubKind {
+//     Trade,
+//     Candle(Interval),
+//     OrderBook,
+//     OrderBookL2Delta,
+//     OrderBookL3Delta,
+//     Liquidation,
+// }
+//
+// impl Display for SubKind {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         write!(
+//             f,
+//             "{}",
+//             match self {
+//                 SubKind::Trade => "trade".to_owned(),
+//                 SubKind::Candle(interval) => format!("candle_{}", interval),
+//                 SubKind::OrderBook => "order_book".to_owned(),
+//                 SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
+//                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
+//                 SubKind::Liquidation => "liquidation".to_owned(),
+//             }
+//         )
+//     }
+// }
 
 /// Barter time interval used for specifying the interval of a [`SubKind::Candle`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -224,11 +245,14 @@ impl Deref for Depth {
 /// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
 /// specific subscription payloads that are sent to the exchange.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct SubscriptionMeta {
+pub struct SubscriptionMeta<Kind>
+where
+    Kind: SubKind,
+{
     /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
     /// and a Barter [`Subscription`]. Used to identify the original [`Subscription`] associated
     /// with a received message.
-    pub ids: SubscriptionIds,
+    pub ids: SubscriptionMap<Kind>,
     /// Number of [`Subscription`] responses expected from the exchange. Used to validate all
     /// [`Subscription`] were accepted.
     pub expected_responses: usize,
@@ -236,36 +260,37 @@ pub struct SubscriptionMeta {
     pub subscriptions: Vec<WsMessage>,
 }
 
+/// Todo: Use dyn SubKind?
 /// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct SubscriptionIds(pub HashMap<SubscriptionId, Subscription>);
+pub struct SubscriptionMap<Kind: SubKind>(pub HashMap<SubscriptionId, Subscription<Kind>>);
 
-impl Deref for SubscriptionIds {
-    type Target = HashMap<SubscriptionId, Subscription>;
+impl<Kind> Deref for SubscriptionMap<Kind>
+where
+    Kind: SubKind,
+{
+    type Target = HashMap<SubscriptionId, Subscription<Kind>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl DerefMut for SubscriptionIds {
+impl<Kind> DerefMut for SubscriptionMap<Kind>
+where
+    Kind: SubKind,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'de> Deserialize<'de> for SubscriptionIds {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        HashMap::deserialize(deserializer).map(SubscriptionIds)
-    }
-}
-
-impl SubscriptionIds {
+impl<Kind> SubscriptionMap<Kind>
+where
+    Kind: SubKind,
+{
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
     pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
         self.get(id)
@@ -550,7 +575,7 @@ mod tests {
     #[test]
     fn test_subscription_ids_find_instrument() {
         // Initialise SubscriptionIds HashMap
-        let ids = SubscriptionIds(HashMap::from_iter([(
+        let ids = SubscriptionMap(HashMap::from_iter([(
             SubscriptionId::from("present"),
             Subscription::from((
                 ExchangeId::Binance,

@@ -6,8 +6,7 @@
 )]
 
 use crate::model::{
-    subscription::{Subscription, SubscriptionIds, SubscriptionMeta},
-    MarketEvent,
+    subscription::{Subscription, SubKind, SubscriptionMap, SubscriptionMeta},
 };
 use async_trait::async_trait;
 use barter_integration::{
@@ -40,23 +39,27 @@ pub mod exchange;
 pub mod builder;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Exchange> =
-    ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
+pub type ExchangeWsStream<Exchange, Event> = ExchangeStream<WebSocketParser, WsStream, Exchange, Event>;
 
-/// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
-/// for an [`ExchangeStream`].
+/// [`Stream`] super trait for streams that yield [`MarketEvent`]s. Provides an entry-point
+/// abstraction for an [`ExchangeStream`].
 #[async_trait]
-pub trait MarketStream:
-    Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
+pub trait MarketStream<Kind>: Stream<Item = Result<Event<Kind::Event>, SocketError>> + Sized + Unpin
+where
+    Self: Stream<Item = Result<Event<Kind::Event>, SocketError>> + Sized + Unpin,
+    Kind: SubKind,
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
+    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>;
 }
 
 /// Trait that defines how a subscriber will establish a [`WebSocket`] connection with an exchange,
 /// and action [`Subscription`]s. This must be implemented when integrating a new exchange.
 #[async_trait]
-pub trait Subscriber {
+pub trait Subscriber<Kind>
+where
+    Kind: SubKind + Sync + Send + 'static
+{
     /// Deserialisable type that this [`Subscriber`] expects to receive from the exchange in
     /// response to [`Subscription`] requests. Implements [`Validator`] in order to determine
     /// if the `SubResponse` communicates a successful outcome.
@@ -65,8 +68,8 @@ pub trait Subscriber {
     /// Initialises a [`WebSocket`] connection, actions the provided collection of Barter
     /// [`Subscription`]s, and validates that the [`Subscription`] were accepted by the exchange.
     async fn subscribe(
-        subscriptions: &[Subscription],
-    ) -> Result<(WebSocket, SubscriptionIds), SocketError> {
+        subscriptions: &[Subscription<Kind>],
+    ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError> {
         // Connect to exchange
         let mut websocket = connect(Self::base_url()).await?;
 
@@ -93,17 +96,15 @@ pub trait Subscriber {
     /// Uses the provided Barter [`Subscription`]s to build exchange specific subscription
     /// payloads. Generates a [`SubscriptionIds`] `Hashmap` that is used by an [`ExchangeTransformer`]
     /// to identify the Barter [`Subscription`]s associated with received messages.
-    fn build_subscription_meta(
-        subscriptions: &[Subscription],
-    ) -> Result<SubscriptionMeta, SocketError>;
+    fn build_subscription_meta(subscriptions: &[Subscription<Kind>]) -> Result<SubscriptionMeta<Kind>, SocketError>;
 
     /// Uses the provided [`WebSocket`] connection to consume [`Subscription`] responses and
     /// validate their outcomes.
     async fn validate(
-        ids: SubscriptionIds,
+        ids: SubscriptionMap<Kind>,
         websocket: &mut WebSocket,
         expected_responses: usize,
-    ) -> Result<SubscriptionIds, SocketError> {
+    ) -> Result<SubscriptionMap<Kind>, SocketError> {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
 
@@ -162,7 +163,11 @@ pub trait Subscriber {
 
 /// Defines how to translate between exchange specific data structures & Barter data
 /// structures. This must be implemented when integrating a new exchange.
-pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized {
+pub trait ExchangeTransformer<Kind>:
+where
+    Self: Transformer<Kind::Event> + Sized,
+    Kind: SubKind,
+{
     /// Unique identifier for an [`ExchangeTransformer`].
     const EXCHANGE: ExchangeId;
 
@@ -171,15 +176,16 @@ pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized {
     ///
     /// Note:
     ///  - If required, the [`WsSink`] transmitter may be used to send messages to the exchange.
-    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self;
+    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionMap<Kind>) -> Self;
 }
 
 #[async_trait]
-impl<Exchange> MarketStream for ExchangeWsStream<Exchange>
+impl<Exchange, Kind> MarketStream<Kind> for ExchangeWsStream<Exchange, Kind::Event>
 where
-    Exchange: Subscriber + ExchangeTransformer + Send,
+    Exchange: Subscriber<Kind> + ExchangeTransformer<Kind> + Send,
+    Kind: SubKind + Sync + Send + 'static
 {
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
+    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError> {
         // Connect & subscribe
         let (websocket, ids) = Exchange::subscribe(subscriptions).await?;
 

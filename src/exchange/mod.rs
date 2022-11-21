@@ -6,14 +6,14 @@ use std::{str::FromStr, time::Duration};
 /// Binance `ExchangeTransformer` & `Subscriber` implementations.
 pub mod binance;
 
-/// Ftx `ExchangeTransformer` & `Subscriber` implementations.
-pub mod ftx;
-
-/// Kraken `ExchangeTransformer` & `Subscriber` implementations.
-pub mod kraken;
-
-/// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
-pub mod coinbase;
+// /// Ftx `ExchangeTransformer` & `Subscriber` implementations.
+// pub mod ftx;
+//
+// /// Kraken `ExchangeTransformer` & `Subscriber` implementations.
+// pub mod kraken;
+//
+// /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
+// pub mod coinbase;
 
 /// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
 pub fn datetime_utc_from_epoch_duration(duration: Duration) -> DateTime<Utc> {
