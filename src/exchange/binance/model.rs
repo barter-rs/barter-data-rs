@@ -373,7 +373,7 @@ mod tests {
                     "e":"unknown","E":1662494217187,"a":1048104319,"s":"ETHUSDT","p":"1575.96",
                     "q":"0.704","f":2189899361,"l":2189899363,"T":1662494217032,"m":false
                 }"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -414,7 +414,7 @@ mod tests {
                     "e":"aggTrade","E":1662494217187,"a":1048104319,"s":"ETHUSDT","p":1575.96,
                     "q":"0.704","f":2189899361,"l":2189899363,"T":1662494217032,"m":false
                 }"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),

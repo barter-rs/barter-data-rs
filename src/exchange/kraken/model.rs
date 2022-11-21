@@ -62,10 +62,7 @@ impl TryFrom<&KrakenSubscription> for WsMessage {
     fn try_from(kraken_sub: &KrakenSubscription) -> Result<Self, Self::Error> {
         serde_json::to_string(&kraken_sub)
             .map(WsMessage::text)
-            .map_err(|error| SocketError::Deserialise {
-                error,
-                payload: format!("{kraken_sub:?}"),
-            })
+            .map_err(SocketError::Serialise)
     }
 }
 
@@ -745,7 +742,7 @@ mod tests {
             TestCase {
                 // TC2: input response is malformed gibberish
                 input: r#"{"type": "gibberish", "help": "please"}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -887,7 +884,7 @@ mod tests {
             TestCase {
                 // TC5: invalid KrakenMessage gibberish
                 input: r#"{"type": "gibberish", "help": "please"}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -944,7 +941,7 @@ mod tests {
             TestCase {
                 // TC2: KrakenTrade is invalid w/ non-string price
                 input: r#"[1000.0,"1000.00010000","1661978265.0","b","l",""]"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -1015,7 +1012,7 @@ mod tests {
             TestCase {
                 // TC2: KrakenCandleData is invalid w/ f64 trade_count
                 input: r#"["1542057314.748456","1542057360.435743","3586.70000","3586.70000","3586.60000","3586.60000","3586.68894","0.03373000",2.0]"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
