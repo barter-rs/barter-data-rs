@@ -11,13 +11,26 @@ use std::{
     fmt::{Debug, Display, Formatter},
     ops::{Deref, DerefMut},
 };
+use chrono::{DateTime, Utc};
+
+/// Todo:
+pub trait SubKindId {
+    fn id() -> &'static str;
+}
 
 /// Todo:
 pub trait SubKind
 where
-    Self: Debug + Display,
+    Self: Clone,
+    Self::Event: From<Self>,
 {
-    type Event: Debug;
+    type Event: Debug + SubKindId;
+    fn channel() -> &'static str;
+    fn market(instrument: &Instrument) -> String;
+    fn subscription_id(market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{}|{}", Self::channel(), market))
+    }
+    fn exchange_timestamp(&self) -> DateTime<Utc>;
 }
 
 /// Barter [`Subscription`] used to subscribe to a market [`SubKind`] for a particular
@@ -79,7 +92,7 @@ where
     Kind: SubKind
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{}{}", self.exchange, self.kind, self.instrument)
+        write!(f, "{}_{}{}", self.exchange, Kind::Event::id(), self.instrument)
     }
 }
 

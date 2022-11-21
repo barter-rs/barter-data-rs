@@ -4,6 +4,7 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::model::subscription::SubKindId;
 
 /// Barter data structures that support subscribing to exchange specific market data.
 ///
@@ -12,12 +13,12 @@ pub mod subscription;
 
 /// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
+pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
     pub instrument: Instrument,
-    pub kind: DataKind,
+    pub event: Event,
 }
 
 /// Defines the type of Barter [`MarketEvent`].
@@ -36,6 +37,12 @@ pub struct PublicTrade {
     pub price: f64,
     pub quantity: f64,
     pub side: Side,
+}
+
+impl SubKindId for PublicTrade {
+    fn id() -> &'static str {
+        "trade_public"
+    }
 }
 
 /// Normalised Barter OHLCV [`Candle`] model.
@@ -97,8 +104,8 @@ impl Level {
     }
 }
 
-impl From<Event<MarketEvent>> for MarketEvent {
-    fn from(event: Event<MarketEvent>) -> Self {
+impl<T> From<Event<Market<T>>> for Market<T> {
+    fn from(event: Event<Market<T>>) -> Self {
         event.payload
     }
 }

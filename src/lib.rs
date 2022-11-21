@@ -5,9 +5,7 @@
     // missing_docs
 )]
 
-use crate::model::{
-    subscription::{Subscription, SubKind, SubscriptionMap, SubscriptionMeta},
-};
+use crate::model::{Market, subscription::{Subscription, SubKind, SubscriptionMap, SubscriptionMeta}};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
@@ -39,14 +37,14 @@ pub mod exchange;
 pub mod builder;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Exchange, Event> = ExchangeStream<WebSocketParser, WsStream, Exchange, Event>;
+pub type ExchangeWsStream<Exchange, Event> = ExchangeStream<WebSocketParser, WsStream, Exchange, Market<Event>>;
 
 /// [`Stream`] super trait for streams that yield [`MarketEvent`]s. Provides an entry-point
 /// abstraction for an [`ExchangeStream`].
 #[async_trait]
-pub trait MarketStream<Kind>: Stream<Item = Result<Event<Kind::Event>, SocketError>> + Sized + Unpin
+pub trait MarketStream<Kind>: Stream<Item = Result<Event<Market<Kind::Event>>, SocketError>> + Sized + Unpin
 where
-    Self: Stream<Item = Result<Event<Kind::Event>, SocketError>> + Sized + Unpin,
+    Self: Stream<Item = Result<Event<Market<Kind::Event>>, SocketError>> + Sized + Unpin,
     Kind: SubKind,
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
@@ -165,7 +163,7 @@ where
 /// structures. This must be implemented when integrating a new exchange.
 pub trait ExchangeTransformer<Kind>:
 where
-    Self: Transformer<Kind::Event> + Sized,
+    Self: Transformer<Market<Kind::Event>> + Sized,
     Kind: SubKind,
 {
     /// Unique identifier for an [`ExchangeTransformer`].
@@ -371,50 +369,51 @@ async fn distribute_responses_to_the_exchange(
     }
 }
 
-/// Test utilities for conveniently generating public [`MarketEvent`] types.
-pub mod test_util {
-    use crate::{
-        model::{Candle, DataKind, MarketEvent, PublicTrade},
-        ExchangeId,
-    };
-    use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
-    use chrono::Utc;
-    use std::ops::{Add, Sub};
-
-    /// Build a [`MarketEvent`] of [`DataKind::Trade`] with the provided [`Side`].
-    pub fn market_trade(side: Side) -> MarketEvent {
-        MarketEvent {
-            exchange_time: Utc::now(),
-            received_time: Utc::now(),
-            exchange: Exchange::from(ExchangeId::Binance),
-            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
-            kind: DataKind::Trade(PublicTrade {
-                id: "trade_id".to_string(),
-                price: 1000.0,
-                quantity: 1.0,
-                side,
-            }),
-        }
-    }
-
-    /// Build a [`MarketEvent`] of [`DataKind::Candle`] with the provided time interval.
-    pub fn market_candle(interval: chrono::Duration) -> MarketEvent {
-        let now = Utc::now();
-        MarketEvent {
-            exchange_time: now,
-            received_time: now.add(chrono::Duration::milliseconds(200)),
-            exchange: Exchange::from(ExchangeId::Binance),
-            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
-            kind: DataKind::Candle(Candle {
-                start_time: now.sub(interval),
-                end_time: now,
-                open: 960.0,
-                high: 1100.0,
-                low: 950.0,
-                close: 1000.0,
-                volume: 100000.0,
-                trade_count: 1000,
-            }),
-        }
-    }
-}
+// Todo:
+// /// Test utilities for conveniently generating public [`MarketEvent`] types.
+// pub mod test_util {
+//     use crate::{
+//         model::{Candle, DataKind, MarketEvent, PublicTrade},
+//         ExchangeId,
+//     };
+//     use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
+//     use chrono::Utc;
+//     use std::ops::{Add, Sub};
+//
+//     /// Build a [`MarketEvent`] of [`DataKind::Trade`] with the provided [`Side`].
+//     pub fn market_trade(side: Side) -> MarketEvent {
+//         MarketEvent {
+//             exchange_time: Utc::now(),
+//             received_time: Utc::now(),
+//             exchange: Exchange::from(ExchangeId::Binance),
+//             instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+//             kind: DataKind::Trade(PublicTrade {
+//                 id: "trade_id".to_string(),
+//                 price: 1000.0,
+//                 quantity: 1.0,
+//                 side,
+//             }),
+//         }
+//     }
+//
+//     /// Build a [`MarketEvent`] of [`DataKind::Candle`] with the provided time interval.
+//     pub fn market_candle(interval: chrono::Duration) -> MarketEvent {
+//         let now = Utc::now();
+//         MarketEvent {
+//             exchange_time: now,
+//             received_time: now.add(chrono::Duration::milliseconds(200)),
+//             exchange: Exchange::from(ExchangeId::Binance),
+//             instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
+//             kind: DataKind::Candle(Candle {
+//                 start_time: now.sub(interval),
+//                 end_time: now,
+//                 open: 960.0,
+//                 high: 1100.0,
+//                 low: 950.0,
+//                 close: 1000.0,
+//                 volume: 100000.0,
+//                 trade_count: 1000,
+//             }),
+//         }
+//     }
+// }

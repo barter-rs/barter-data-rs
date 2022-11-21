@@ -1,4 +1,91 @@
-//
+use super::model::BinanceSubResponse;
+use crate::{
+    model::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
+    Subscriber,
+};
+use barter_integration::{
+    error::SocketError,
+    protocol::websocket::WsMessage,
+    Validator,
+};
+use serde_json::json;
+use std::collections::HashMap;
+
+pub mod explore;
+
+pub struct BinanceFuturesUsd<Kind>
+where
+    Kind: SubKind,
+{
+    pub subscription_map: SubscriptionMap<Kind>
+}
+
+impl<Kind> Subscriber<Kind> for BinanceFuturesUsd<Kind>
+where
+    Kind: SubKind + Sync + Send + 'static
+{
+    type SubResponse = BinanceSubResponse;
+
+    fn base_url() -> &'static str {
+        "wss://fstream.binance.com/ws"
+    }
+
+    fn build_subscription_meta(subscriptions: &[Subscription<Kind>]) -> Result<SubscriptionMeta<Kind>, SocketError> {
+        // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
+        let mut ids = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
+
+        // Map Barter Subscriptions to BinanceFuturesUsd 'StreamNames'
+        let stream_names = subscriptions
+            .iter()
+            .map(|subscription| {
+                // Validate provided Subscription InstrumentKind is supported by BinanceFuturesUsd
+                subscription.validate()?;
+
+                // Determine channel & market for this Barter Subscription
+                let channel = Kind::channel();
+                let market = Kind::market(&subscription.instrument);
+
+                // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
+                // '--> Uppercase market to match incoming exchange event
+                // eg/ SubscriptionId("@aggTrade|BTCUSDT")
+                let subscription_id = Kind::subscription_id(&market);
+                ids.insert(subscription_id, subscription.clone());
+
+                // Construct BinanceFuturesUsd 'StreamName' eg/ "btcusdt@aggTrade"
+                // '--> Lowercase market because the subscription 'StreamName' must be lowercase
+                Ok(format!("{market}{channel}"))
+            })
+            .collect::<Result<Vec<String>, SocketError>>()?;
+
+        // Use channels to construct a Binance subscription WsMessage
+        let subscriptions = Self::subscriptions(stream_names);
+
+        Ok(SubscriptionMeta {
+            ids,
+            expected_responses: subscriptions.len(),
+            subscriptions,
+        })
+    }
+}
+
+impl<Kind> BinanceFuturesUsd<Kind>
+where
+    Kind: SubKind
+{
+    /// Build a [`BinanceFuturesUsd`] compatible subscription message using the
+    /// 'StreamNames' provided.
+    pub fn subscriptions(stream_names: Vec<String>) -> Vec<WsMessage> {
+        vec![WsMessage::Text(
+            json!({
+                "method": "SUBSCRIBE",
+                "params": stream_names,
+                "id": 1
+            })
+                .to_string(),
+        )]
+    }
+}
+
 // use super::model::{BinanceSubResponse};
 // use crate::{
 //     model::subscription::SubKind,
