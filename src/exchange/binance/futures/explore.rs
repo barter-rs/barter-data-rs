@@ -25,7 +25,7 @@ impl Transformer<Market<<BinanceTrade as SubKind>::Event>> for BinanceFuturesUsd
     fn transform(&mut self, trade: Self::Input) -> Self::OutputIter {
         match self.subscription_map.find_instrument(&trade.subscription_id) {
             Ok(instrument) => {
-                vec![Ok(Market::from((Self::EXCHANGE, instrument, trade)))]
+                vec![Ok(Self::build_market_event(instrument, trade))]
             }
             Err(error) => {
                 vec![Err(error)]

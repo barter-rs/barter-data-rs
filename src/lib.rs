@@ -19,6 +19,8 @@ use std::{
     fmt::{Debug, Display, Formatter},
     time::Duration,
 };
+use barter_integration::model::Instrument;
+use chrono::Utc;
 use tokio::sync::mpsc;
 use tracing::error;
 
@@ -175,6 +177,17 @@ where
     /// Note:
     ///  - If required, the [`WsSink`] transmitter may be used to send messages to the exchange.
     fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionMap<Kind>) -> Self;
+
+    /// Todo:
+    fn build_market_event(instrument: Instrument, kind: Kind) -> Market<Kind::Event> {
+        Market {
+            exchange_time: kind.exchange_timestamp(),
+            received_time: Utc::now(),
+            exchange: Exchange::from(Self::EXCHANGE),
+            instrument,
+            event: Kind::Event::from(kind)
+        }
+    }
 }
 
 #[async_trait]
