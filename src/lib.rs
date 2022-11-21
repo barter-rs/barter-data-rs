@@ -41,16 +41,15 @@ pub mod builder;
 
 
 pub mod explore;
+pub mod book;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Exchange> =
-    ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
+pub type ExchangeWsStream<Exchange> = ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
 
 /// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
 /// for an [`ExchangeStream`].
 #[async_trait]
-pub trait MarketStream:
-    Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
+pub trait MarketStream: Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
     async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
