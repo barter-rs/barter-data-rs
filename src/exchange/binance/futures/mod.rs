@@ -1,8 +1,5 @@
 use super::model::BinanceSubResponse;
-use crate::{
-    model::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
-    Subscriber,
-};
+use crate::{ExchangeId, ExchangeTransformer, model::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta}, Subscriber};
 use barter_integration::{
     error::SocketError,
     protocol::websocket::WsMessage,
@@ -10,8 +7,12 @@ use barter_integration::{
 };
 use serde_json::json;
 use std::collections::HashMap;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub mod explore;
+pub mod book;
+pub mod trade;
+pub mod liquidation;
 
 pub struct BinanceFuturesUsd<Kind>
 where
@@ -48,7 +49,7 @@ where
                 // Use "channel|market" as the SubscriptionId key in the SubscriptionIds
                 // '--> Uppercase market to match incoming exchange event
                 // eg/ SubscriptionId("@aggTrade|BTCUSDT")
-                let subscription_id = Kind::subscription_id(&market);
+                let subscription_id = Kind::build_subscription_id(&market);
                 ids.insert(subscription_id, subscription.clone());
 
                 // Construct BinanceFuturesUsd 'StreamName' eg/ "btcusdt@aggTrade"

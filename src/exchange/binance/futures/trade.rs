@@ -1,59 +1,35 @@
-use super::{
-    BinanceFuturesUsd,
-    super::model::BinanceMessage,
-};
-use crate::{
-    model::MarketEvent,
-    ExchangeId, ExchangeTransformer, SubscriptionMap,
-};
-use barter_integration::{
-    error::SocketError, protocol::websocket::WsMessage, Transformer,
-};
+use barter_integration::error::SocketError;
+use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::Transformer;
 use tokio::sync::mpsc;
+use crate::exchange::binance::futures::BinanceFuturesUsd;
+use crate::{ExchangeId, ExchangeTransformer};
+use crate::exchange::binance::model::BinanceTrade;
+use crate::model::{Market, PublicTrade};
+use crate::model::subscription::{SubKind, SubscriptionMap};
 
-impl ExchangeTransformer for BinanceFuturesUsd {
+impl ExchangeTransformer for BinanceFuturesUsd<BinanceTrade> {
     const EXCHANGE: ExchangeId = ExchangeId::BinanceFuturesUsd;
-    fn new(_: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionMap) -> Self {
-        Self { ids }
+
+    fn new(_: mpsc::UnboundedSender<WsMessage>, subscription_map: SubscriptionMap<BinanceTrade>) -> Self {
+        Self { subscription_map }
     }
 }
 
-impl Transformer<MarketEvent> for BinanceFuturesUsd {
-    type Input = BinanceMessage;
-    type OutputIter = Vec<Result<MarketEvent, SocketError>>;
+impl Transformer for BinanceFuturesUsd<BinanceTrade> {
+    type Input = BinanceTrade;
+    type Output = Market<PublicTrade>;
+    type OutputIter = Vec<Result<Market<PublicTrade>, SocketError>>;
 
-    fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
-        match input {
-            BinanceMessage::Trade(trade) => {
-                match self.ids.find_instrument(&trade.subscription_id) {
-                    Ok(instrument) => vec![Ok(MarketEvent::from((
-                        BinanceFuturesUsd::EXCHANGE,
-                        instrument,
-                        trade,
-                    )))],
-                    Err(error) => vec![Err(error)],
-                }
+    fn transform(&mut self, trade: Self::Input) -> Self::OutputIter {
+        match self.subscription_map.find_instrument(&trade.subscription_id) {
+            Ok(instrument) => {
+                vec![Ok(Self::build_market_event(instrument, trade))]
             }
-            BinanceMessage::OrderBookSnapshot(snapshot) => {
-                match self.ids.find_instrument(&snapshot.subscription_id) {
-                    Ok(instrument) => vec![Ok(MarketEvent::from((
-                        BinanceFuturesUsd::EXCHANGE,
-                        instrument,
-                        snapshot,
-                    )))],
-                    Err(error) => vec![Err(error)],
-                }
-            }
-            BinanceMessage::Liquidation(liquidation) => {
-                match self.ids.find_instrument(&liquidation.order.subscription_id) {
-                    Ok(instrument) => vec![Ok(MarketEvent::from((
-                        BinanceFuturesUsd::EXCHANGE,
-                        instrument,
-                        liquidation,
-                    )))],
-                    Err(error) => vec![Err(error)],
-                }
+            Err(error) => {
+                vec![Err(error)]
             }
         }
     }
 }
+

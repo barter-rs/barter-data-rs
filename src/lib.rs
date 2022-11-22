@@ -176,7 +176,7 @@ where
     ///
     /// Note:
     ///  - If required, the [`WsSink`] transmitter may be used to send messages to the exchange.
-    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionMap<Kind>) -> Self;
+    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, subscription_map: SubscriptionMap<Kind>) -> Self;
 
     /// Todo:
     fn build_market_event(instrument: Instrument, kind: Kind) -> Market<Kind::Event> {

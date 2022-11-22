@@ -35,31 +35,16 @@ impl Validator for BinanceSubResponse {
     }
 }
 
-/// `Binance` message variants that could be received over [`WebSocket`](crate::WebSocket).
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-#[serde(tag = "e", rename_all = "camelCase")]
-pub enum BinanceMessage {
-    #[serde(alias = "aggTrade")]
-    Trade(BinanceTrade),
-    // #[serde(alias = "depthUpdate")]
-    // OrderBookSnapshot(BinanceOrderBook),
-    // #[serde(alias = "forceOrder")]
-    // Liquidation(BinanceLiquidation),
-}
-
-/// Todo:
-// impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
-//     fn from((exchange, instrument, message): (ExchangeId, Instrument, BinanceMessage)) -> Self {
-//         match message {
-//             BinanceMessage::Trade(trade) => MarketEvent::from((exchange, instrument, trade)),
-//             BinanceMessage::OrderBookSnapshot(order_book) => {
-//                 MarketEvent::from((exchange, instrument, order_book))
-//             }
-//             BinanceMessage::Liquidation(liquidation) => {
-//                 MarketEvent::from((exchange, instrument, liquidation))
-//             }
-//         }
-//     }
+// /// `Binance` message variants that could be received over [`WebSocket`](crate::WebSocket).
+// #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+// #[serde(tag = "e", rename_all = "camelCase")]
+// pub enum BinanceMessage {
+//     #[serde(alias = "aggTrade")]
+//     Trade(BinanceTrade),
+//     #[serde(alias = "depthUpdate")]
+//     OrderBookSnapshot(BinanceOrderBook),
+//     #[serde(alias = "forceOrder")]
+//     Liquidation(BinanceLiquidation),
 // }
 
 /// `Binance` real-time trade message.
@@ -95,7 +80,7 @@ impl SubKind for BinanceTrade {
         format!("{}{}", instrument.base, instrument.quote)
     }
 
-    fn subscription_id(market: &str) -> SubscriptionId {
+    fn build_subscription_id(market: &str) -> SubscriptionId {
         SubscriptionId::from(format!("{}|{}", Self::channel(), market.to_uppercase()))
     }
 
@@ -130,166 +115,142 @@ impl From<BinanceTrade> for PublicTrade {
     }
 }
 
-// impl From<(ExchangeId, Instrument, BinanceTrade)> for Market<PublicTrade> {
-//     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
-//         Self {
-//             exchange_time: trade.time,
-//             received_time: Utc::now(),
-//             exchange: Exchange::from(exchange_id),
-//             instrument,
-//             event: PublicTrade {
-//                 id: trade.id.to_string(),
-//                 price: trade.price,
-//                 quantity: trade.quantity,
-//                 side: trade.side,
-//             },
-//         }
-//     }
-// }
+/// `Binance` OrderBook snapshot message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceOrderBook {
+    #[serde(alias = "s", deserialize_with = "de_order_book_subscription_id")]
+    pub subscription_id: SubscriptionId,
 
-/// Todo:
-// impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
-//     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
-//         Self {
-//             exchange_time: trade.time,
-//             received_time: Utc::now(),
-//             exchange: Exchange::from(exchange_id),
-//             instrument,
-//             kind: DataKind::Trade(PublicTrade {
-//                 id: trade.id.to_string(),
-//                 price: trade.price,
-//                 quantity: trade.quantity,
-//                 side: trade.side,
-//             }),
-//         }
-//     }
-// }
-//
-// /// `Binance` OrderBook snapshot message.
-// ///
-// /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
-// #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-// pub struct BinanceOrderBook {
-//     #[serde(alias = "s", deserialize_with = "de_order_book_subscription_id")]
-//     pub subscription_id: SubscriptionId,
-//
-//     #[serde(
-//         alias = "T",
-//         deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
-//     )]
-//     pub time: DateTime<Utc>,
-//
-//     #[serde(alias = "u")]
-//     pub last_update_id: u64,
-//
-//     #[serde(alias = "b")]
-//     pub bids: Vec<BinanceLevel>,
-//
-//     #[serde(alias = "a")]
-//     pub asks: Vec<BinanceLevel>,
-// }
-//
-// /// `Binance` OrderBook level.
-// ///
-// /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
-// #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-// pub struct BinanceLevel {
-//     #[serde(deserialize_with = "crate::exchange::de_str")]
-//     pub price: f64,
-//     #[serde(deserialize_with = "crate::exchange::de_str")]
-//     pub quantity: f64,
-// }
-//
-// impl From<(ExchangeId, Instrument, BinanceOrderBook)> for MarketEvent {
-//     fn from(
-//         (exchange_id, instrument, snapshot): (ExchangeId, Instrument, BinanceOrderBook),
-//     ) -> Self {
-//         Self {
-//             exchange_time: snapshot.time,
-//             received_time: Utc::now(),
-//             exchange: Exchange::from(exchange_id),
-//             instrument,
-//             kind: DataKind::OrderBook(OrderBook {
-//                 last_update_time: snapshot.time,
-//                 last_update_id: snapshot.last_update_id,
-//                 bids: snapshot.bids.into_iter().map(Level::from).collect(),
-//                 asks: snapshot.asks.into_iter().map(Level::from).collect(),
-//             }),
-//         }
-//     }
-// }
-//
-// impl From<BinanceLevel> for Level {
-//     fn from(level: BinanceLevel) -> Self {
-//         Self {
-//             price: level.price,
-//             quantity: level.quantity,
-//         }
-//     }
-// }
-//
-// /// `Binance` Liquidation order message.
-// ///
-// /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
-// #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-// pub struct BinanceLiquidation {
-//     #[serde(alias = "o")]
-//     pub order: BinanceLiquidationOrder,
-// }
-//
-// impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketEvent {
-//     fn from(
-//         (exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation),
-//     ) -> Self {
-//         Self {
-//             exchange_time: liquidation.order.time,
-//             received_time: Utc::now(),
-//             exchange: Exchange::from(exchange_id),
-//             instrument,
-//             kind: DataKind::Liquidation(Liquidation {
-//                 side: liquidation.order.side,
-//                 price: liquidation.order.price,
-//                 quantity: liquidation.order.quantity,
-//                 time: liquidation.order.time,
-//             }),
-//         }
-//     }
-// }
-//
-// impl From<BinanceLiquidation> for Liquidation {
-//     fn from(liquidation: BinanceLiquidation) -> Self {
-//         Self {
-//             side: liquidation.order.side,
-//             price: liquidation.order.price,
-//             quantity: liquidation.order.quantity,
-//             time: liquidation.order.time,
-//         }
-//     }
-// }
-//
-// /// `Binance` Liquidation order.
-// ///
-// /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
-// #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-// pub struct BinanceLiquidationOrder {
-//     #[serde(alias = "s", deserialize_with = "de_liquidation_subscription_id")]
-//     pub subscription_id: SubscriptionId,
-//
-//     #[serde(alias = "S")]
-//     pub side: Side,
-//
-//     #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
-//     pub price: f64,
-//
-//     #[serde(alias = "q", deserialize_with = "crate::exchange::de_str")]
-//     pub quantity: f64,
-//
-//     #[serde(
-//         alias = "T",
-//         deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
-//     )]
-//     pub time: DateTime<Utc>,
-// }
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub time: DateTime<Utc>,
+
+    #[serde(alias = "u")]
+    pub last_update_id: u64,
+
+    #[serde(alias = "b")]
+    pub bids: Vec<BinanceLevel>,
+
+    #[serde(alias = "a")]
+    pub asks: Vec<BinanceLevel>,
+}
+
+/// `Binance` OrderBook level.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLevel {
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+    #[serde(deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+}
+
+impl SubKind for BinanceOrderBook {
+    type Event = OrderBook;
+
+    fn channel() -> &'static str {
+        "@depth20@100ms"
+    }
+
+    fn market(instrument: &Instrument) -> String {
+        format!("{}{}", instrument.base, instrument.quote)
+    }
+
+    fn build_subscription_id(market: &str) -> SubscriptionId {
+        SubscriptionId::from(format!("{}|{}", Self::channel(), market.to_uppercase()))
+    }
+
+    fn exchange_timestamp(&self) -> DateTime<Utc> {
+        self.time
+    }
+}
+
+impl From<BinanceOrderBook> for OrderBook {
+    fn from(snapshot: BinanceOrderBook) -> Self {
+        Self {
+            last_update_time: snapshot.time,
+            last_update_id: snapshot.last_update_id,
+            bids: snapshot.bids.into_iter().map(Level::from).collect(),
+            asks: snapshot.asks.into_iter().map(Level::from).collect(),
+        }
+    }
+}
+
+impl From<BinanceLevel> for Level {
+    fn from(level: BinanceLevel) -> Self {
+        Self {
+            price: level.price,
+            quantity: level.quantity,
+        }
+    }
+}
+
+/// `Binance` Liquidation order message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidation {
+    #[serde(alias = "o")]
+    pub order: BinanceLiquidationOrder,
+}
+
+/// `Binance` Liquidation order.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceLiquidationOrder {
+    #[serde(alias = "s", deserialize_with = "de_liquidation_subscription_id")]
+    pub subscription_id: SubscriptionId,
+
+    #[serde(alias = "S")]
+    pub side: Side,
+
+    #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
+    pub price: f64,
+
+    #[serde(alias = "q", deserialize_with = "crate::exchange::de_str")]
+    pub quantity: f64,
+
+    #[serde(
+    alias = "T",
+    deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub time: DateTime<Utc>,
+}
+
+impl SubKind for BinanceLiquidation {
+    type Event = Liquidation;
+
+    fn channel() -> &'static str {
+        "@forceOrder"
+    }
+
+    fn market(instrument: &Instrument) -> String {
+        format!("{}{}", instrument.base, instrument.quote)
+    }
+
+    fn exchange_timestamp(&self) -> DateTime<Utc> {
+        self.order.time
+    }
+}
+
+impl From<BinanceLiquidation> for Liquidation {
+    fn from(liquidation: BinanceLiquidation) -> Self {
+        Self {
+            side: liquidation.order.side,
+            price: liquidation.order.price,
+            quantity: liquidation.order.quantity,
+            time: liquidation.order.time,
+        }
+    }
+}
+
+
 
 /// Todo:
 /// Deserialize a [`BinanceTrade`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
@@ -298,7 +259,7 @@ pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionI
 where
     D: serde::de::Deserializer<'de>,
 {
-    serde::de::Deserialize::deserialize(deserializer).map(BinanceTrade::subscription_id)
+    serde::de::Deserialize::deserialize(deserializer).map(BinanceTrade::build_subscription_id)
 }
 
 /// Deserialize a [`BinanceTrade`] "buyer_is_maker" boolean field to a Barter [`Side`].
@@ -319,28 +280,25 @@ where
     })
 }
 
-/// Todo:
-// /// Deserialize a [`BinanceOrderBook`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-// /// (eg/ "@depth@20@100ms|BTCUSDT").
-// pub fn de_order_book_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
-// where
-//     D: serde::de::Deserializer<'de>,
-// {
-//     serde::de::Deserialize::deserialize(deserializer).map(|market| {
-//         BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_ORDER_BOOK, market)
-//     })
-// }
-//
-// /// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-// /// (eg/ "forceOrder|BTCUSDT").
-// pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
-// where
-//     D: serde::de::Deserializer<'de>,
-// {
-//     serde::de::Deserialize::deserialize(deserializer).map(|market| {
-//         BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_LIQUIDATIONS, market)
-//     })
-// }
+/// Deserialize a [`BinanceOrderBook`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "@depth@20@100ms|BTCUSDT").
+pub fn de_order_book_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(BinanceOrderBook::build_subscription_id)
+}
+
+/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "forceOrder|BTCUSDT").
+pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer)
+        .map(BinanceLiquidation::build_subscription_id)
+}
 
 #[cfg(test)]
 mod tests {

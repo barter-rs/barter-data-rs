@@ -27,7 +27,7 @@ where
     type Event: Debug + SubKindId;
     fn channel() -> &'static str;
     fn market(instrument: &Instrument) -> String;
-    fn subscription_id(market: &str) -> SubscriptionId {
+    fn build_subscription_id(market: &str) -> SubscriptionId {
         SubscriptionId::from(format!("{}|{}", Self::channel(), market))
     }
     fn exchange_timestamp(&self) -> DateTime<Utc>;

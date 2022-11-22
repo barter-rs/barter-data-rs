@@ -39,12 +39,6 @@ pub struct PublicTrade {
     pub side: Side,
 }
 
-impl SubKindId for PublicTrade {
-    fn id() -> &'static str {
-        "trade_public"
-    }
-}
-
 /// Normalised Barter OHLCV [`Candle`] model.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
@@ -81,6 +75,24 @@ pub struct Liquidation {
     pub price: f64,
     pub quantity: f64,
     pub time: DateTime<Utc>,
+}
+
+impl SubKindId for PublicTrade {
+    fn id() -> &'static str {
+        "trade_public"
+    }
+}
+
+impl SubKindId for OrderBook {
+    fn id() -> &'static str {
+        "order_book"
+    }
+}
+
+impl SubKindId for Liquidation {
+    fn id() -> &'static str {
+        "liquidation"
+    }
 }
 
 impl<T> From<(T, T)> for Level
