@@ -108,6 +108,16 @@ impl Transformer<MarketEvent> for BinanceFuturesUsd {
                     Err(error) => vec![Err(error)],
                 }
             }
+            BinanceMessage::MarkPrice(mark_price) => {
+                match self.ids.find_instrument(&mark_price.subscription_id) {
+                    Ok(instrument) => vec![Ok(MarketEvent::from((
+                        BinanceFuturesUsd::EXCHANGE,
+                        instrument,
+                        mark_price,
+                    )))],
+                    Err(error) => vec![Err(error)],
+                }
+            }
         }
     }
 }
@@ -117,6 +127,11 @@ impl BinanceFuturesUsd {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams>
     pub const CHANNEL_TRADES: &'static str = "@aggTrade";
+
+    /// [`BinanceFuturesUsd`] Mark price channel name.
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream>
+    pub const CHANNEL_MARK_PRICE: &'static str = "@markPrice@1s";
 
     /// [`BinanceFuturesUsd`] OrderBook channel name. Note that currently additional channel
     /// information for for OrderBook latency (100ms) and depth (20 levels) is included.
@@ -143,6 +158,7 @@ impl BinanceFuturesUsd {
         // Determine the BinanceFuturesUsd channel
         let channel = match &sub.kind {
             SubKind::Trade => Self::CHANNEL_TRADES,
+            SubKind::MarkPrice => Self::CHANNEL_MARK_PRICE,
             SubKind::OrderBook => Self::CHANNEL_ORDER_BOOK,
             SubKind::Liquidation => Self::CHANNEL_LIQUIDATIONS,
             other => {
@@ -213,6 +229,13 @@ mod tests {
                                     .to_uppercase(),
                             )
                         }
+                        (SubKind::MarkPrice, InstrumentKind::FuturePerpetual) => {
+                            BinanceFuturesUsd::subscription_id(
+                                BinanceFuturesUsd::CHANNEL_MARK_PRICE,
+                                &format!("{}{}", sub.instrument.base, sub.instrument.quote)
+                                    .to_uppercase(),
+                            )
+                        }
                         (_, _) => {
                             panic!("not supported")
                         }
@@ -278,6 +301,15 @@ mod tests {
                     entity: "",
                     item: "".to_string(),
                 }),
+            },
+            TestCase {
+                // TC4: Supported InstrumentKind::FuturePerpetual mark price subscription
+                input: Subscription::new(
+                    ExchangeId::BinanceFuturesUsd,
+                    ("btc", "usdt", InstrumentKind::FuturePerpetual),
+                    SubKind::MarkPrice,
+                ),
+                expected: Ok(("@markPrice@1s", "btcusdt".to_owned())),
             },
         ];
 

@@ -1,5 +1,5 @@
 use super::futures::BinanceFuturesUsd;
-use crate::model::{Level, Liquidation, OrderBook};
+use crate::model::{Level, Liquidation, MarkPrice, OrderBook};
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -46,6 +46,8 @@ pub enum BinanceMessage {
     OrderBookSnapshot(BinanceOrderBook),
     #[serde(alias = "forceOrder")]
     Liquidation(BinanceLiquidation),
+    #[serde(alias = "markPriceUpdate")]
+    MarkPrice(BinanceMarkPrice),
 }
 
 impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
@@ -57,6 +59,9 @@ impl From<(ExchangeId, Instrument, BinanceMessage)> for MarketEvent {
             }
             BinanceMessage::Liquidation(liquidation) => {
                 MarketEvent::from((exchange, instrument, liquidation))
+            }
+            BinanceMessage::MarkPrice(mark_price) => {
+                MarketEvent::from((exchange, instrument, mark_price))
             }
         }
     }
@@ -227,6 +232,53 @@ pub struct BinanceLiquidationOrder {
     pub time: DateTime<Utc>,
 }
 
+/// `Binance` mark price message.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#mark-price-stream>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceMarkPrice {
+    #[serde(
+        alias = "E",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub event_time: DateTime<Utc>,
+    #[serde(alias = "s", deserialize_with = "de_mark_price_subscription_id")]
+    pub subscription_id: SubscriptionId,
+    #[serde(alias = "p", deserialize_with = "crate::exchange::de_str")]
+    pub mark_price: f64,
+    #[serde(alias = "i", deserialize_with = "crate::exchange::de_str")]
+    pub index_price: f64,
+    #[serde(alias = "P", deserialize_with = "crate::exchange::de_str")]
+    pub estimated_settlement_price: f64,
+    #[serde(alias = "r", deserialize_with = "crate::exchange::de_str")]
+    pub funding_rate: f64,
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::exchange::de_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub next_funding_time: DateTime<Utc>,
+}
+
+impl From<(ExchangeId, Instrument, BinanceMarkPrice)> for MarketEvent {
+    fn from(
+        (exchange_id, instrument, mark_price): (ExchangeId, Instrument, BinanceMarkPrice),
+    ) -> Self {
+        Self {
+            exchange_time: mark_price.event_time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            kind: DataKind::MarkPrice(MarkPrice {
+                mark_price: mark_price.mark_price,
+                index_price: mark_price.index_price,
+                estimated_settlement_price: mark_price.estimated_settlement_price,
+                funding_rate: mark_price.funding_rate,
+                next_funding_time: mark_price.next_funding_time,
+            }),
+        }
+    }
+}
+
 /// Deserialize a [`BinanceTrade`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
 /// (eg/ "@aggTrade|BTCUSDT").
 pub fn de_trade_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
@@ -274,6 +326,17 @@ where
 {
     serde::de::Deserialize::deserialize(deserializer).map(|market| {
         BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_LIQUIDATIONS, market)
+    })
+}
+
+/// Deserialize a [`BinanceMarkPrice`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+/// (eg/ "@markPrice@1s|BTCUSDT").
+pub fn de_mark_price_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    serde::de::Deserialize::deserialize(deserializer).map(|market| {
+        BinanceFuturesUsd::subscription_id(BinanceFuturesUsd::CHANNEL_MARK_PRICE, market)
     })
 }
 
@@ -448,6 +511,32 @@ mod tests {
                             1665523974217,
                         )),
                     },
+                })),
+            },
+            TestCase {
+                // TC5: valid BinanceMessage FuturePerpetualUsd Mark Price
+                input: r#"  {
+                    "e": "markPriceUpdate",
+                    "E": 1562305380000,
+                    "s": "BTCUSDT",
+                    "p": "11794.15000000",
+                    "i": "11784.62659091",
+                    "P": "11784.25641265",
+                    "r": "0.00038167",
+                    "T": 1562306400000
+                  }"#,
+                expected: Ok(BinanceMessage::MarkPrice(BinanceMarkPrice {
+                    event_time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                        1562305380000,
+                    )),
+                    subscription_id: SubscriptionId::from("@markPrice@1s|BTCUSDT"),
+                    mark_price: 11794.15000000,
+                    index_price: 11784.62659091,
+                    estimated_settlement_price: 11784.25641265,
+                    funding_rate: 0.00038167,
+                    next_funding_time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                        1562306400000,
+                    )),
                 })),
             },
         ];

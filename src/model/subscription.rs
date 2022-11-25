@@ -46,6 +46,7 @@ impl Validator for &Subscription {
             SubKind::Candle(_) if self.exchange.supports_candles() => {}
             SubKind::OrderBook if self.exchange.supports_order_books() => {}
             SubKind::Liquidation if self.exchange.supports_liquidations() => {}
+            SubKind::MarkPrice if self.exchange.supports_mark_price() => {}
             other => {
                 return Err(SocketError::Unsupported {
                     entity: self.exchange.as_str(),
@@ -120,6 +121,7 @@ pub enum SubKind {
     OrderBookL2Delta,
     OrderBookL3Delta,
     Liquidation,
+    MarkPrice,
 }
 
 impl Display for SubKind {
@@ -134,6 +136,7 @@ impl Display for SubKind {
                 SubKind::OrderBookL2Delta => "order_book_l2_delta".to_owned(),
                 SubKind::OrderBookL3Delta => "order_book_l3_delta".to_owned(),
                 SubKind::Liquidation => "liquidation".to_owned(),
+                SubKind::MarkPrice => "mark_price".to_owned(),
             }
         )
     }

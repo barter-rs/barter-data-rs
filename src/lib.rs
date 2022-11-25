@@ -334,6 +334,17 @@ impl ExchangeId {
             _ => false,
         }
     }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// mark price market data.
+    #[allow(clippy::match_like_matches_macro)]
+    #[allow(clippy::match_single_binding)]
+    pub fn supports_mark_price(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            _ => false,
+        }
+    }
 }
 
 /// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the

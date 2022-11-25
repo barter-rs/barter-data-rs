@@ -27,6 +27,7 @@ pub enum DataKind {
     Candle(Candle),
     OrderBook(OrderBook),
     Liquidation(Liquidation),
+    MarkPrice(MarkPrice),
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -74,6 +75,16 @@ pub struct Liquidation {
     pub price: f64,
     pub quantity: f64,
     pub time: DateTime<Utc>,
+}
+
+/// Normalised Barter [`MarkPrice`] model.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct MarkPrice {
+    pub mark_price: f64,
+    pub index_price: f64,
+    pub estimated_settlement_price: f64,
+    pub funding_rate: f64,
+    pub next_funding_time: DateTime<Utc>,
 }
 
 impl<T> From<(T, T)> for Level
