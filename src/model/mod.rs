@@ -1,32 +1,23 @@
 use barter_integration::{
     model::{Exchange, Instrument, Side},
-    Event,
+    error::SocketError,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Barter data structures that support subscribing to exchange specific market data.
-///
-/// eg/ `Subscription`, `SubscriptionId`, etc.
-pub mod subscription;
+/// Todo:
+pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
 
-/// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
+/// Normalised Barter [`Market<Event>`](Self) containing metadata about the included `Event` variant.
+///
+/// Note: `Event` can be an enum if required.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
+pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
     pub instrument: Instrument,
-    pub kind: DataKind,
-}
-
-/// Defines the type of Barter [`MarketEvent`].
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub enum DataKind {
-    Trade(PublicTrade),
-    Candle(Candle),
-    OrderBook(OrderBook),
-    Liquidation(Liquidation),
+    pub event: Event,
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -94,11 +85,5 @@ impl Level {
             price: price.into(),
             quantity: quantity.into(),
         }
-    }
-}
-
-impl From<Event<MarketEvent>> for MarketEvent {
-    fn from(event: Event<MarketEvent>) -> Self {
-        event.payload
     }
 }

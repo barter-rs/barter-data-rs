@@ -1,13 +1,13 @@
 use barter_data::{
     builder::Streams,
     model::{
-        subscription::{Interval, SubKind},
         MarketEvent,
+        subscription::{Interval, SubKind},
     },
-    ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
+use barter_data::exchange::ExchangeId;
 
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,
 // BinanceFuturesUsd & Coinbase
