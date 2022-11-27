@@ -33,8 +33,8 @@ async fn main() {
             // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, SubKind::Trade),
             // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::OrderBookL2Snapshot(SnapshotDepth::Depth5)),
-            (ExchangeId::Kucoin, "btc", "usdt", InstrumentKind::Spot, SubKind::OrderBookL2Update),
             // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, SubKind::Liquidation),
+            (ExchangeId::Kucoin, "btc", "usdt", InstrumentKind::Spot, SubKind::OrderBookL2Update),
         ])
         .init()
         .await

@@ -1,9 +1,12 @@
+use std::collections::BTreeMap;
+
 use barter_integration::{
     model::{Exchange, Instrument, Side},
     Event,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use ordered_float::OrderedFloat;
 
 /// Barter data structures that support subscribing to exchange specific market data.
 ///
@@ -60,6 +63,60 @@ pub struct OrderBook {
     pub last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
+}
+
+/// Normalised Barter level 2 [`OrderBook`] snapshot.
+#[derive(Clone, Debug, PartialEq, PartialOrd,)]
+pub struct OrderBookBTreeMap {
+    pub last_update_id: u64,
+    pub bids: BTreeMap<OrderedFloat<f64>, f64>,
+    pub asks: BTreeMap<OrderedFloat<f64>, f64>,
+}
+
+impl OrderBookBTreeMap {
+    pub fn new() -> Self {
+        let bids = BTreeMap::new();
+        let asks = BTreeMap::new();
+        let last_update_id = 0;
+
+        OrderBookBTreeMap { last_update_id, bids, asks }
+    }
+
+    /// Apply an [`OrderBookL2Update`] to the order book.
+    /// Assumes that sanity checks are done by the end user.
+    pub fn apply_update(&mut self, update: &OrderBookL2Update) {
+        match update.update_type {
+            L2UpdateType::UpdateLevel { price, quantity } => {
+                match update.book_side {
+                    OBSide::Bid => {
+                        self.bids.insert(OrderedFloat(price), quantity);
+                    },
+                    OBSide::Ask => {
+                        self.asks.insert(OrderedFloat(price), quantity);
+                    }
+                }
+            },
+            L2UpdateType::RemoveLevel { price } => {
+                match update.book_side {
+                    OBSide::Bid => {
+                        self.bids.remove(&OrderedFloat(price));
+                    },
+                    OBSide::Ask => {
+                        self.asks.remove(&OrderedFloat(price));
+                    }
+                }
+            }
+        }
+        self.last_update_id = update.sequence_num;
+    }
+
+    pub fn get_best_bid(&self) -> Option<f64> {
+        self.bids.iter().next_back().map(|v| v.0.into_inner())
+    }
+
+    pub fn get_best_ask(&self) -> Option<f64> {
+        self.asks.keys().next().map(|v| v.0)
+    }
 }
 
 /// Normalised Barter [`OrderBook`] [`Level`].

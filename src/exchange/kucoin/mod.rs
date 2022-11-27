@@ -298,6 +298,8 @@ impl Transformer<MarketEvent> for Kucoin {
                     .map(|bid_update| {
                         let update_type = if approx::relative_eq!(bid_update.quantity, 0.0) {
                             L2UpdateType::RemoveLevel { price: bid_update.price }
+                        } else if approx::relative_eq!(bid_update.price, 0.0) {
+                            L2UpdateType::RemoveLevel { price: 0.0 }
                         } else {
                             L2UpdateType::UpdateLevel { price: bid_update.price, quantity: bid_update.quantity }
                         };
@@ -314,6 +316,8 @@ impl Transformer<MarketEvent> for Kucoin {
                     .map(|ask_update| {
                         let update_type = if approx::relative_eq!(ask_update.quantity, 0.0) {
                             L2UpdateType::RemoveLevel { price: ask_update.price }
+                        } else if approx::relative_eq!(ask_update.price, 0.0) {
+                            L2UpdateType::RemoveLevel { price: 0.0 }
                         } else {
                             L2UpdateType::UpdateLevel { price: ask_update.price, quantity: ask_update.quantity }
                         };
