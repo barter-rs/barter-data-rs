@@ -144,7 +144,7 @@ mod tests {
             TestCase {
                 // TC2: input response is malformed gibberish
                 input: r#"{"type": "gibberish", "help": "please"}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),
@@ -212,7 +212,7 @@ mod tests {
             TestCase {
                 // TC0: invalid CoinbaseMessage w/ unknown tag
                 input: r#"{"type": "unknown", "sequence": 50,"product_id": "BTC-USD"}"#,
-                expected: Err(SocketError::Serde {
+                expected: Err(SocketError::Deserialise {
                     error: serde_json::Error::custom(""),
                     payload: "".to_owned(),
                 }),

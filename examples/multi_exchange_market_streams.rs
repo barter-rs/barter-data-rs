@@ -1,10 +1,11 @@
 use barter_data::{
     builder::Streams,
-    ExchangeId,
     model::{
+        subscription::{Interval, SubKind},
         MarketEvent,
         subscription::{Interval, SubKind, SnapshotDepth}
     },
+    ExchangeId,
 };
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;

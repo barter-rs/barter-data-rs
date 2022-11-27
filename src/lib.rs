@@ -286,6 +286,7 @@ impl ExchangeId {
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// [`PublicTrade`](model::PublicTrade) market data.
     #[allow(clippy::match_like_matches_macro)]
+    #[allow(clippy::match_single_binding)]
     pub fn supports_trades(&self) -> bool {
         match self {
             _ => true,
@@ -317,7 +318,8 @@ impl ExchangeId {
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// L2 OrderBook delta market data.
     #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_ob_l2_updates(&self) -> bool {
+    #[allow(clippy::match_single_binding)]
+    pub fn supports_order_book_l2_deltas(&self) -> bool {
         match self {
             ExchangeId::Kucoin => true,
             _ => false,
@@ -327,6 +329,7 @@ impl ExchangeId {
     /// Determines whether this [`ExchangeId`] supports the collection of
     /// L3 OrderBook delta market data.
     #[allow(clippy::match_like_matches_macro)]
+    #[allow(clippy::match_single_binding)]
     pub fn supports_order_book_l3_deltas(&self) -> bool {
         match self {
             _ => false,
