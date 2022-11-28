@@ -7,10 +7,10 @@ pub fn datetime_utc_from_epoch_duration(duration: std::time::Duration) -> chrono
 
 /// Deserialize a `String` as the desired type.
 pub fn de_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-        T: std::str::FromStr,
-        T::Err: std::fmt::Display,
+where
+    D: serde::de::Deserializer<'de>,
+    T: std::str::FromStr,
+    T::Err: std::fmt::Display,
 {
     let data: String = serde::de::Deserialize::deserialize(deserializer)?;
     data.parse::<T>().map_err(serde::de::Error::custom)
@@ -38,9 +38,9 @@ pub fn extract_next<'de, SeqAccessor, Target>(
     sequence: &mut SeqAccessor,
     name: &'static str,
 ) -> Result<Target, SeqAccessor::Error>
-    where
-        SeqAccessor: serde::de::SeqAccess<'de>,
-        Target: serde::de::DeserializeOwned,
+where
+    SeqAccessor: serde::de::SeqAccess<'de>,
+    Target: serde::de::DeserializeOwned,
 {
     sequence
         .next_element::<Target>()?

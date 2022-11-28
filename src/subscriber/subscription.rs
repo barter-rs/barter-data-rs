@@ -14,6 +14,7 @@ use std::{
     fmt::{Debug, Display, Formatter}
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use crate::model::{Liquidation, PublicTrade};
 
 /// Todo:
 pub trait SubscriptionIdentifier {
@@ -26,7 +27,7 @@ where
     Self: Identifier<ExchangeId> + Clone,
     ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
 {
-    type Sub: ExchangeSubscription<ExchangeEvent>;
+    type ExchangeSub: ExchangeSubscription<ExchangeEvent>;
 
     fn base_url() -> &'static str;
 }
@@ -56,6 +57,17 @@ where
     Self: Debug + Clone,
 {
     type Event: Debug;
+}
+
+#[derive(Debug, Clone)]
+pub struct PublicTrades;
+impl SubKind for PublicTrades {
+    type Event = PublicTrade;
+}
+#[derive(Debug, Clone)]
+pub struct Liquidations;
+impl SubKind for Liquidations {
+    type Event = Liquidation;
 }
 
 /// Todo:

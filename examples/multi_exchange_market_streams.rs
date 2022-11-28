@@ -9,10 +9,67 @@
 // use futures::StreamExt;
 // use barter_data::exchange::ExchangeId;
 
+use futures::StreamExt;
+use barter_data::exchange::binance::futures::BinanceFuturesUsd;
+use barter_data::exchange::binance::trade::BinanceTrade;
+use barter_data::{ExchangeTransformer, ExchangeWsStream};
+use barter_data::exchange::binance::futures::liquidation::BinanceLiquidation;
+use barter_data::exchange::binance::spot::BinanceSpot;
+use barter_data::exchange::ExchangeId;
+use barter_data::model::PublicTrade;
+use barter_data::subscriber::subscription::{Liquidations, PublicTrades, Subscription};
+use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
+use barter_integration::model::{Instrument, InstrumentKind};
+
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,
 // BinanceFuturesUsd & Coinbase
 #[tokio::main]
 async fn main() {
+    // Subscribers
+    // let subscriber: WebSocketSubscriber<BinanceSpot, PublicTrades, BinanceTrade> = WebSocketSubscriber::new();
+    // let subscriber: WebSocketSubscriber<BinanceFuturesUsd, PublicTrades, BinanceTrade> = WebSocketSubscriber::new();
+    let subscriber: WebSocketSubscriber<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = WebSocketSubscriber::new();
+
+    // Subscriptions
+    let subscriptions = vec![
+        // (ExchangeId::BinanceSpot, "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        // (ExchangeId::BinanceSpot, "eth", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+
+        // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        //
+        (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into(),
+        (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into(),
+    ];
+
+    let (websocket, subscription_map) = subscriber
+        .subscribe(&subscriptions)
+        .await
+        .expect("failed to subscribe");
+
+    let (_, ws_stream) = websocket.split();
+
+    // let transformer: ExchangeTransformer<BinanceSpot, PublicTrades, BinanceTrade> = ExchangeTransformer::new(subscription_map);
+    // let transformer: ExchangeTransformer<BinanceFuturesUsd, PublicTrades, BinanceTrade> = ExchangeTransformer::new(subscription_map);
+    let transformer: ExchangeTransformer<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = ExchangeTransformer::new(subscription_map);
+
+
+    let mut ws_stream = ExchangeWsStream::new(ws_stream, transformer);
+    while let Some(event) = ws_stream.next().await {
+        println!("{:?}", event.unwrap());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
     // Todo:
     // // Initialise a `PublicTrade`, `Candle` & `OrderBook``MarketStream` for
     // // `BinanceFuturesUsd`, `Ftx`, `Kraken` & `Coinbase`

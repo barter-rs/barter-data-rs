@@ -31,7 +31,7 @@ impl<BinanceEvent> ExchangeMeta<BinanceEvent> for BinanceSpot
 where
     BinanceEvent: SubscriptionIdentifier + Identifier<BinanceChannel> + for<'de> Deserialize<'de>,
 {
-    type Sub = BinanceSubMeta;
+    type ExchangeSub = BinanceSubMeta;
 
     fn base_url() -> &'static str {
         BASE_URL_BINANCE_SPOT

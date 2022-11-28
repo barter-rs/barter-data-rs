@@ -1,16 +1,24 @@
 #![warn(
-    missing_debug_implementations,
-    missing_copy_implementations,
+    // missing_debug_implementations,
+    // missing_copy_implementations,
     rust_2018_idioms,
     // missing_docs
 )]
 #![allow(type_alias_bounds)]
 
-use crate::exchange::ExchangeId;
-use barter_integration::{
-    ExchangeStream, Transformer,
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream}
+use crate::{
+    exchange::ExchangeId,
+    model::{Market, MarketIter},
+    subscriber::subscription::{ExchangeMeta, SubKind, SubscriptionIdentifier, SubscriptionMap},
 };
+use barter_integration::{
+    error::SocketError,
+    model::Instrument,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
+    ExchangeStream, Transformer,
+};
+use std::marker::PhantomData;
+use serde::Deserialize;
 use futures::SinkExt;
 use tokio::sync::mpsc;
 use tracing::error;
@@ -38,9 +46,17 @@ pub mod util;
 
 // Todo:
 //  - Search for todos and fix.
+//  - Uncommon clippy warnings at top of this file & fix lints
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
 //  - Add logging in key places! debug too
 //  - Impl validate for Subscription<Exchange, Kind>
+//  - Subscriber becomes generic rather than hard-coded WebSocket
+//   '--> Same with SubscriptionMeta::WsMessage, etc
+//  - Try to remove WebSocketSubscriber phantom generics, including sub event
+//  - SubscriptionIdentifier - find way to do ref in same impl maybe with Cow? AsRef etc?
+//    '--> Can it be same as Identifier w/ some magic deref craziness?
+//  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit since it's not 1-to-1 with ExchangeEvent
+//  - Go through and add derives
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<
@@ -49,6 +65,44 @@ pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<
 
 pub trait Identifier<T> {
     fn id() -> T;
+}
+
+pub struct ExchangeTransformer<Exchange, Kind, ExchangeEvent> {
+    pub subscription_map: SubscriptionMap<Kind>,
+    phantom: PhantomData<(Exchange, ExchangeEvent)>,
+}
+
+impl<Exchange, Kind, ExchangeEvent> Transformer for ExchangeTransformer<Exchange, Kind, ExchangeEvent>
+where
+    Exchange: ExchangeMeta<ExchangeEvent>,
+    Kind: SubKind,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, ExchangeEvent)>,
+{
+    type Input = ExchangeEvent;
+    type Output = Market<Kind::Event>;
+    type OutputIter = Vec<Result<Self::Output, SocketError>>;
+
+    fn transform(&mut self, event: Self::Input) -> Self::OutputIter {
+        // Find Instrument associated with Input and transform
+        match self.subscription_map.find_instrument(&event.subscription_id()) {
+            Ok(instrument) => {
+                MarketIter::<Kind::Event>::from((Exchange::id(), instrument, event)).0
+            },
+            Err(unidentifiable) => {
+                vec![Err(unidentifiable)]
+            },
+        }
+    }
+}
+
+impl<Exchange, Kind, ExchangeEvent> ExchangeTransformer<Exchange, Kind, ExchangeEvent> {
+    pub fn new(subscription_map: SubscriptionMap<Kind>) -> Self {
+        Self {
+            subscription_map,
+            phantom: PhantomData::<(Exchange, ExchangeEvent)>::default()
+        }
+    }
 }
 
 /// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the

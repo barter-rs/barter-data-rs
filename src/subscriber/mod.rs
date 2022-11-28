@@ -39,7 +39,7 @@ where
 
 /// Todo:
 pub struct WebSocketSubscriber<Exchange, Kind, ExchangeEvent> {
-    pub phantom: PhantomData<(Exchange, Kind, ExchangeEvent)>
+    phantom: PhantomData<(Exchange, Kind, ExchangeEvent)>
 }
 
 #[async_trait]
@@ -61,7 +61,7 @@ where
             map,
             subscriptions,
             expected_responses,
-        } = Self::SubMapper::map::<Kind, Exchange::Sub, ExchangeEvent>(subscriptions); // Could be done without phantom if we have Kind & ExchangeSub
+        } = Self::SubMapper::map::<Kind, Exchange::ExchangeSub, ExchangeEvent>(subscriptions); // Could be done without phantom if we have Kind & ExchangeSub
 
         // Send Subscriptions
         for subscription in subscriptions {
@@ -69,10 +69,19 @@ where
         }
 
         // Validate subscriptions
-        let map = Self::SubValidator::validate::<Kind, <<Exchange as ExchangeMeta<ExchangeEvent>>::Sub as ExchangeSubscription<ExchangeEvent>>::SubResponse>(
+        let map = Self::SubValidator::validate::<Kind, <<Exchange as ExchangeMeta<ExchangeEvent>>::ExchangeSub as ExchangeSubscription<ExchangeEvent>>::SubResponse>(
             map, &mut websocket, expected_responses
         ).await?;
 
         Ok((websocket, map))
     }
 }
+
+impl<Exchange, Kind, ExchangeEvent> WebSocketSubscriber<Exchange, Kind, ExchangeEvent> {
+    pub fn new() -> Self {
+        Self {
+            phantom: PhantomData::<(Exchange, Kind, ExchangeEvent)>::default()
+        }
+    }
+}
+
