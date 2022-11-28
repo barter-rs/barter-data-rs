@@ -1,8 +1,7 @@
 use crate::{
     Identifier,
     subscriber::{
-        SubscriptionIdentifier,
-        subscription::{DomainSubscription, SubKind, Subscription}
+        subscription::{SubscriptionIdentifier, ExchangeSubscription, SubKind, Subscription}
     }
 };
 use barter_integration::{
@@ -11,7 +10,7 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod futures;
@@ -27,15 +26,18 @@ pub struct BinanceSubMeta {
 /// Todo:
 pub struct BinanceChannel(&'static str);
 
-impl<Event> DomainSubscription<Event> for BinanceSubMeta
+impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for BinanceSubMeta
 where
-    Event: SubscriptionIdentifier + Identifier<BinanceChannel> + DeserializeOwned
+    ExchangeEvent: SubscriptionIdentifier + Identifier<BinanceChannel> + for<'de> Deserialize<'de>
 {
-    type Response = BinanceSubResponse;
+    type SubResponse = BinanceSubResponse;
 
-    fn new<Kind: SubKind>(subscription: &Subscription<Kind>) -> Self {
+    fn new<Kind>(subscription: &Subscription<Kind>) -> Self
+    where
+        Kind: SubKind
+    {
         Self {
-            channel: Event::id(),
+            channel: ExchangeEvent::id(),
             market: format!("{}{}", subscription.instrument.base, subscription.instrument.quote),
         }
     }

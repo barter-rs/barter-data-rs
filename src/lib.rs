@@ -4,7 +4,7 @@
     rust_2018_idioms,
     // missing_docs
 )]
-#[allow(type_alias_bounds)]
+#![allow(type_alias_bounds)]
 
 use crate::exchange::ExchangeId;
 use barter_integration::{
@@ -40,6 +40,7 @@ pub mod util;
 //  - Search for todos and fix.
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
 //  - Add logging in key places! debug too
+//  - Impl validate for Subscription<Exchange, Kind>
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<

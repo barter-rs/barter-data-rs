@@ -1,18 +1,17 @@
 use self::{
     mapper::{SubscriptionMapper, WebSocketSubMapper},
     validator::{SubscriptionValidator, WebSocketSubValidator},
-    subscription::{Subscription, SubKind, SubscriptionMap, SubscriptionMeta, DomainSubscription, ExchangeMeta}
+    subscription::{Subscription, SubscriptionIdentifier, SubKind, SubscriptionMap, SubscriptionMeta, ExchangeMeta}
 };
 use barter_integration::{
     error::SocketError,
-    model::SubscriptionId,
     protocol::websocket::{connect, WebSocket},
-    Validator,
 };
 use futures::SinkExt;
 use async_trait::async_trait;
-use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use std::marker::PhantomData;
+use crate::subscriber::subscription::ExchangeSubscription;
 
 
 /// Todo:
@@ -25,27 +24,22 @@ pub mod validator;
 pub mod subscription;
 
 /// Todo:
-pub trait SubscriptionIdentifier {
-    fn subscription_id(&self) -> SubscriptionId;
-}
-
-/// Todo:
 #[async_trait]
-pub trait Subscriber<Exchange, Kind, ExchangeEvent>
+pub trait Subscriber<Exchange, Kind, ExchangeEvent> // Todo: Do we need ExchangeEvent here? Try without later
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
-    ExchangeEvent: SubscriptionIdentifier + DeserializeOwned,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
 {
     type SubMapper: SubscriptionMapper;
     type SubValidator: SubscriptionValidator;
 
-    async fn subscribe(&self, subscriptions: &[Subscription<Exchange, Kind>]) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>;
+    async fn subscribe(&self, subscriptions: &[Subscription<Kind>]) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>;
 }
 
 /// Todo:
-pub struct WebSocketSubscriber<Exchange, Kind, ExchangeSubEvent> {
-    pub phantom: PhantomData<(Exchange, Kind, ExchangeSubEvent)>
+pub struct WebSocketSubscriber<Exchange, Kind, ExchangeEvent> {
+    pub phantom: PhantomData<(Exchange, Kind, ExchangeEvent)>
 }
 
 #[async_trait]
@@ -53,12 +47,12 @@ impl<Exchange, Kind, ExchangeEvent> Subscriber<Exchange, Kind, ExchangeEvent> fo
 where
     Exchange: ExchangeMeta<ExchangeEvent> + Sync,
     Kind: SubKind + Send + Sync,
-    ExchangeEvent: SubscriptionIdentifier + DeserializeOwned + Sync,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de> + Sync,
 {
     type SubMapper = WebSocketSubMapper;
     type SubValidator = WebSocketSubValidator;
 
-    async fn subscribe(&self, subscriptions: &[Subscription<Exchange, Kind>]) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError> {
+    async fn subscribe(&self, subscriptions: &[Subscription<Kind>]) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError> {
         // Connect to exchange
         let mut websocket = connect(Exchange::base_url()).await?;
 
@@ -75,7 +69,7 @@ where
         }
 
         // Validate subscriptions
-        let map = Self::SubValidator::validate::<Kind, <<Exchange as ExchangeMeta<ExchangeEvent>>::Sub as DomainSubscription<ExchangeEvent>>::Response>(
+        let map = Self::SubValidator::validate::<Kind, <<Exchange as ExchangeMeta<ExchangeEvent>>::Sub as ExchangeSubscription<ExchangeEvent>>::SubResponse>(
             map, &mut websocket, expected_responses
         ).await?;
 

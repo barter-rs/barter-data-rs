@@ -11,7 +11,6 @@ use barter_integration::{
 };
 use std::{
     collections::HashMap,
-    ops::{Deref, DerefMut},
     fmt::{Debug, Display, Formatter}
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
@@ -22,14 +21,33 @@ pub trait SubscriptionIdentifier {
 }
 
 /// Todo:
-pub trait ExchangeMeta<Event>
+pub trait ExchangeMeta<ExchangeEvent>
 where
-    Self: Identifier<ExchangeId>,
-    Event: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+    Self: Identifier<ExchangeId> + Clone,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
 {
-    type Sub: DomainSubscription<Event>;
+    type Sub: ExchangeSubscription<ExchangeEvent>;
 
     fn base_url() -> &'static str;
+}
+
+/// Todo:
+pub trait ExchangeSubscription<ExchangeEvent>
+where
+    Self: SubscriptionIdentifier + Sized,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de> // Todo: Do we need this?
+{
+    type SubResponse: Validator + DeserializeOwned;
+
+    fn new<Kind>(subscription: &Subscription<Kind>) -> Self
+    where
+        Kind: SubKind;
+
+    fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
+
+    fn expected_responses(subscriptions: &Vec<WsMessage>) -> usize {
+        subscriptions.len()
+    }
 }
 
 /// Todo:
@@ -41,82 +59,53 @@ where
 }
 
 /// Todo:
-pub trait DomainSubscription<Event>
-where
-    Self: SubscriptionIdentifier + Sized,
-    Event: SubscriptionIdentifier + DeserializeOwned
-{
-    type Response: Validator + DeserializeOwned;
-
-    fn new<Kind: SubKind>(subscription: &Subscription<Kind>) -> Self;
-
-    fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
-
-    fn expected_responses(subscriptions: &Vec<WsMessage>) -> usize {
-        subscriptions.len()
-    }
-}
-
-/// Todo:
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub struct Subscription<Exchange, Kind> {
-    pub exchange: Exchange,
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+pub struct Subscription<Kind> {
+    pub exchange: ExchangeId,
     #[serde(flatten)]
     pub instrument: Instrument,
     #[serde(alias = "type")]
     pub kind: Kind,
 }
 
-impl Validator for &Subscription {
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized,
-    {
-        // Todo:
-    }
-}
-
-impl<Exchange, Kind> Debug for Subscription<Exchange, Kind> {
+impl<Kind> Display for Subscription<Kind>
+where
+    Kind: Debug,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{}{}", self.exchange, self.kind, self.instrument)
+        write!(f, "{}_{:?}{}", self.exchange, self.kind, self.instrument)
     }
 }
 
-impl Display for Subscription {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl<S> From<(ExchangeId, S, S, InstrumentKind, SubKind)> for Subscription
+impl<S, Kind> From<(ExchangeId, S, S, InstrumentKind, Kind)> for Subscription<Kind>
 where
     S: Into<Symbol>,
 {
-    fn from(
-        (exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, SubKind),
+    fn from((exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, Kind),
     ) -> Self {
         Self::new(exchange, (base, quote, instrument_kind), kind)
     }
 }
 
-impl<I> From<(ExchangeId, I, SubKind)> for Subscription
+impl<I, Kind> From<(ExchangeId, I, Kind)> for Subscription<Kind>
 where
     I: Into<Instrument>,
 {
-    fn from((exchange, instrument, stream): (ExchangeId, I, SubKind)) -> Self {
-        Self::new(exchange, instrument, stream)
+    fn from((exchange, instrument, kind): (ExchangeId, I, Kind)) -> Self {
+        Self::new(exchange, instrument, kind)
     }
 }
 
-impl From<Subscription> for barter_integration::model::Market {
-    fn from(subscription: Subscription) -> Self {
+// Todo: Check where this i sused and why I need funky trait bounds - cleaner way?
+impl<Kind> From<Subscription<Kind> > for barter_integration::model::Market {
+    fn from(subscription: Subscription<Kind> ) -> Self {
         Self::new(subscription.exchange, subscription.instrument)
     }
 }
 
-impl Subscription {
+impl<Kind> Subscription<Kind>  {
     /// Constructs a new [`Subscription`] using the provided configuration.
-    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: SubKind) -> Self
+    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: Kind) -> Self
     where
         I: Into<Instrument>,
     {
@@ -149,35 +138,13 @@ pub struct SubscriptionMeta<Kind> {
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct SubscriptionMap<Kind: SubKind>(pub HashMap<SubscriptionId, Subscription<Kind>>);
+pub struct SubscriptionMap<Kind>(pub HashMap<SubscriptionId, Subscription<Kind>>);
 
-impl<Kind> Deref for SubscriptionMap<Kind>
-where
-    Kind: SubKind,
-{
-    type Target = HashMap<SubscriptionId, Subscription<Kind>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<Kind> DerefMut for SubscriptionMap<Kind>
-where
-    Kind: SubKind,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<Kind> SubscriptionMap<Kind>
-where
-    Kind: SubKind,
-{
+impl<Kind> SubscriptionMap<Kind> {
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
     pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
-        self.get(id)
+        self.0
+            .get(id)
             .map(|subscription| subscription.instrument.clone())
             .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
     }

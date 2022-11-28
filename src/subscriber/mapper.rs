@@ -1,18 +1,18 @@
 use super::{
     SubscriptionIdentifier,
     subscription::{
-        Subscription, SubscriptionMap, SubscriptionMeta, SubKind, DomainSubscription
+        Subscription, SubscriptionMap, SubscriptionMeta, SubKind, ExchangeSubscription
     }
 };
 use std::collections::HashMap;
-use serde::de::DeserializeOwned;
+use serde::Deserialize;
 
 pub trait SubscriptionMapper {
     fn map<Kind, ExchangeSub, ExchangeEvent>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        ExchangeSub: DomainSubscription<ExchangeEvent>,
-        ExchangeEvent: SubscriptionIdentifier + DeserializeOwned;
+        ExchangeSub: ExchangeSubscription<ExchangeEvent>,
+        ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>;
 }
 
 pub struct WebSocketSubMapper;
@@ -21,8 +21,8 @@ impl SubscriptionMapper for WebSocketSubMapper {
     fn map<Kind, ExchangeSub, ExchangeEvent>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        ExchangeSub: DomainSubscription<ExchangeEvent>,
-        ExchangeEvent: SubscriptionIdentifier + DeserializeOwned,
+        ExchangeSub: ExchangeSubscription<ExchangeEvent>,
+        ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));

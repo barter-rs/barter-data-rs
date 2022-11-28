@@ -5,7 +5,7 @@ use crate::{
     Identifier,
     exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
-    subscriber::SubscriptionIdentifier
+    subscriber::subscription::SubscriptionIdentifier
 };
 use barter_integration::{
     model::{Exchange, Instrument, Side, SubscriptionId},

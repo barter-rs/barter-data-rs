@@ -1,7 +1,7 @@
 use super::BinanceChannel;
 use crate::{
     exchange::ExchangeId,
-    subscriber::SubscriptionIdentifier,
+    subscriber::subscription::SubscriptionIdentifier,
     model::{Market, MarketIter, Liquidation},
     Identifier,
 };

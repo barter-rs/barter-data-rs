@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     subscriber::{
-        SubscriptionIdentifier, subscription::ExchangeMeta,
+        subscription::{SubscriptionIdentifier, ExchangeMeta},
     },
     exchange::ExchangeId,
     Identifier
@@ -21,6 +21,7 @@ const BASE_URL_BINANCE_FUTURES_USD: &'static str = "wss://fstream.binance.com/ws
 /// [`BinanceFuturesUsd`] exchange.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
+#[derive(Debug, Clone, Copy)]
 pub struct BinanceFuturesUsd;
 
 impl Identifier<ExchangeId> for BinanceFuturesUsd {

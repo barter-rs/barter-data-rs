@@ -3,7 +3,7 @@ use super::{
 };
 use crate::{
     subscriber::{
-        SubscriptionIdentifier, subscription::ExchangeMeta,
+        subscription::{SubscriptionIdentifier, ExchangeMeta},
     },
     exchange::ExchangeId,
     Identifier
@@ -18,6 +18,7 @@ pub const BASE_URL_BINANCE_SPOT: &'static str = "wss://stream.binance.com:9443/w
 /// [`BinanceSpot`] exchange.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
+#[derive(Debug, Clone, Copy)]
 pub struct BinanceSpot;
 
 impl Identifier<ExchangeId> for BinanceSpot {
