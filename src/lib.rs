@@ -9,19 +9,20 @@
 use crate::{
     exchange::ExchangeId,
     model::{Market, MarketIter},
-    subscriber::subscription::{ExchangeMeta, SubKind, SubscriptionIdentifier, SubscriptionMap},
+    subscriber::subscription::{SubKind, SubscriptionIdentifier, SubscriptionMap},
 };
 use barter_integration::{
     error::SocketError,
+    ExchangeStream,
     model::Instrument,
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
-    ExchangeStream, Transformer,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream}, Transformer,
 };
 use std::marker::PhantomData;
 use serde::Deserialize;
 use futures::SinkExt;
 use tokio::sync::mpsc;
 use tracing::error;
+use exchange::ExchangeMeta;
 
 
 ///! # Barter-Data
@@ -45,6 +46,7 @@ pub mod util;
 
 
 // Todo:
+//  - Kraken broken by heartbeat LOL - fix
 //  - Search for todos and fix.
 //  - Uncommon clippy warnings at top of this file & fix lints
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
@@ -56,7 +58,13 @@ pub mod util;
 //  - SubscriptionIdentifier - find way to do ref in same impl maybe with Cow? AsRef etc?
 //    '--> Can it be same as Identifier w/ some magic deref craziness?
 //  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit since it's not 1-to-1 with ExchangeEvent
-//  - Go through and add derives
+//  - Go through and add derives #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+//  - Go through and select appropriate access modifiers for everything
+//  - Go through and add tests from develop branch for each part that I've left out (fine tooth comb)
+//  - SubscriptionId should probably contain a reference to a String... then use serde borrow
+//  - Coinbase Pro has some initial snapshot that's coming through after sub validation succeeds...?
+//  - Add TradeId new type to barter-integration, etc.
+//  - normalise module structure. ie/ use domain consistently
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<

@@ -1,7 +1,7 @@
 use self::{
     mapper::{SubscriptionMapper, WebSocketSubMapper},
-    validator::{SubscriptionValidator, WebSocketSubValidator},
-    subscription::{Subscription, SubscriptionIdentifier, SubKind, SubscriptionMap, SubscriptionMeta, ExchangeMeta}
+    subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier, SubscriptionMap, SubscriptionMeta},
+    validator::{SubscriptionValidator, WebSocketSubValidator}
 };
 use barter_integration::{
     error::SocketError,
@@ -11,17 +11,18 @@ use futures::SinkExt;
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::marker::PhantomData;
-use crate::subscriber::subscription::ExchangeSubscription;
+use crate::exchange::ExchangeMeta;
 
+/// Barter traits and data structures that support subscribing to exchange specific market data.
+///
+/// eg/ `struct Subscription`, `trait SubKind`, `trait ExchangeSubscription`, etc.
+pub mod subscription;
 
 /// Todo:
 pub mod mapper;
 pub mod validator;
 
-/// Barter traits and data structures that support subscribing to exchange specific market data.
-///
-/// eg/ `Subscription`, `SubscriptionId`, `SubKind`, `DomainSubscription`, etc.
-pub mod subscription;
+
 
 /// Todo:
 #[async_trait]
@@ -61,7 +62,7 @@ where
             map,
             subscriptions,
             expected_responses,
-        } = Self::SubMapper::map::<Kind, Exchange::ExchangeSub, ExchangeEvent>(subscriptions); // Could be done without phantom if we have Kind & ExchangeSub
+        } = Self::SubMapper::map::<Kind, Exchange::ExchangeSub, ExchangeEvent>(subscriptions);
 
         // Send Subscriptions
         for subscription in subscriptions {

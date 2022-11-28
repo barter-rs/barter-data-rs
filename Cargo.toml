@@ -11,7 +11,8 @@ description = "High performance & normalised WebSocket intergration for leading 
 keywords = ["trading", "backtesting", "crypto", "stocks", "investment"]
 categories = ["accessibility", "simulation"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 
 [dependencies]
 # Barter Ecosystem

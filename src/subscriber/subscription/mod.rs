@@ -1,20 +1,24 @@
 use crate::{
-    Identifier,
-    exchange::ExchangeId
+    exchange::ExchangeId,
 };
 use barter_integration::{
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
     error::SocketError,
     model::{Instrument, InstrumentKind, Symbol},
+    model::SubscriptionId,
+    protocol::websocket::WsMessage,
     Validator,
 };
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter}
 };
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use crate::model::{Liquidation, PublicTrade};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+/// Todo:
+pub mod trade;
+pub mod order_book;
+pub mod candle;
+pub mod liquidation;
 
 /// Todo:
 pub trait SubscriptionIdentifier {
@@ -22,25 +26,14 @@ pub trait SubscriptionIdentifier {
 }
 
 /// Todo:
-pub trait ExchangeMeta<ExchangeEvent>
-where
-    Self: Identifier<ExchangeId> + Clone,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
-{
-    type ExchangeSub: ExchangeSubscription<ExchangeEvent>;
-
-    fn base_url() -> &'static str;
-}
-
-/// Todo:
 pub trait ExchangeSubscription<ExchangeEvent>
 where
     Self: SubscriptionIdentifier + Sized,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de> // Todo: Do we need this?
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>
 {
     type SubResponse: Validator + DeserializeOwned;
 
-    fn new<Kind>(subscription: &Subscription<Kind>) -> Self
+    fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
         Kind: SubKind;
 
@@ -57,17 +50,6 @@ where
     Self: Debug + Clone,
 {
     type Event: Debug;
-}
-
-#[derive(Debug, Clone)]
-pub struct PublicTrades;
-impl SubKind for PublicTrades {
-    type Event = PublicTrade;
-}
-#[derive(Debug, Clone)]
-pub struct Liquidations;
-impl SubKind for Liquidations {
-    type Event = Liquidation;
 }
 
 /// Todo:
@@ -159,5 +141,62 @@ impl<Kind> SubscriptionMap<Kind> {
             .get(id)
             .map(|subscription| subscription.instrument.clone())
             .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::subscriber::subscription::trade::PublicTrades;
+    use super::*;
+
+    #[test]
+    fn test_subscription_map_find_instrument() {
+        // Initialise SubscriptionIds HashMap
+        let ids = SubscriptionMap(HashMap::from_iter([(
+            SubscriptionId::from("present"),
+            Subscription::from((
+                ExchangeId::BinanceSpot,
+                "base",
+                "quote",
+                InstrumentKind::Spot,
+                PublicTrades,
+            )),
+        )]));
+
+        struct TestCase {
+            input: SubscriptionId,
+            expected: Result<Instrument, SocketError>,
+        }
+
+        let cases = vec![
+            TestCase {
+                // TC0: SubscriptionId (channel) is present in the HashMap
+                input: SubscriptionId::from("present"),
+                expected: Ok(Instrument::from(("base", "quote", InstrumentKind::Spot))),
+            },
+            TestCase {
+                // TC1: SubscriptionId (channel) is not present in the HashMap
+                input: SubscriptionId::from("not present"),
+                expected: Err(SocketError::Unidentifiable(SubscriptionId::from(
+                    "not present",
+                ))),
+            },
+        ];
+
+        for (index, test) in cases.into_iter().enumerate() {
+            let actual = ids.find_instrument(&test.input);
+            match (actual, test.expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC{} failed", index)
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
     }
 }

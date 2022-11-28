@@ -1,5 +1,7 @@
-
-
+use crate::{
+    Identifier,
+    subscriber::subscription::{ExchangeSubscription, SubscriptionIdentifier}
+};
 use barter_integration::model::Exchange;
 use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
@@ -7,24 +9,27 @@ use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod binance;
+pub mod coinbase;
+pub mod kraken;
 
-// /// Ftx `ExchangeTransformer` & `Subscriber` implementations.
-// pub mod ftx;
-//
-// /// Kraken `ExchangeTransformer` & `Subscriber` implementations.
-// pub mod kraken;
-//
-// /// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
-// pub mod coinbase;
+/// Todo:
+pub trait ExchangeMeta<ExchangeEvent>
+where
+    Self: Identifier<ExchangeId> + Clone,
+    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+{
+    type ExchangeSub: ExchangeSubscription<ExchangeEvent>;
 
-/// Todo: rust docs & check historical rust docs for inspo
+    fn base_url() -> &'static str;
+}
+
+/// Todo: rust docs & check historical rust docs for inspiration
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename = "exchange", rename_all = "snake_case")]
 pub enum ExchangeId {
     BinanceFuturesUsd,
     BinanceSpot,
-    Coinbase,
-    Ftx,
+    CoinbasePro,
     Kraken,
 }
 
@@ -41,13 +46,12 @@ impl Display for ExchangeId {
 }
 
 impl ExchangeId {
-    /// Return the &str representation this [`ExchangeId`] is associated with.
+    /// Return the &str representation of this [`ExchangeId`]
     pub fn as_str(&self) -> &'static str {
         match self {
-            ExchangeId::BinanceSpot => "binance",
+            ExchangeId::BinanceSpot => "binance_spot",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
-            ExchangeId::Coinbase => "coinbase",
-            ExchangeId::Ftx => "ftx",
+            ExchangeId::CoinbasePro => "coinbase_pro",
             ExchangeId::Kraken => "kraken",
         }
     }
@@ -69,7 +73,6 @@ impl ExchangeId {
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
-            ExchangeId::Ftx => true,
             _ => false,
         }
     }

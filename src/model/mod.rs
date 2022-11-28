@@ -5,8 +5,17 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Todo: Rust docs & make FromIterator more generic for convenience ie/ Into<Market<Event>> etc.
 pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
+
+impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Event> {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = Result<Market<Event>, SocketError>>
+    {
+        Self(iter.into_iter().collect())
+    }
+}
 
 /// Normalised Barter [`Market<Event>`](Self) containing metadata about the included `Event` variant.
 ///
@@ -32,8 +41,7 @@ pub struct PublicTrade {
 /// Normalised Barter OHLCV [`Candle`] model.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
-    pub start_time: DateTime<Utc>,
-    pub end_time: DateTime<Utc>,
+    pub close_time: DateTime<Utc>,
     pub open: f64,
     pub high: f64,
     pub low: f64,

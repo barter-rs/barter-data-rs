@@ -11,35 +11,48 @@
 
 use futures::StreamExt;
 use barter_data::exchange::binance::futures::BinanceFuturesUsd;
-use barter_data::exchange::binance::trade::BinanceTrade;
+use barter_data::exchange::binance::domain::trade::BinanceTrade;
 use barter_data::{ExchangeTransformer, ExchangeWsStream};
 use barter_data::exchange::binance::futures::liquidation::BinanceLiquidation;
 use barter_data::exchange::binance::spot::BinanceSpot;
+use barter_data::exchange::coinbase::pro::CoinbasePro;
+use barter_data::exchange::coinbase::trade::CoinbaseTrade;
 use barter_data::exchange::ExchangeId;
+use barter_data::exchange::kraken::domain::trade::{KrakenTrade, KrakenTrades};
+use barter_data::exchange::kraken::Kraken;
 use barter_data::model::PublicTrade;
-use barter_data::subscriber::subscription::{Liquidations, PublicTrades, Subscription};
+use barter_data::subscriber::subscription::Subscription;
 use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
+use barter_data::subscriber::subscription::liquidation::Liquidations;
+use barter_data::subscriber::subscription::trade::PublicTrades;
 use barter_integration::model::{Instrument, InstrumentKind};
 
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,
 // BinanceFuturesUsd & Coinbase
 #[tokio::main]
 async fn main() {
+    // Initialise Tracing subscriber
+    init_logging();
+
     // Subscribers
     // let subscriber: WebSocketSubscriber<BinanceSpot, PublicTrades, BinanceTrade> = WebSocketSubscriber::new();
     // let subscriber: WebSocketSubscriber<BinanceFuturesUsd, PublicTrades, BinanceTrade> = WebSocketSubscriber::new();
-    let subscriber: WebSocketSubscriber<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = WebSocketSubscriber::new();
+    // let subscriber: WebSocketSubscriber<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = WebSocketSubscriber::new();
+    // let subscriber: WebSocketSubscriber<CoinbasePro, PublicTrades, CoinbaseTrade> = WebSocketSubscriber::new();
+    let subscriber: WebSocketSubscriber<Kraken, PublicTrades, KrakenTrades> = WebSocketSubscriber::new();
 
     // Subscriptions
     let subscriptions = vec![
         // (ExchangeId::BinanceSpot, "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
         // (ExchangeId::BinanceSpot, "eth", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-
         // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        //
-        (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into(),
-        (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into(),
+        // (ExchangeId::BinanceFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into(),
+        // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into()
+        // (ExchangeId::CoinbasePro, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (ExchangeId::CoinbasePro, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (ExchangeId::Kraken, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
     ];
 
     let (websocket, subscription_map) = subscriber
@@ -51,24 +64,15 @@ async fn main() {
 
     // let transformer: ExchangeTransformer<BinanceSpot, PublicTrades, BinanceTrade> = ExchangeTransformer::new(subscription_map);
     // let transformer: ExchangeTransformer<BinanceFuturesUsd, PublicTrades, BinanceTrade> = ExchangeTransformer::new(subscription_map);
-    let transformer: ExchangeTransformer<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = ExchangeTransformer::new(subscription_map);
+    // let transformer: ExchangeTransformer<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = ExchangeTransformer::new(subscription_map);
+    // let transformer: ExchangeTransformer<CoinbasePro, PublicTrades, CoinbaseTrade> = ExchangeTransformer::new(subscription_map);
+    let transformer: ExchangeTransformer<Kraken, PublicTrades, KrakenTrades> = ExchangeTransformer::new(subscription_map);
 
 
     let mut ws_stream = ExchangeWsStream::new(ws_stream, transformer);
     while let Some(event) = ws_stream.next().await {
         println!("{:?}", event.unwrap());
     }
-
-
-
-
-
-
-
-
-
-
-
 
     // Todo:
     // // Initialise a `PublicTrade`, `Candle` & `OrderBook``MarketStream` for
@@ -103,4 +107,17 @@ async fn main() {
     // while let Some((exchange, event)) = joined_stream.next().await {
     //     println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
     // }
+}
+
+// Initialise a `Subscriber` for `Tracing` JSON logs.
+fn init_logging() {
+    tracing_subscriber::fmt()
+        // Filter messages based on the `RUST_LOG` environment variable
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        // Disable colours on release builds
+        .with_ansi(cfg!(debug_assertions))
+        // Enable Json formatting
+        .json()
+        // Install this Tracing subscriber as global default
+        .init();
 }

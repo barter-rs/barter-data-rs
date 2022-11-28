@@ -9,11 +9,6 @@ use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-/// [`BinanceFuturesUsd`] liquidation orders channel name.
-///
-/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
-const CHANNEL_LIQUIDATIONS: &'static str = "@forceOrder";
-
 /// [`BinanceFuturesUsd`] Liquidation order message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
@@ -49,7 +44,7 @@ pub struct BinanceLiquidationOrder {
 
 impl Identifier<BinanceChannel> for BinanceLiquidation {
     fn id() -> BinanceChannel {
-        BinanceChannel(CHANNEL_LIQUIDATIONS)
+        BinanceChannel::LIQUIDATIONS
     }
 }
 
@@ -83,5 +78,5 @@ where
     D: serde::de::Deserializer<'de>,
 {
     Deserialize::deserialize(deserializer)
-        .map(|market: String| SubscriptionId::from(format!("{CHANNEL_LIQUIDATIONS}|{market}")))
+        .map(|market: String| SubscriptionId::from(format!("{}|{}", BinanceChannel::LIQUIDATIONS.0, market)))
 }

@@ -13,18 +13,42 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 
 /// Todo:
+pub mod domain;
 pub mod futures;
 pub mod spot;
-pub mod trade;
 
 /// Todo:
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
+pub struct BinanceChannel(&'static str);
+
+impl BinanceChannel {
+    /// Binance real-time trades channel name.
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
+    ///
+    /// Note:
+    /// - For [`BinanceFuturesUsd`] this real-time stream is undocumented.
+    /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
+    const TRADES: Self = Self("@trade");
+
+    /// [`BinanceFuturesUsd`] liquidation orders channel name.
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+    const LIQUIDATIONS: Self = Self("@forceOrder");
+}
+
+/// Todo:
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct BinanceSubMeta {
     channel: BinanceChannel,
     market: String,
 }
 
-/// Todo:
-pub struct BinanceChannel(&'static str);
+impl SubscriptionIdentifier for BinanceSubMeta {
+    fn subscription_id(&self) -> SubscriptionId {
+        subscription_id(self.channel, &self.market)
+    }
+}
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for BinanceSubMeta
 where
@@ -58,22 +82,16 @@ where
     }
 }
 
-impl SubscriptionIdentifier for BinanceSubMeta {
-    fn subscription_id(&self) -> SubscriptionId {
-        subscription_id(&self.channel, &self.market)
-    }
-}
-
 /// Generate a [`BinanceSpot`] & [`BinanceFuturesUsd`] [`SubscriptionId`] from the channel and
-/// market provided - uses "channel|market".
+/// market provided.
 ///
-/// Note: uppercase market is used in order to match incoming exchange events.
+/// Uses "channel|MARKET" (uppercase market is used in order to match incoming exchange events):
 /// eg/ SubscriptionId("@aggTrade|BTCUSDT")
-pub(crate) fn subscription_id(channel: &BinanceChannel, market: &str) -> SubscriptionId {
+pub(crate) fn subscription_id(channel: BinanceChannel, market: &str) -> SubscriptionId {
     SubscriptionId::from(format!("{}|{}", channel.0, market.to_uppercase()))
 }
 
-/// `Binance` & `BinanceFuturesUsd` `Subscription` response message.
+/// Binance subscription response message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#live-subscribing-unsubscribing-to-streams>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -84,8 +102,8 @@ pub struct BinanceSubResponse {
 
 impl Validator for BinanceSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         if self.result.is_none() {
             Ok(self)

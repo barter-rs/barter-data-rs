@@ -2,13 +2,12 @@ use super::{
     BinanceChannel, BinanceSubMeta,
 };
 use crate::{
-    subscriber::{
-        subscription::{SubscriptionIdentifier, ExchangeMeta},
-    },
     exchange::ExchangeId,
-    Identifier
+    Identifier,
+    subscriber::subscription::SubscriptionIdentifier
 };
 use serde::Deserialize;
+use crate::exchange::ExchangeMeta;
 
 /// [`BinanceSpot`] server base url.
 ///

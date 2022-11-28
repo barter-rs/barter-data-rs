@@ -2,11 +2,9 @@ use super::{
     BinanceChannel, BinanceSubMeta,
 };
 use crate::{
-    subscriber::{
-        subscription::{SubscriptionIdentifier, ExchangeMeta},
-    },
-    exchange::ExchangeId,
-    Identifier
+    exchange::{ExchangeMeta, ExchangeId},
+    Identifier,
+    subscriber::subscription::SubscriptionIdentifier
 };
 use serde::Deserialize;
 

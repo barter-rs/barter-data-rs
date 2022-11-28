@@ -1,11 +1,11 @@
-use super::{
-    BinanceChannel
-};
+use super::super::{BinanceChannel, subscription_id};
 use crate::{
     Identifier,
-    exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
-    subscriber::subscription::SubscriptionIdentifier
+    subscriber::subscription::SubscriptionIdentifier,
+    exchange::{
+        ExchangeId,
+    },
 };
 use barter_integration::{
     model::{Exchange, Instrument, Side, SubscriptionId},
@@ -13,21 +13,12 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
-/// `Binance` real-time trades channel name.
+/// Binance real-time trade message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
 ///
 /// Note:
-/// For `BinanceFuturesUsd` this real-time stream is undocumented.
-/// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
-pub const CHANNEL_TRADES: &'static str = "@trade";
-
-/// `Binance` real-time trade message.
-///
-/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
-///
-/// Note:
-/// For `BinanceFuturesUsd` this real-time stream is undocumented.
+/// For [`BinanceFuturesUsd`] this real-time stream is undocumented.
 /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {
@@ -47,7 +38,7 @@ pub struct BinanceTrade {
 
 impl Identifier<BinanceChannel> for BinanceTrade {
     fn id() -> BinanceChannel {
-        BinanceChannel(CHANNEL_TRADES)
+        BinanceChannel::TRADES
     }
 }
 
@@ -81,7 +72,7 @@ where
     D: serde::de::Deserializer<'de>,
 {
     Deserialize::deserialize(deserializer)
-        .map(|market: String| SubscriptionId::from(format!("{CHANNEL_TRADES}|{market}")))
+        .map(|market| subscription_id(BinanceChannel::TRADES, market))
 }
 
 /// Deserialize a [`BinanceTrade`] "buyer_is_maker" boolean field to a Barter [`Side`].
