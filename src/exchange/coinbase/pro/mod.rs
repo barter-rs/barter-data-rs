@@ -1,12 +1,12 @@
-use super::CoinbaseSubMeta;
+use super::{
+    CoinbaseChannel, CoinbaseSubMeta
+};
 use crate::{
-    exchange::ExchangeId,
+    exchange::{ExchangeMeta, ExchangeId},
     Identifier,
     subscriber::subscription::SubscriptionIdentifier
 };
-use serde::Deserialize;
-use crate::exchange::coinbase::CoinbaseChannel;
-use crate::exchange::ExchangeMeta;
+use serde::{Deserialize, Serialize};
 
 /// [`CoinbasePro`] server base url.
 ///
@@ -16,7 +16,7 @@ pub const BASE_URL_COINBASE_PRO: &'static str = "wss://ws-feed.exchange.coinbase
 /// [`CoinbasePro`] exchange.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview>
-#[derive(Debug, Clone, Copy)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct CoinbasePro;
 
 impl Identifier<ExchangeId> for CoinbasePro {

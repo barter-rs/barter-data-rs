@@ -29,6 +29,8 @@ impl CoinbaseChannel {
 }
 
 /// Todo:
+///
+/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 pub struct CoinbaseSubMeta {
     channel: CoinbaseChannel,
     market: String,

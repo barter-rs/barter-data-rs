@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 pub mod binance;
 pub mod coinbase;
 pub mod kraken;
+pub mod okx;
 
 /// Todo:
 pub trait ExchangeMeta<ExchangeEvent>
@@ -31,6 +32,7 @@ pub enum ExchangeId {
     BinanceSpot,
     CoinbasePro,
     Kraken,
+    Okx,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -53,6 +55,7 @@ impl ExchangeId {
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::CoinbasePro => "coinbase_pro",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::Okx => "okx",
         }
     }
 
@@ -73,6 +76,7 @@ impl ExchangeId {
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::Okx => true,
             _ => false,
         }
     }
@@ -84,46 +88,6 @@ impl ExchangeId {
     pub fn supports_trades(&self) -> bool {
         match self {
             _ => true,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`Candle`](model::Candle) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_candles(&self) -> bool {
-        match self {
-            ExchangeId::Kraken => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of OrderBook snapshot
-    /// market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_order_books(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// L2 OrderBook delta market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_order_book_l2_deltas(&self) -> bool {
-        match self {
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// L3 OrderBook delta market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_order_book_l3_deltas(&self) -> bool {
-        match self {
-            _ => false,
         }
     }
 
