@@ -34,7 +34,7 @@ pub struct Market<Event> {
 pub struct PublicTrade {
     pub id: String,
     pub price: f64,
-    pub quantity: f64,
+    pub amount: f64,
     pub side: Side,
 }
 

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 
-/// Coinbase trade message.
+/// Coinbase real-time trade WebSocket message.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
@@ -23,7 +23,7 @@ pub struct CoinbaseTrade {
     pub id: u64,
     pub time: DateTime<Utc>,
     #[serde(alias = "size", deserialize_with = "crate::util::de_str")]
-    pub quantity: f64,
+    pub amount: f64,
     #[serde(deserialize_with = "crate::util::de_str")]
     pub price: f64,
     pub side: Side,
@@ -51,7 +51,7 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketIter<PublicTrade> {
             event: PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
-                quantity: trade.quantity,
+                amount: trade.amount,
                 side: trade.side,
             }
         })])

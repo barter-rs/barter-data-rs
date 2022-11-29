@@ -23,7 +23,8 @@ pub struct KrakenTrades {
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct KrakenTrade {
     pub price: f64,
-    pub quantity: f64,
+    #[serde(rename = "quantity")]
+    pub amount: f64,
     pub time: DateTime<Utc>,
     pub side: Side,
 }
@@ -44,7 +45,7 @@ impl SubscriptionIdentifier for KrakenTrades {
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
         "{}_{:?}_{}_{}",
-        trade.time, trade.side, trade.price, trade.quantity
+        trade.time, trade.side, trade.price, trade.amount
     )
 }
 
@@ -62,7 +63,7 @@ impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
                     event: PublicTrade {
                         id: custom_kraken_trade_id(&trade),
                         price: trade.price,
-                        quantity: trade.quantity,
+                        amount: trade.amount,
                         side: trade.side
                     }
                 })
@@ -155,8 +156,8 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
                     .parse()
                     .map_err(serde::de::Error::custom)?;
 
-                // Extract String quantity & parse to f64
-                let quantity = extract_next::<SeqAccessor, String>(&mut seq, "quantity")?
+                // Extract String amount & parse to f64
+                let amount = extract_next::<SeqAccessor, String>(&mut seq, "quantity")?
                     .parse()
                     .map_err(serde::de::Error::custom)?;
 
@@ -175,7 +176,7 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
 
                 Ok(KrakenTrade {
                     price,
-                    quantity,
+                    amount,
                     time,
                     side,
                 })

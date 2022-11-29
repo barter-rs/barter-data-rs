@@ -31,7 +31,7 @@ pub struct BinanceTrade {
     #[serde(alias = "p", deserialize_with = "crate::util::de_str")]
     pub price: f64,
     #[serde(alias = "q", deserialize_with = "crate::util::de_str")]
-    pub quantity: f64,
+    pub amount: f64,
     #[serde(alias = "m", deserialize_with = "de_side_from_buyer_is_maker")]
     pub side: Side,
 }
@@ -58,7 +58,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketIter<PublicTrade> {
             event: PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
-                quantity: trade.quantity,
+                amount: trade.amount,
                 side: trade.side
             }
         })])

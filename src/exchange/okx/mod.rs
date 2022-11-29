@@ -1,13 +1,10 @@
-use self::domain::{
-
-};
+use self::domain::{OkxChannel, OkxSubMeta};
 use crate::{
     exchange::{ExchangeMeta, ExchangeId},
     Identifier,
     subscriber::subscription::SubscriptionIdentifier
 };
 use serde::{Deserialize, Serialize};
-use crate::exchange::okx::domain::{OkxChannel, OkxSubMeta};
 
 /// Todo:
 pub mod domain;
