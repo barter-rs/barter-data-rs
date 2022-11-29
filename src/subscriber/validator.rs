@@ -12,6 +12,7 @@ use std::{
 use futures::stream::StreamExt;
 use async_trait::async_trait;
 use serde::Deserialize;
+use tracing::debug;
 
 #[async_trait]
 pub trait SubscriptionValidator {
@@ -38,7 +39,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
     async fn validate<Kind, SubResponse>(map: SubscriptionMap<Kind>, websocket: &mut WebSocket, expected_responses: usize) -> Result<SubscriptionMap<Kind>, SocketError>
     where
         Kind: Send,
-        SubResponse: Validator + for<'de> Deserialize<'de>
+        SubResponse: Validator + for<'de> Deserialize<'de>,
     {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
@@ -74,13 +75,22 @@ impl SubscriptionValidator for WebSocketSubValidator {
                             // Subscription failure
                             Err(err) => break Err(err)
                         }
+                        Some(Err(SocketError::Deserialise { error, payload })) if success_responses >= 1 => {
+                            // Already active subscription payloads, so skip to next SubResponse
+                            debug!(
+                                ?error,
+                                %payload,
+                                "SubscriptionValidator failed to deserialise non SubResponse payload"
+                            );
+                            continue
+                        }
                         Some(Err(SocketError::Terminated(close_frame))) => {
                             break Err(SocketError::Subscribe(
                                 format!("received WebSocket CloseFrame: {close_frame}")
                             ))
                         }
                         _ => {
-                            // Pings, Pongs, Frames, and already active Subscriptions events
+                            // Pings, Pongs, Frames, etc.
                             continue
                         }
                     }

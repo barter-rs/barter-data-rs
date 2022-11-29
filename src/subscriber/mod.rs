@@ -3,6 +3,7 @@ use self::{
     subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier, SubscriptionMap, SubscriptionMeta},
     validator::{SubscriptionValidator, WebSocketSubValidator}
 };
+use crate::exchange::ExchangeMeta;
 use barter_integration::{
     error::SocketError,
     protocol::websocket::{connect, WebSocket},
@@ -11,7 +12,6 @@ use futures::SinkExt;
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::marker::PhantomData;
-use crate::exchange::ExchangeMeta;
 
 /// Barter traits and data structures that support subscribing to exchange specific market data.
 ///
@@ -59,7 +59,7 @@ where
 
         // Map &[Subscription<Kind>] to SubscriptionMeta
         let SubscriptionMeta {
-            map,
+            subscription_map: map,
             subscriptions,
             expected_responses,
         } = Self::SubMapper::map::<Kind, Exchange::ExchangeSub, ExchangeEvent>(subscriptions);

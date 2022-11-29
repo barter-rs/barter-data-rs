@@ -39,8 +39,8 @@ where
 
     fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
 
-    fn expected_responses(subscriptions: &Vec<WsMessage>) -> usize {
-        subscriptions.len()
+    fn expected_responses<Kind>(subscription_map: &SubscriptionMap<Kind>) -> usize {
+        subscription_map.0.len()
     }
 }
 
@@ -119,7 +119,7 @@ pub struct SubscriptionMeta<Kind> {
     /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
     /// and a Barter [`Subscription`]. Used to identify the original [`Subscription`] associated
     /// with a received message.
-    pub map: SubscriptionMap<Kind>,
+    pub subscription_map: SubscriptionMap<Kind>,
     /// Number of [`Subscription`] responses expected from the exchange. Used to validate all
     /// [`Subscription`] were accepted.
     pub expected_responses: usize,

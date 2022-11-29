@@ -105,7 +105,7 @@ mod tests {
                     subscription_id: SubscriptionId::from("matches|BTC-USD"),
                     id: 10,
                     price: 400.23,
-                    quantity: 5.23512,
+                    amount: 5.23512,
                     side: Side::Sell,
                     time: DateTime::from_utc(
                         NaiveDateTime::from_str("2014-11-07T08:19:27.028459").unwrap(),

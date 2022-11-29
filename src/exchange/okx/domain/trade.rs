@@ -4,10 +4,12 @@ use super::{
 };
 use crate::{
     subscriber::subscription::SubscriptionIdentifier,
+    model::{Market, MarketIter, PublicTrade},
+    exchange::ExchangeId,
     Identifier
 
 };
-use barter_integration::model::{Side, SubscriptionId};
+use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
@@ -66,8 +68,8 @@ impl<T> SubscriptionIdentifier for OkxMessage<T> {
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel-trades-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct OkxTrade {
+    #[serde(rename = "tradeId")]
     pub id: String,
     #[serde(rename = "px", deserialize_with = "crate::util::de_str")]
     pub price: f64,
@@ -81,6 +83,29 @@ pub struct OkxTrade {
 impl Identifier<OkxChannel> for OkxMessage<OkxTrade> {
     fn id() -> OkxChannel {
         OkxChannel::TRADES
+    }
+}
+
+impl From<(ExchangeId, Instrument, OkxMessage<OkxTrade>)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, OkxMessage<OkxTrade>)) -> Self {
+        message
+            .data
+            .into_iter()
+            .map(|trade| {
+                Ok(Market {
+                    exchange_time: trade.time,
+                    received_time: Utc::now(),
+                    exchange: Exchange::from(exchange_id),
+                    instrument: instrument.clone(),
+                    event: PublicTrade {
+                        id: trade.id,
+                        price: trade.price,
+                        amount: trade.amount,
+                        side: trade.side
+                    }
+                })
+            })
+            .collect()
     }
 }
 

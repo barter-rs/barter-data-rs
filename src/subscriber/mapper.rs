@@ -25,7 +25,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
         ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
-        let mut map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
+        let mut subscription_map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
 
         // Map Barter Subscriptions to exchange specific SubscriptionMeta
         let exchange_subs = subscriptions
@@ -38,7 +38,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
                 let subscription_id = exchange_sub.subscription_id();
 
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
-                map.0.insert(subscription_id, subscription.clone());
+                subscription_map.0.insert(subscription_id, subscription.clone());
 
                 exchange_sub
             })
@@ -47,9 +47,12 @@ impl SubscriptionMapper for WebSocketSubMapper {
         // Construct WebSocket message subscriptions requests
         let subscriptions = ExchangeSub::requests(exchange_subs);
 
+        // Determine the expected number of SubResponses from the exchange in response
+        let expected_responses = ExchangeSub::expected_responses(&subscription_map);
+
         SubscriptionMeta {
-            map,
-            expected_responses: ExchangeSub::expected_responses(&subscriptions),
+            subscription_map,
+            expected_responses,
             subscriptions,
         }
     }

@@ -33,7 +33,7 @@ impl OkxChannel {
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct OkxSubMeta {
     channel: OkxChannel,
-    #[serde(rename = "inst_id")]
+    #[serde(rename = "instId")]
     market: String,
 }
 
@@ -70,7 +70,7 @@ where
         vec![WsMessage::Text(
             json!({
                 "op": "subscribe",
-                "args": subscriptions,
+                "args": &subscriptions,
             })
             .to_string()
         )]
@@ -128,7 +128,7 @@ impl Validator for OkxSubResponse {
         match self {
             Self::Subscribed => Ok(self),
             Self::Error { code, message } => Err(SocketError::Subscribe(format!(
-                "received failure subscription response with code: {code} & message: {message}",
+                "received failure subscription response code: {code} with message: {message}",
             ))),
         }
     }

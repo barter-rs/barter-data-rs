@@ -20,6 +20,8 @@ use barter_data::exchange::coinbase::trade::CoinbaseTrade;
 use barter_data::exchange::ExchangeId;
 use barter_data::exchange::kraken::domain::trade::{KrakenTrade, KrakenTrades};
 use barter_data::exchange::kraken::Kraken;
+use barter_data::exchange::okx::domain::trade::OkxTrades;
+use barter_data::exchange::okx::Okx;
 use barter_data::model::PublicTrade;
 use barter_data::subscriber::subscription::Subscription;
 use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
@@ -39,7 +41,8 @@ async fn main() {
     // let subscriber: WebSocketSubscriber<BinanceFuturesUsd, PublicTrades, BinanceTrade> = WebSocketSubscriber::new();
     // let subscriber: WebSocketSubscriber<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = WebSocketSubscriber::new();
     // let subscriber: WebSocketSubscriber<CoinbasePro, PublicTrades, CoinbaseTrade> = WebSocketSubscriber::new();
-    let subscriber: WebSocketSubscriber<Kraken, PublicTrades, KrakenTrades> = WebSocketSubscriber::new();
+    // let subscriber: WebSocketSubscriber<Kraken, PublicTrades, KrakenTrades> = WebSocketSubscriber::new();
+    let subscriber: WebSocketSubscriber<Okx, PublicTrades, OkxTrades> = WebSocketSubscriber::new();
 
     // Subscriptions
     let subscriptions = vec![
@@ -51,8 +54,11 @@ async fn main() {
         // (ExchangeId::BinanceFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, Liquidations).into()
         // (ExchangeId::CoinbasePro, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (ExchangeId::CoinbasePro, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (ExchangeId::Kraken, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (ExchangeId::Kraken, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (ExchangeId::Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (ExchangeId::Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        (ExchangeId::Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (ExchangeId::Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
     ];
 
     let (websocket, subscription_map) = subscriber
@@ -66,12 +72,13 @@ async fn main() {
     // let transformer: ExchangeTransformer<BinanceFuturesUsd, PublicTrades, BinanceTrade> = ExchangeTransformer::new(subscription_map);
     // let transformer: ExchangeTransformer<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = ExchangeTransformer::new(subscription_map);
     // let transformer: ExchangeTransformer<CoinbasePro, PublicTrades, CoinbaseTrade> = ExchangeTransformer::new(subscription_map);
-    let transformer: ExchangeTransformer<Kraken, PublicTrades, KrakenTrades> = ExchangeTransformer::new(subscription_map);
+    // let transformer: ExchangeTransformer<Kraken, PublicTrades, KrakenTrades> = ExchangeTransformer::new(subscription_map);
+    let transformer: ExchangeTransformer<Okx, PublicTrades, OkxTrades> = ExchangeTransformer::new(subscription_map);
 
 
     let mut ws_stream = ExchangeWsStream::new(ws_stream, transformer);
     while let Some(event) = ws_stream.next().await {
-        println!("{:?}", event.unwrap());
+        println!("{:?}", event);
     }
 
     // Todo:

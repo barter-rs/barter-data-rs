@@ -11,6 +11,7 @@ use barter_integration::{
     Validator,
 };
 use serde::{Deserialize, Serialize};
+use crate::subscriber::subscription::SubscriptionMap;
 
 /// Todo:
 pub mod domain;
@@ -79,6 +80,10 @@ where
                 "id": 1
             }).to_string()
         )]
+    }
+
+    fn expected_responses<Kind>(_: &SubscriptionMap<Kind>) -> usize {
+        1
     }
 }
 
