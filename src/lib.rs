@@ -44,6 +44,7 @@ pub mod subscriber;
 pub mod util;
 
 // Todo - Train:
+//  BONUS: look into OrderBook transformer?
 //  1. Kraken broken by heartbeat LOL - fix with KrakenMessage<T> etc.
 //  2. Normalise module structure. ie/ use domain consistently, or don't.
 //  3. Identifier<SubscriptionId> - find way to do ref in same impl maybe with Cow? AsRef etc?
