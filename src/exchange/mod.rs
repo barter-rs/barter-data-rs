@@ -33,6 +33,8 @@ pub enum ExchangeId {
     BinanceSpot,
     CoinbasePro,
     GateioSpot,
+    GateioFuturesUsd,
+    GateioFuturesBtc,
     Kraken,
     Okx,
 }
@@ -57,6 +59,8 @@ impl ExchangeId {
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::CoinbasePro => "coinbase_pro",
             ExchangeId::GateioSpot => "gateio_spot",
+            ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
+            ExchangeId::GateioFuturesBtc => "gateio_futures_btc",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Okx => "okx",
         }
