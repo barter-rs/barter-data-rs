@@ -1,6 +1,6 @@
 use crate::{
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier}
+    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades}
 };
 use barter_integration::{
     error::SocketError,
@@ -27,6 +27,12 @@ impl KrakenChannel {
     const TRADES: Self = Self("trade");
 }
 
+impl Identifier<KrakenChannel> for Subscription<PublicTrades> {
+    fn id(&self) -> KrakenChannel {
+        KrakenChannel::TRADES
+    }
+}
+
 /// Todo:
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
@@ -36,24 +42,26 @@ pub struct KrakenSubMeta {
     market: String,
 }
 
-impl SubscriptionIdentifier for KrakenSubMeta {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for KrakenSubMeta {
+    fn id(&self) -> SubscriptionId {
         subscription_id(self.channel, &self.market)
     }
 }
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for KrakenSubMeta
 where
-    ExchangeEvent: SubscriptionIdentifier + Identifier<KrakenChannel> + for<'de> Deserialize<'de>
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
 {
+    type Channel = KrakenChannel;
     type SubResponse = KrakenSubResponse;
 
     fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
-        Kind: SubKind
+        Kind: SubKind,
+        Subscription<Kind>: Identifier<Self::Channel>,
     {
         Self {
-            channel: ExchangeEvent::id(),
+            channel: sub.id(),
             market: format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
         }
     }

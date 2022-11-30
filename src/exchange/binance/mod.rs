@@ -1,7 +1,7 @@
 use crate::{
     Identifier,
     subscriber::{
-        subscription::{SubscriptionIdentifier, ExchangeSubscription, SubKind, Subscription}
+        subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionMap}
     }
 };
 use barter_integration::{
@@ -11,7 +11,8 @@ use barter_integration::{
     Validator,
 };
 use serde::{Deserialize, Serialize};
-use crate::subscriber::subscription::SubscriptionMap;
+use crate::subscriber::subscription::liquidation::Liquidations;
+use crate::subscriber::subscription::trade::PublicTrades;
 
 /// Todo:
 pub mod domain;
@@ -38,6 +39,18 @@ impl BinanceChannel {
     const LIQUIDATIONS: Self = Self("@forceOrder");
 }
 
+impl Identifier<BinanceChannel> for Subscription<PublicTrades> {
+    fn id(&self) -> BinanceChannel {
+        BinanceChannel::TRADES
+    }
+}
+
+impl Identifier<BinanceChannel> for Subscription<Liquidations> {
+    fn id(&self) -> BinanceChannel {
+        BinanceChannel::LIQUIDATIONS
+    }
+}
+
 /// Todo:
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct BinanceSubMeta {
@@ -45,25 +58,27 @@ pub struct BinanceSubMeta {
     market: String,
 }
 
-impl SubscriptionIdentifier for BinanceSubMeta {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for BinanceSubMeta {
+    fn id(&self) -> SubscriptionId {
         subscription_id(self.channel, &self.market)
     }
 }
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for BinanceSubMeta
 where
-    ExchangeEvent: SubscriptionIdentifier + Identifier<BinanceChannel> + for<'de> Deserialize<'de>
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
 {
+    type Channel = BinanceChannel;
     type SubResponse = BinanceSubResponse;
 
-    fn new<Kind>(subscription: &Subscription<Kind>) -> Self
+    fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
-        Kind: SubKind
+        Kind: SubKind,
+        Subscription<Kind>: Identifier<Self::Channel>,
     {
         Self {
-            channel: ExchangeEvent::id(),
-            market: format!("{}{}", subscription.instrument.base, subscription.instrument.quote),
+            channel: sub.id(),
+            market: format!("{}{}", sub.instrument.base, sub.instrument.quote),
         }
     }
 

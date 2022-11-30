@@ -1,11 +1,11 @@
 use super::{
-    CoinbaseChannel, CoinbaseSubMeta
+    CoinbaseSubMeta
 };
 use crate::{
     exchange::{ExchangeMeta, ExchangeId},
-    Identifier,
-    subscriber::subscription::SubscriptionIdentifier
+    ExchangeIdentifier, Identifier,
 };
+use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 
 /// [`CoinbasePro`] server base url.
@@ -19,15 +19,15 @@ pub const BASE_URL_COINBASE_PRO: &'static str = "wss://ws-feed.exchange.coinbase
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct CoinbasePro;
 
-impl Identifier<ExchangeId> for CoinbasePro {
-    fn id() -> ExchangeId {
+impl ExchangeIdentifier for CoinbasePro {
+    fn exchange_id() -> ExchangeId {
         ExchangeId::CoinbasePro
     }
 }
 
 impl<CoinbaseEvent> ExchangeMeta<CoinbaseEvent> for CoinbasePro
 where
-    CoinbaseEvent: SubscriptionIdentifier + Identifier<CoinbaseChannel> + for<'de> Deserialize<'de>
+    CoinbaseEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
 {
     type ExchangeSub = CoinbaseSubMeta;
 

@@ -1,12 +1,16 @@
 use self::{
     mapper::{SubscriptionMapper, WebSocketSubMapper},
-    subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier, SubscriptionMap, SubscriptionMeta},
+    subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
     validator::{SubscriptionValidator, WebSocketSubValidator}
 };
-use crate::exchange::ExchangeMeta;
+use crate::{
+    exchange::ExchangeMeta,
+    Identifier,
+};
 use barter_integration::{
     error::SocketError,
     protocol::websocket::{connect, WebSocket},
+    model::SubscriptionId,
 };
 use futures::SinkExt;
 use async_trait::async_trait;
@@ -30,7 +34,8 @@ pub trait Subscriber<Exchange, Kind, ExchangeEvent> // Todo: Do we need Exchange
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    Subscription<Kind>: Identifier<<<Exchange as ExchangeMeta<ExchangeEvent>>::ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>,
 {
     type SubMapper: SubscriptionMapper;
     type SubValidator: SubscriptionValidator;
@@ -48,7 +53,8 @@ impl<Exchange, Kind, ExchangeEvent> Subscriber<Exchange, Kind, ExchangeEvent> fo
 where
     Exchange: ExchangeMeta<ExchangeEvent> + Sync,
     Kind: SubKind + Send + Sync,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de> + Sync,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de> + Sync,
+    Subscription<Kind>: Identifier<<<Exchange as ExchangeMeta<ExchangeEvent>>::ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>,
 {
     type SubMapper = WebSocketSubMapper;
     type SubValidator = WebSocketSubValidator;

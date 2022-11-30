@@ -1,6 +1,6 @@
 use crate::{
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier},
-    Identifier
+    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription},
+    Identifier,
 };
 use barter_integration::{
     error::SocketError,
@@ -10,6 +10,7 @@ use barter_integration::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::subscriber::subscription::trade::PublicTrades;
 
 /// Todo:
 pub mod pro;
@@ -28,6 +29,12 @@ impl CoinbaseChannel {
     const TRADES: Self = Self("matches");
 }
 
+impl Identifier<CoinbaseChannel> for Subscription<PublicTrades> {
+    fn id(&self) -> CoinbaseChannel {
+        CoinbaseChannel::TRADES
+    }
+}
+
 /// Todo:
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
@@ -36,24 +43,26 @@ pub struct CoinbaseSubMeta {
     market: String,
 }
 
-impl SubscriptionIdentifier for CoinbaseSubMeta {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for CoinbaseSubMeta {
+    fn id(&self) -> SubscriptionId {
         subscription_id(self.channel, &self.market)
     }
 }
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for CoinbaseSubMeta
 where
-    ExchangeEvent: SubscriptionIdentifier + Identifier<CoinbaseChannel> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
+    type Channel = CoinbaseChannel;
     type SubResponse = CoinbaseSubResponse;
 
     fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
-        Kind: SubKind
+        Kind: SubKind,
+        Subscription<Kind>: Identifier<Self::Channel>,
     {
         Self {
-            channel: ExchangeEvent::id(),
+            channel: sub.id(),
             market: format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
         }
     }

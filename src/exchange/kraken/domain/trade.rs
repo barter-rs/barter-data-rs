@@ -1,12 +1,14 @@
+use crate::{
+    exchange::ExchangeId,
+    Identifier,
+    model::{Market, MarketIter, PublicTrade}
+};
+use barter_integration::{
+    de::{datetime_utc_from_epoch_duration, extract_next},
+    model::{Exchange, Instrument, Side, SubscriptionId}
+};
 use chrono::{DateTime, Utc};
-use barter_integration::de::{datetime_utc_from_epoch_duration, extract_next};
-use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use serde::Serialize;
-use crate::exchange::ExchangeId;
-use crate::exchange::kraken::domain::KrakenChannel;
-use crate::Identifier;
-use crate::model::{Market, MarketIter, PublicTrade};
-use crate::subscriber::subscription::SubscriptionIdentifier;
 
 /// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
 ///
@@ -29,14 +31,8 @@ pub struct KrakenTrade {
     pub side: Side,
 }
 
-impl Identifier<KrakenChannel> for KrakenTrades {
-    fn id() -> KrakenChannel {
-        KrakenChannel::TRADES
-    }
-}
-
-impl SubscriptionIdentifier for KrakenTrades {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for KrakenTrades {
+    fn id(&self) -> SubscriptionId {
         self.subscription_id.clone()
     }
 }

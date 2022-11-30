@@ -3,9 +3,9 @@ use super::{
 };
 use crate::{
     exchange::{ExchangeMeta, ExchangeId},
-    Identifier,
-    subscriber::subscription::SubscriptionIdentifier
+    ExchangeIdentifier, Identifier,
 };
+use barter_integration::model::SubscriptionId;
 use serde::Deserialize;
 
 /// Todo:
@@ -22,15 +22,15 @@ const BASE_URL_BINANCE_FUTURES_USD: &'static str = "wss://fstream.binance.com/ws
 #[derive(Debug, Clone, Copy)]
 pub struct BinanceFuturesUsd;
 
-impl Identifier<ExchangeId> for BinanceFuturesUsd {
-    fn id() -> ExchangeId {
+impl ExchangeIdentifier for BinanceFuturesUsd {
+    fn exchange_id() -> ExchangeId {
         ExchangeId::BinanceFuturesUsd
     }
 }
 
 impl<BinanceEvent> ExchangeMeta<BinanceEvent> for BinanceFuturesUsd
 where
-    BinanceEvent: SubscriptionIdentifier + Identifier<BinanceChannel> + for<'de> Deserialize<'de>,
+    BinanceEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = BinanceSubMeta;
 

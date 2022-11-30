@@ -1,8 +1,8 @@
 use crate::{
-    Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubscriptionIdentifier}
+    ExchangeIdentifier, Identifier,
+    subscriber::subscription::ExchangeSubscription,
 };
-use barter_integration::model::Exchange;
+use barter_integration::model::{Exchange, SubscriptionId};
 use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 
@@ -12,12 +12,13 @@ pub mod binance;
 pub mod coinbase;
 pub mod kraken;
 pub mod okx;
+pub mod gateio;
 
 /// Todo:
 pub trait ExchangeMeta<ExchangeEvent>
 where
-    Self: Identifier<ExchangeId> + Clone,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+    Self: ExchangeIdentifier + Clone,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub: ExchangeSubscription<ExchangeEvent>;
 
@@ -31,6 +32,7 @@ pub enum ExchangeId {
     BinanceFuturesUsd,
     BinanceSpot,
     CoinbasePro,
+    GateioSpot,
     Kraken,
     Okx,
 }
@@ -54,6 +56,7 @@ impl ExchangeId {
             ExchangeId::BinanceSpot => "binance_spot",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::CoinbasePro => "coinbase_pro",
+            ExchangeId::GateioSpot => "gateio_spot",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Okx => "okx",
         }

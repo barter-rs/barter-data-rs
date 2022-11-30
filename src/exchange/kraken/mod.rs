@@ -1,9 +1,9 @@
-use self::domain::{KrakenChannel, KrakenSubMeta};
+use self::domain::KrakenSubMeta;
 use crate::{
     exchange::{ExchangeMeta, ExchangeId},
-    Identifier,
-    subscriber::subscription::SubscriptionIdentifier
+    ExchangeIdentifier, Identifier,
 };
+use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 
 pub mod domain;
@@ -20,15 +20,15 @@ pub const BASE_URL_KRAKEN: &'static str = "wss://ws.kraken.com/";
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct Kraken;
 
-impl Identifier<ExchangeId> for Kraken {
-    fn id() -> ExchangeId {
+impl ExchangeIdentifier for Kraken {
+    fn exchange_id() -> ExchangeId {
         ExchangeId::Kraken
     }
 }
 
 impl<KrakenEvent> ExchangeMeta<KrakenEvent> for Kraken
 where
-    KrakenEvent: SubscriptionIdentifier + Identifier<KrakenChannel> + for<'de> Deserialize<'de>,
+    KrakenEvent: Identifier<SubscriptionId> + ExchangeIdentifier + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = KrakenSubMeta;
 

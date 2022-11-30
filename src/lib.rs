@@ -9,7 +9,7 @@
 use crate::{
     exchange::ExchangeId,
     model::{Market, MarketIter},
-    subscriber::subscription::{SubKind, SubscriptionIdentifier, SubscriptionMap},
+    subscriber::subscription::{SubKind, SubscriptionMap},
 };
 use barter_integration::{
     error::SocketError,
@@ -22,6 +22,7 @@ use serde::Deserialize;
 use futures::SinkExt;
 use tokio::sync::mpsc;
 use tracing::error;
+use barter_integration::model::SubscriptionId;
 use exchange::ExchangeMeta;
 
 
@@ -47,6 +48,11 @@ pub mod util;
 
 // Todo:
 //  - Kraken broken by heartbeat LOL - fix
+//  - Gateio FuturePerpetual has two URLs for btc & usdt -> look into customisable URLs?
+//   '--> Currently using different ExchangeIds... -> Ideally combine btc & usdt into `Future`
+//   '--> channels are easily composable from channel + instrument type...
+//   '--> Identifier<Channel> could become ChannelIdentifier and also be passed a sub eg/ fn (&self, sub: &Sub<Kind>)...
+//  - Newtype for `PairSymbol(String)` with convienece methods for delimiters & casing :)
 //  - Search for todos and fix.
 //  - Uncommon clippy warnings at top of this file & fix lints
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
@@ -65,14 +71,19 @@ pub mod util;
 //  - Coinbase Pro has some initial snapshot that's coming through after sub validation succeeds...?
 //  - Add TradeId new type to barter-integration, etc.
 //  - normalise module structure. ie/ use domain consistently
+//  - Should I hard-code the idea of a SubMeta? It can be market & channel always. Then enforce Subscription<Kind>: Identifier<Channel>
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<
     WebSocketParser, WsStream, Exchange, Exchange::Output
 >;
 
+pub trait ExchangeIdentifier {
+    fn exchange_id() -> ExchangeId;
+}
+
 pub trait Identifier<T> {
-    fn id() -> T;
+    fn id(&self) -> T;
 }
 
 pub struct ExchangeTransformer<Exchange, Kind, ExchangeEvent> {
@@ -84,7 +95,7 @@ impl<Exchange, Kind, ExchangeEvent> Transformer for ExchangeTransformer<Exchange
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, ExchangeEvent)>,
 {
     type Input = ExchangeEvent;
@@ -93,9 +104,9 @@ where
 
     fn transform(&mut self, event: Self::Input) -> Self::OutputIter {
         // Find Instrument associated with Input and transform
-        match self.subscription_map.find_instrument(&event.subscription_id()) {
+        match self.subscription_map.find_instrument(&event.id()) {
             Ok(instrument) => {
-                MarketIter::<Kind::Event>::from((Exchange::id(), instrument, event)).0
+                MarketIter::<Kind::Event>::from((Exchange::exchange_id(), instrument, event)).0
             },
             Err(unidentifiable) => {
                 vec![Err(unidentifiable)]

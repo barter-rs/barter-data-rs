@@ -1,9 +1,9 @@
-use self::domain::{OkxChannel, OkxSubMeta};
+use self::domain::OkxSubMeta;
 use crate::{
     exchange::{ExchangeMeta, ExchangeId},
-    Identifier,
-    subscriber::subscription::SubscriptionIdentifier
+    ExchangeIdentifier, Identifier,
 };
+use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 
 /// Todo:
@@ -20,15 +20,15 @@ pub const BASE_URL_OKX: &'static str = "wss://wsaws.okx.com:8443/ws/v5/public";
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct Okx;
 
-impl Identifier<ExchangeId> for Okx {
-    fn id() -> ExchangeId {
+impl ExchangeIdentifier for Okx {
+    fn exchange_id() -> ExchangeId {
         ExchangeId::Okx
     }
 }
 
 impl<OkxEvent> ExchangeMeta<OkxEvent> for Okx
 where
-    OkxEvent: SubscriptionIdentifier + Identifier<OkxChannel> + for<'de> Deserialize<'de>
+    OkxEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
 {
     type ExchangeSub = OkxSubMeta;
 

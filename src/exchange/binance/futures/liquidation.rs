@@ -1,7 +1,6 @@
 use super::BinanceChannel;
 use crate::{
     exchange::ExchangeId,
-    subscriber::subscription::SubscriptionIdentifier,
     model::{Market, MarketIter, Liquidation},
     Identifier,
 };
@@ -42,14 +41,8 @@ pub struct BinanceLiquidationOrder {
     pub time: DateTime<Utc>,
 }
 
-impl Identifier<BinanceChannel> for BinanceLiquidation {
-    fn id() -> BinanceChannel {
-        BinanceChannel::LIQUIDATIONS
-    }
-}
-
-impl SubscriptionIdentifier for BinanceLiquidation {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for BinanceLiquidation {
+    fn id(&self) -> SubscriptionId {
         self.order.subscription_id.clone()
     }
 }

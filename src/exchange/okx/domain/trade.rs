@@ -1,13 +1,8 @@
-use super::{
-    OkxChannel,
-    subscription_id,
-};
+use super::subscription_id;
 use crate::{
-    subscriber::subscription::SubscriptionIdentifier,
     model::{Market, MarketIter, PublicTrade},
     exchange::ExchangeId,
-    Identifier
-
+    Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use serde::{Deserialize, Serialize};
@@ -46,8 +41,8 @@ pub struct OkxMessage<T> {
     pub data: Vec<T>,
 }
 
-impl<T> SubscriptionIdentifier for OkxMessage<T> {
-    fn subscription_id(&self) -> SubscriptionId {
+impl<T> Identifier<SubscriptionId> for OkxMessage<T> {
+    fn id(&self) -> SubscriptionId {
         self.subscription_id.clone()
     }
 }
@@ -78,12 +73,6 @@ pub struct OkxTrade {
     pub side: Side,
     #[serde(rename = "ts", deserialize_with = "crate::util::de_str_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
-}
-
-impl Identifier<OkxChannel> for OkxMessage<OkxTrade> {
-    fn id() -> OkxChannel {
-        OkxChannel::TRADES
-    }
 }
 
 impl From<(ExchangeId, Instrument, OkxMessage<OkxTrade>)> for MarketIter<PublicTrade> {

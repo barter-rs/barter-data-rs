@@ -1,13 +1,10 @@
-use super::{
-    BinanceChannel, BinanceSubMeta,
-};
+use super::BinanceSubMeta;
 use crate::{
-    exchange::ExchangeId,
-    Identifier,
-    subscriber::subscription::SubscriptionIdentifier
+    exchange::{ExchangeMeta, ExchangeId},
+    ExchangeIdentifier, Identifier,
 };
+use barter_integration::model::SubscriptionId;
 use serde::Deserialize;
-use crate::exchange::ExchangeMeta;
 
 /// [`BinanceSpot`] server base url.
 ///
@@ -20,15 +17,15 @@ pub const BASE_URL_BINANCE_SPOT: &'static str = "wss://stream.binance.com:9443/w
 #[derive(Debug, Clone, Copy)]
 pub struct BinanceSpot;
 
-impl Identifier<ExchangeId> for BinanceSpot {
-    fn id() -> ExchangeId {
+impl ExchangeIdentifier for BinanceSpot {
+    fn exchange_id() -> ExchangeId {
         ExchangeId::BinanceSpot
     }
 }
 
 impl<BinanceEvent> ExchangeMeta<BinanceEvent> for BinanceSpot
 where
-    BinanceEvent: SubscriptionIdentifier + Identifier<BinanceChannel> + for<'de> Deserialize<'de>,
+    BinanceEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = BinanceSubMeta;
 

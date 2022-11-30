@@ -1,5 +1,5 @@
 use crate::{
-    exchange::ExchangeId,
+    exchange::ExchangeId, Identifier,
 };
 use barter_integration::{
     error::SocketError,
@@ -21,21 +21,18 @@ pub mod candle;
 pub mod liquidation;
 
 /// Todo:
-pub trait SubscriptionIdentifier {
-    fn subscription_id(&self) -> SubscriptionId;
-}
-
-/// Todo:
 pub trait ExchangeSubscription<ExchangeEvent>
 where
-    Self: SubscriptionIdentifier + Sized,
-    ExchangeEvent: SubscriptionIdentifier + for<'de> Deserialize<'de>
+    Self: Identifier<SubscriptionId> + Sized,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
 {
+    type Channel;
     type SubResponse: Validator + DeserializeOwned;
 
     fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
-        Kind: SubKind;
+        Kind: SubKind,
+        Subscription<Kind>: Identifier<Self::Channel>;
 
     fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
 

@@ -1,6 +1,6 @@
 use crate::{
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionIdentifier},
-    Identifier
+    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
+    Identifier,
 };
 use barter_integration::{
     error::SocketError,
@@ -27,6 +27,12 @@ impl OkxChannel {
     const TRADES: Self = Self("trades");
 }
 
+impl Identifier<OkxChannel> for Subscription<PublicTrades> {
+    fn id(&self) -> OkxChannel {
+        OkxChannel::TRADES
+    }
+}
+
 /// Todo:
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
@@ -37,24 +43,26 @@ pub struct OkxSubMeta {
     market: String,
 }
 
-impl SubscriptionIdentifier for OkxSubMeta {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for OkxSubMeta {
+    fn id(&self) -> SubscriptionId {
         subscription_id(self.channel.0, &self.market)
     }
 }
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for OkxSubMeta
 where
-    ExchangeEvent: SubscriptionIdentifier + Identifier<OkxChannel> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
+    type Channel = OkxChannel;
     type SubResponse = OkxSubResponse;
 
     fn new<Kind>(sub: &Subscription<Kind>) -> Self
     where
-        Kind: SubKind
+        Kind: SubKind,
+        Subscription<Kind>: Identifier<Self::Channel>,
     {
         Self {
-            channel: ExchangeEvent::id(),
+            channel: sub.id(),
             market: match sub.instrument.kind {
                 InstrumentKind::Spot => {
                     format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase()

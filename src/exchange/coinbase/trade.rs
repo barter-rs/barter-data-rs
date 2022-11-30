@@ -2,7 +2,6 @@ use super::{CoinbaseChannel, subscription_id};
 use crate::{
     Identifier,
     model::{Market, MarketIter, PublicTrade},
-    subscriber::subscription::SubscriptionIdentifier,
     exchange::{ExchangeId},
 };
 use barter_integration::{
@@ -29,14 +28,8 @@ pub struct CoinbaseTrade {
     pub side: Side,
 }
 
-impl Identifier<CoinbaseChannel> for CoinbaseTrade {
-    fn id() -> CoinbaseChannel {
-        CoinbaseChannel::TRADES
-    }
-}
-
-impl SubscriptionIdentifier for CoinbaseTrade {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for CoinbaseTrade {
+    fn id(&self) -> SubscriptionId {
         self.subscription_id.clone()
     }
 }

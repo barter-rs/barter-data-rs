@@ -1,12 +1,7 @@
 use super::super::{BinanceChannel, subscription_id};
-use crate::{
-    Identifier,
-    model::{Market, MarketIter, PublicTrade},
-    subscriber::subscription::SubscriptionIdentifier,
-    exchange::{
-        ExchangeId,
-    },
-};
+use crate::{model::{Market, MarketIter, PublicTrade}, exchange::{
+    ExchangeId,
+}, Identifier};
 use barter_integration::{
     model::{Exchange, Instrument, Side, SubscriptionId},
 };
@@ -36,14 +31,8 @@ pub struct BinanceTrade {
     pub side: Side,
 }
 
-impl Identifier<BinanceChannel> for BinanceTrade {
-    fn id() -> BinanceChannel {
-        BinanceChannel::TRADES
-    }
-}
-
-impl SubscriptionIdentifier for BinanceTrade {
-    fn subscription_id(&self) -> SubscriptionId {
+impl Identifier<SubscriptionId> for BinanceTrade {
+    fn id(&self) -> SubscriptionId {
         self.subscription_id.clone()
     }
 }
