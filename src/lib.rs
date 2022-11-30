@@ -47,22 +47,20 @@ pub mod util;
 
 
 // Todo:
+//  - normalise module structure. ie/ use domain consistently
+//  - SubscriptionIdentifier - find way to do ref in same impl maybe with Cow? AsRef etc?
+//    '--> Can it be same as Identifier w/ some magic deref craziness?
 //  - Kraken broken by heartbeat LOL - fix
-//  - Gateio FuturePerpetual has two URLs for btc & usdt -> look into customisable URLs?
-//   '--> Currently using different ExchangeIds... -> Ideally combine btc & usdt into `Future`
-//   '--> channels are easily composable from channel + instrument type...
-//   '--> Identifier<Channel> could become ChannelIdentifier and also be passed a sub eg/ fn (&self, sub: &Sub<Kind>)...
-//  - Newtype for `PairSymbol(String)` with convienece methods for delimiters & casing :)
+//  - Newtype for `PairSymbol(String)` with convenience methods for delimiters & casing :)
 //  - Search for todos and fix.
 //  - Uncommon clippy warnings at top of this file & fix lints
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
 //  - Add logging in key places! debug too
 //  - Impl validate for Subscription<Exchange, Kind>
+//  - Check links on exchanges i've seen some strange copy paste...
 //  - Subscriber becomes generic rather than hard-coded WebSocket
 //   '--> Same with SubscriptionMeta::WsMessage, etc
 //  - Try to remove WebSocketSubscriber phantom generics, including sub event
-//  - SubscriptionIdentifier - find way to do ref in same impl maybe with Cow? AsRef etc?
-//    '--> Can it be same as Identifier w/ some magic deref craziness?
 //  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit since it's not 1-to-1 with ExchangeEvent
 //  - Go through and add derives #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 //  - Go through and select appropriate access modifiers for everything
@@ -70,8 +68,8 @@ pub mod util;
 //  - SubscriptionId should probably contain a reference to a String... then use serde borrow
 //  - Coinbase Pro has some initial snapshot that's coming through after sub validation succeeds...?
 //  - Add TradeId new type to barter-integration, etc.
-//  - normalise module structure. ie/ use domain consistently
-//  - Should I hard-code the idea of a SubMeta? It can be market & channel always. Then enforce Subscription<Kind>: Identifier<Channel>
+//  - Move all deserialisers in utils to barter-integration imports
+
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<
