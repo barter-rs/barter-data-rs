@@ -71,13 +71,13 @@ pub struct OkxTrade {
     #[serde(rename = "sz", deserialize_with = "crate::util::de_str")]
     pub amount: f64,
     pub side: Side,
-    #[serde(rename = "ts", deserialize_with = "crate::util::de_str_epoch_ms_as_datetime_utc")]
+    #[serde(rename = "ts", deserialize_with = "crate::util::de_str_u64_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
 }
 
-impl From<(ExchangeId, Instrument, OkxMessage<OkxTrade>)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, OkxMessage<OkxTrade>)) -> Self {
-        message
+impl From<(ExchangeId, Instrument, OkxTrades)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, OkxTrades)) -> Self {
+        trades
             .data
             .into_iter()
             .map(|trade| {
