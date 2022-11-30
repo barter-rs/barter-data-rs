@@ -1,16 +1,13 @@
+use crate::subscriber::subscription::trade::PublicTrades;
 use crate::{
     subscriber::subscription::{ExchangeSubscription, SubKind, Subscription},
     Identifier,
 };
 use barter_integration::{
-    error::SocketError,
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
-    Validator
+    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::subscriber::subscription::trade::PublicTrades;
 
 /// Todo:
 pub mod pro;
@@ -63,7 +60,7 @@ where
     {
         Self {
             channel: sub.id(),
-            market: format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
+            market: format!("{}-{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
         }
     }
 
@@ -77,7 +74,7 @@ where
                         "product_ids": [market],
                         "channels": [channel.0],
                     })
-                    .to_string()
+                    .to_string(),
                 )
             })
             .collect()
@@ -91,7 +88,6 @@ where
 pub(crate) fn subscription_id(channel: CoinbaseChannel, market: &str) -> SubscriptionId {
     SubscriptionId::from(format!("{}|{}", channel.0, market))
 }
-
 
 /// Coinbase WebSocket subscription response.
 ///

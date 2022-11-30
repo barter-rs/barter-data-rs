@@ -1,12 +1,9 @@
 use crate::{
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades}
 };
 use barter_integration::{
-    error::SocketError,
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
-    Validator
+    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -50,7 +47,7 @@ impl Identifier<SubscriptionId> for KrakenSubMeta {
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for KrakenSubMeta
 where
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type Channel = KrakenChannel;
     type SubResponse = KrakenSubResponse;
@@ -78,7 +75,7 @@ where
                             "name": channel.0
                         }
                     })
-                    .to_string()
+                    .to_string(),
                 )
             })
             .collect()

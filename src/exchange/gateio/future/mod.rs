@@ -1,5 +1,3 @@
-
-
-/// Todo: 
-pub mod perpetual;
 pub mod domain;
+/// Todo:
+pub mod perpetual;

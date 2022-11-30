@@ -1,30 +1,28 @@
-use crate::{
-    exchange::ExchangeId, Identifier,
-};
+use crate::{exchange::ExchangeId, Identifier};
 use barter_integration::{
     error::SocketError,
-    model::{Instrument, InstrumentKind, Symbol},
     model::SubscriptionId,
+    model::{Instrument, InstrumentKind, Symbol},
     protocol::websocket::WsMessage,
     Validator,
 };
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt::{Debug, Display, Formatter}
+    fmt::{Debug, Display, Formatter},
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-/// Todo:
-pub mod trade;
-pub mod order_book;
 pub mod candle;
 pub mod liquidation;
+pub mod order_book;
+/// Todo:
+pub mod trade;
 
 /// Todo:
 pub trait ExchangeSubscription<ExchangeEvent>
 where
     Self: Identifier<SubscriptionId> + Sized,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type Channel;
     type SubResponse: Validator + DeserializeOwned;
@@ -72,7 +70,8 @@ impl<S, Kind> From<(ExchangeId, S, S, InstrumentKind, Kind)> for Subscription<Ki
 where
     S: Into<Symbol>,
 {
-    fn from((exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, Kind),
+    fn from(
+        (exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, Kind),
     ) -> Self {
         Self::new(exchange, (base, quote, instrument_kind), kind)
     }
@@ -88,13 +87,13 @@ where
 }
 
 // Todo: Check where this i sused and why I need funky trait bounds - cleaner way?
-impl<Kind> From<Subscription<Kind> > for barter_integration::model::Market {
-    fn from(subscription: Subscription<Kind> ) -> Self {
+impl<Kind> From<Subscription<Kind>> for barter_integration::model::Market {
+    fn from(subscription: Subscription<Kind>) -> Self {
         Self::new(subscription.exchange, subscription.instrument)
     }
 }
 
-impl<Kind> Subscription<Kind>  {
+impl<Kind> Subscription<Kind> {
     /// Constructs a new [`Subscription`] using the provided configuration.
     pub fn new<I>(exchange: ExchangeId, instrument: I, kind: Kind) -> Self
     where
@@ -143,8 +142,8 @@ impl<Kind> SubscriptionMap<Kind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::subscriber::subscription::trade::PublicTrades;
     use super::*;
+    use crate::subscriber::subscription::trade::PublicTrades;
 
     #[test]
     fn test_subscription_map_find_instrument() {

@@ -1,6 +1,6 @@
 use self::domain::KrakenSubMeta;
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -8,11 +8,10 @@ use serde::{Deserialize, Serialize};
 
 pub mod domain;
 
-
 /// [`Kraken`] server base url.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#overview>
-pub const BASE_URL_KRAKEN: &'static str = "wss://ws.kraken.com/";
+pub const BASE_URL_KRAKEN: &str = "wss://ws.kraken.com/";
 
 /// [`Kraken`] exchange.
 ///

@@ -1,18 +1,13 @@
-use crate::{
-    Identifier,
-    subscriber::{
-        subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionMap}
-    }
-};
-use barter_integration::{
-    error::SocketError,
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
-    Validator,
-};
-use serde::{Deserialize, Serialize};
 use crate::subscriber::subscription::liquidation::Liquidations;
 use crate::subscriber::subscription::trade::PublicTrades;
+use crate::{
+    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, SubscriptionMap},
+    Identifier,
+};
+use barter_integration::{
+    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
+};
+use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod domain;
@@ -66,7 +61,7 @@ impl Identifier<SubscriptionId> for BinanceSubMeta {
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for BinanceSubMeta
 where
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
+    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type Channel = BinanceChannel;
     type SubResponse = BinanceSubResponse;
@@ -93,7 +88,8 @@ where
                 "method": "SUBSCRIBE",
                 "params": stream_names,
                 "id": 1
-            }).to_string()
+            })
+            .to_string(),
         )]
     }
 

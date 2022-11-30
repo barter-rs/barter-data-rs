@@ -1,8 +1,6 @@
-use super::{
-    BinanceChannel, BinanceSubMeta,
-};
+use super::{BinanceChannel, BinanceSubMeta};
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -14,7 +12,7 @@ pub mod liquidation;
 /// [`BinanceFuturesUsd`] server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
-const BASE_URL_BINANCE_FUTURES_USD: &'static str = "wss://fstream.binance.com/ws";
+const BASE_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
 
 /// [`BinanceFuturesUsd`] exchange.
 ///
@@ -34,5 +32,7 @@ where
 {
     type ExchangeSub = BinanceSubMeta;
 
-    fn base_url() -> &'static str { BASE_URL_BINANCE_FUTURES_USD }
+    fn base_url() -> &'static str {
+        BASE_URL_BINANCE_FUTURES_USD
+    }
 }

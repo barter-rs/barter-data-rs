@@ -1,11 +1,11 @@
 use crate::{
     exchange::ExchangeId,
+    model::{Market, MarketIter, PublicTrade},
     Identifier,
-    model::{Market, MarketIter, PublicTrade}
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},
-    model::{Exchange, Instrument, Side, SubscriptionId}
+    model::{Exchange, Instrument, Side, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -60,8 +60,8 @@ impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
                         id: custom_kraken_trade_id(&trade),
                         price: trade.price,
                         amount: trade.amount,
-                        side: trade.side
-                    }
+                        side: trade.side,
+                    },
                 })
             })
             .collect()
@@ -160,7 +160,9 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
                 // Extract String price, parse to f64, map to DateTime<Utc>
                 let time = extract_next::<SeqAccessor, String>(&mut seq, "time")?
                     .parse()
-                    .map(|time| datetime_utc_from_epoch_duration(std::time::Duration::from_secs_f64(time)))
+                    .map(|time| {
+                        datetime_utc_from_epoch_duration(std::time::Duration::from_secs_f64(time))
+                    })
                     .map_err(serde::de::Error::custom)?;
 
                 // Extract Side

@@ -1,17 +1,16 @@
-use super::subscription::{
-    SubscriptionMap,
-};
+use super::subscription::SubscriptionMap;
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    protocol::{StreamParser, websocket::{WebSocket, WebSocketParser}},
+    protocol::{
+        websocket::{WebSocket, WebSocketParser},
+        StreamParser,
+    },
     Validator,
 };
-use std::{
-    time::Duration,
-};
 use futures::stream::StreamExt;
-use async_trait::async_trait;
 use serde::Deserialize;
+use std::time::Duration;
 use tracing::debug;
 
 #[async_trait]
@@ -27,7 +26,9 @@ pub trait SubscriptionValidator {
         Kind: Send,
         SubResponse: Validator + for<'de> Deserialize<'de>;
 
-    fn subscription_timeout() -> Duration { Duration::from_secs(10) }
+    fn subscription_timeout() -> Duration {
+        Duration::from_secs(10)
+    }
 }
 
 pub struct WebSocketSubValidator;
@@ -36,7 +37,11 @@ pub struct WebSocketSubValidator;
 impl SubscriptionValidator for WebSocketSubValidator {
     type Parser = WebSocketParser;
 
-    async fn validate<Kind, SubResponse>(map: SubscriptionMap<Kind>, websocket: &mut WebSocket, expected_responses: usize) -> Result<SubscriptionMap<Kind>, SocketError>
+    async fn validate<Kind, SubResponse>(
+        map: SubscriptionMap<Kind>,
+        websocket: &mut WebSocket,
+        expected_responses: usize,
+    ) -> Result<SubscriptionMap<Kind>, SocketError>
     where
         Kind: Send,
         SubResponse: Validator + for<'de> Deserialize<'de>,

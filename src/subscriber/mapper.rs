@@ -1,31 +1,35 @@
-use super::{
-    subscription::{
-        Subscription, SubscriptionMap, SubscriptionMeta, SubKind, ExchangeSubscription
-    }
+use super::subscription::{
+    ExchangeSubscription, SubKind, Subscription, SubscriptionMap, SubscriptionMeta,
 };
 use crate::Identifier;
 use barter_integration::model::SubscriptionId;
-use std::collections::HashMap;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 pub trait SubscriptionMapper {
-    fn map<Kind, ExchangeSub, ExchangeEvent>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Kind, ExchangeSub, ExchangeEvent>(
+        subscriptions: &[Subscription<Kind>],
+    ) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
         ExchangeSub: ExchangeSubscription<ExchangeEvent>,
         ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
-        Subscription<Kind>: Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>;
+        Subscription<Kind>:
+            Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>;
 }
 
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Kind, ExchangeSub, ExchangeEvent>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Kind, ExchangeSub, ExchangeEvent>(
+        subscriptions: &[Subscription<Kind>],
+    ) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
         ExchangeSub: ExchangeSubscription<ExchangeEvent>,
         ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
-        Subscription<Kind>: Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>,
+        Subscription<Kind>:
+            Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut subscription_map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
@@ -41,7 +45,9 @@ impl SubscriptionMapper for WebSocketSubMapper {
                 let subscription_id = exchange_sub.id();
 
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
-                subscription_map.0.insert(subscription_id, subscription.clone());
+                subscription_map
+                    .0
+                    .insert(subscription_id, subscription.clone());
 
                 exchange_sub
             })

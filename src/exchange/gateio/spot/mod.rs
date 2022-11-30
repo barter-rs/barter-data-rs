@@ -1,6 +1,6 @@
 use crate::exchange::gateio::GateioSubMeta;
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -12,7 +12,7 @@ pub mod domain;
 /// [`GateioSpot`] server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/>
-pub const BASE_URL_GATEIO_SPOT: &'static str = "wss://api.gateio.ws/ws/v4/";
+pub const BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
 
 /// [`GateioSpot`] exchange.
 ///

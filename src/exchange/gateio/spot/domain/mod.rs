@@ -1,11 +1,8 @@
-use super::super::{
-    GateioMessage,
-    subscription_id,
-};
+use super::super::{subscription_id, GateioMessage};
 use crate::{
-    Identifier,
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade}
+    model::{Market, MarketIter, PublicTrade},
+    Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
@@ -34,7 +31,10 @@ pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;
 pub struct GateioSpotTradeInner {
     #[serde(rename = "currency_pair")]
     pub market: String,
-    #[serde(rename = "create_time_ms", deserialize_with = "crate::util::de_str_f64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        rename = "create_time_ms",
+        deserialize_with = "crate::util::de_str_f64_epoch_ms_as_datetime_utc"
+    )]
     pub time: DateTime<Utc>,
     pub id: u64,
     #[serde(deserialize_with = "crate::util::de_str")]
@@ -43,7 +43,7 @@ pub struct GateioSpotTradeInner {
     #[serde(alias = "size", deserialize_with = "crate::util::de_str")]
     pub amount: f64,
     /// Taker [`Side`] of the trade.
-    pub side : Side,
+    pub side: Side,
 }
 
 impl Identifier<SubscriptionId> for GateioSpotTrade {
@@ -63,8 +63,8 @@ impl From<(ExchangeId, Instrument, GateioSpotTrade)> for MarketIter<PublicTrade>
                 id: trade.data.id.to_string(),
                 price: trade.data.price,
                 amount: trade.data.amount,
-                side: trade.data.side
-            }
+                side: trade.data.side,
+            },
         })])
     }
 }

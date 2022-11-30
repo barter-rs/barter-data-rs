@@ -1,18 +1,14 @@
-use crate::{
-    ExchangeIdentifier, Identifier,
-    subscriber::subscription::ExchangeSubscription,
-};
+use crate::{subscriber::subscription::ExchangeSubscription, ExchangeIdentifier, Identifier};
 use barter_integration::model::{Exchange, SubscriptionId};
-use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
-
+use std::fmt::{Display, Formatter};
 
 /// Todo:
 pub mod binance;
 pub mod coinbase;
+pub mod gateio;
 pub mod kraken;
 pub mod okx;
-pub mod gateio;
 
 /// Todo:
 pub trait ExchangeMeta<ExchangeEvent>

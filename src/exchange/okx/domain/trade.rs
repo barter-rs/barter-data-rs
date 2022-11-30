@@ -1,12 +1,12 @@
 use super::subscription_id;
 use crate::{
-    model::{Market, MarketIter, PublicTrade},
     exchange::ExchangeId,
+    model::{Market, MarketIter, PublicTrade},
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Terse type alias for an [`Okx`] real-time trades WebSocket message.
 pub type OkxTrades = OkxMessage<OkxTrade>;
@@ -36,7 +36,10 @@ pub type OkxTrades = OkxMessage<OkxTrade>;
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct OkxMessage<T> {
-    #[serde(rename = "arg", deserialize_with = "de_okx_message_arg_as_subscription_id")]
+    #[serde(
+        rename = "arg",
+        deserialize_with = "de_okx_message_arg_as_subscription_id"
+    )]
     pub subscription_id: SubscriptionId,
     pub data: Vec<T>,
 }
@@ -71,7 +74,10 @@ pub struct OkxTrade {
     #[serde(rename = "sz", deserialize_with = "crate::util::de_str")]
     pub amount: f64,
     pub side: Side,
-    #[serde(rename = "ts", deserialize_with = "crate::util::de_str_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        rename = "ts",
+        deserialize_with = "crate::util::de_str_u64_epoch_ms_as_datetime_utc"
+    )]
     pub time: DateTime<Utc>,
 }
 
@@ -90,8 +96,8 @@ impl From<(ExchangeId, Instrument, OkxTrades)> for MarketIter<PublicTrade> {
                         id: trade.id,
                         price: trade.price,
                         amount: trade.amount,
-                        side: trade.side
-                    }
+                        side: trade.side,
+                    },
                 })
             })
             .collect()
@@ -99,7 +105,9 @@ impl From<(ExchangeId, Instrument, OkxTrades)> for MarketIter<PublicTrade> {
 }
 
 /// Deserialize an [`OkxMessage`] "arg" field as a Barter [`SubscriptionId`].
-fn de_okx_message_arg_as_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
+fn de_okx_message_arg_as_subscription_id<'de, D>(
+    deserializer: D,
+) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,
 {

@@ -9,15 +9,12 @@
 // use futures::StreamExt;
 // use barter_data::exchange::ExchangeId;
 
-use futures::StreamExt;
-use barter_data::exchange::binance::futures::BinanceFuturesUsd;
 use barter_data::exchange::binance::domain::trade::BinanceTrade;
-use barter_data::{ExchangeTransformer, ExchangeWsStream};
 use barter_data::exchange::binance::futures::liquidation::BinanceLiquidation;
+use barter_data::exchange::binance::futures::BinanceFuturesUsd;
 use barter_data::exchange::binance::spot::BinanceSpot;
 use barter_data::exchange::coinbase::pro::CoinbasePro;
 use barter_data::exchange::coinbase::trade::CoinbaseTrade;
-use barter_data::exchange::ExchangeId;
 use barter_data::exchange::gateio::future::domain::GateioFuturesTrades;
 use barter_data::exchange::gateio::future::perpetual::{GateioFuturesBtc, GateioFuturesUsd};
 use barter_data::exchange::gateio::spot::domain::GateioSpotTrade;
@@ -26,12 +23,15 @@ use barter_data::exchange::kraken::domain::trade::{KrakenTrade, KrakenTrades};
 use barter_data::exchange::kraken::Kraken;
 use barter_data::exchange::okx::domain::trade::OkxTrades;
 use barter_data::exchange::okx::Okx;
+use barter_data::exchange::ExchangeId;
 use barter_data::model::PublicTrade;
-use barter_data::subscriber::subscription::Subscription;
-use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
 use barter_data::subscriber::subscription::liquidation::Liquidations;
 use barter_data::subscriber::subscription::trade::PublicTrades;
+use barter_data::subscriber::subscription::Subscription;
+use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
+use barter_data::{ExchangeTransformer, ExchangeWsStream};
 use barter_integration::model::{Instrument, InstrumentKind};
+use futures::StreamExt;
 
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,
 // BinanceFuturesUsd & Coinbase
@@ -47,7 +47,8 @@ async fn main() {
     // let subscriber: WebSocketSubscriber<CoinbasePro, PublicTrades, CoinbaseTrade> = WebSocketSubscriber::new();
     // let subscriber: WebSocketSubscriber<Kraken, PublicTrades, KrakenTrades> = WebSocketSubscriber::new();
     // let subscriber: WebSocketSubscriber<Okx, PublicTrades, OkxTrades> = WebSocketSubscriber::new();
-    let subscriber: WebSocketSubscriber<GateioFuturesUsd, PublicTrades, GateioFuturesTrades> = WebSocketSubscriber::new();
+    let subscriber: WebSocketSubscriber<GateioFuturesUsd, PublicTrades, GateioFuturesTrades> =
+        WebSocketSubscriber::new();
 
     // Subscriptions
     let subscriptions = vec![
@@ -65,8 +66,22 @@ async fn main() {
         // (ExchangeId::Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (ExchangeId::Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (ExchangeId::GateioFuturesUsd, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (ExchangeId::GateioFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (ExchangeId::GateioFuturesUsd, "xrp", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (
+            ExchangeId::GateioFuturesUsd,
+            "eth",
+            "usdt",
+            InstrumentKind::FuturePerpetual,
+            PublicTrades,
+        )
+            .into(),
+        (
+            ExchangeId::GateioFuturesUsd,
+            "xrp",
+            "usdt",
+            InstrumentKind::FuturePerpetual,
+            PublicTrades,
+        )
+            .into(),
     ];
 
     let (websocket, subscription_map) = subscriber
@@ -81,8 +96,8 @@ async fn main() {
     // let transformer: ExchangeTransformer<BinanceFuturesUsd, Liquidations, BinanceLiquidation> = ExchangeTransformer::new(subscription_map);
     // let transformer: ExchangeTransformer<CoinbasePro, PublicTrades, CoinbaseTrade> = ExchangeTransformer::new(subscription_map);
     // let transformer: ExchangeTransformer<Kraken, PublicTrades, KrakenTrades> = ExchangeTransformer::new(subscription_map);
-    let transformer: ExchangeTransformer<GateioFuturesUsd, PublicTrades, GateioFuturesTrades> = ExchangeTransformer::new(subscription_map);
-
+    let transformer: ExchangeTransformer<GateioFuturesUsd, PublicTrades, GateioFuturesTrades> =
+        ExchangeTransformer::new(subscription_map);
 
     let mut ws_stream = ExchangeWsStream::new(ws_stream, transformer);
     while let Some(event) = ws_stream.next().await {

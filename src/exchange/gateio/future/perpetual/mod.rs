@@ -9,12 +9,12 @@ use serde::Deserialize;
 /// [`GateioFuturesUsd`] server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const BASE_URL_GATEIO_FUTURES_USD: &'static str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
+pub const BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
 
 /// [`GateioFuturesBtc`] server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const BASE_URL_GATEIO_FUTURES_BTC: &'static str = "wss://fx-ws.gateio.ws/v4/ws/btc";
+pub const BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
 
 /// [`GateioFuturesUsd`] exchange.
 ///

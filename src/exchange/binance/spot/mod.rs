@@ -1,6 +1,6 @@
 use super::BinanceSubMeta;
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -9,7 +9,7 @@ use serde::Deserialize;
 /// [`BinanceSpot`] server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
-pub const BASE_URL_BINANCE_SPOT: &'static str = "wss://stream.binance.com:9443/ws";
+pub const BASE_URL_BINANCE_SPOT: &str = "wss://stream.binance.com:9443/ws";
 
 /// [`BinanceSpot`] exchange.
 ///

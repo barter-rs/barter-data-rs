@@ -1,12 +1,12 @@
 use crate::{
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
 };
 use barter_integration::{
     error::SocketError,
-    model::{SubscriptionId, InstrumentKind},
+    model::{InstrumentKind, SubscriptionId},
     protocol::websocket::WsMessage,
-    Validator
+    Validator,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -70,7 +70,7 @@ where
                 InstrumentKind::FuturePerpetual => {
                     format!("{}-{}-SWAP", sub.instrument.base, sub.instrument.quote).to_uppercase()
                 }
-            }
+            },
         }
     }
 
@@ -80,7 +80,7 @@ where
                 "op": "subscribe",
                 "args": &subscriptions,
             })
-            .to_string()
+            .to_string(),
         )]
     }
 }
@@ -124,7 +124,7 @@ pub enum OkxSubResponse {
     Error {
         code: String,
         #[serde(rename = "msg")]
-        message: String
+        message: String,
     },
 }
 

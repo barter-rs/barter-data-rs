@@ -1,7 +1,4 @@
-use barter_integration::{
-    error::SocketError,
-    Validator,
-};
+use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
 /// Gateio WebSocket message.
@@ -66,14 +63,14 @@ pub struct GateioSubResult {
 impl Validator for GateioMessage<GateioSubResult> {
     fn validate(self) -> Result<Self, SocketError>
     where
-        Self: Sized
+        Self: Sized,
     {
         match &self.error {
             None => Ok(self),
             Some(failure) => Err(SocketError::Subscribe(format!(
                 "received failure subscription response code: {} with message: {}",
                 failure.code, failure.message,
-            )))
+            ))),
         }
     }
 }

@@ -1,15 +1,15 @@
 use self::domain::{GateioMessage, GateioSubResult};
 use crate::{
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
 };
 use barter_integration::{
     model::{InstrumentKind, SubscriptionId},
     protocol::websocket::WsMessage,
 };
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use chrono::Utc;
 
 /// Todo:
 pub mod domain;
@@ -27,7 +27,6 @@ impl GateioChannel {
     ///
     /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
     const SPOT_TRADES: Self = Self("spot.trades");
-
 
     /// Gateio [`InstrumentKind::FuturePerpetual`] real-time trades channel.
     ///
@@ -73,7 +72,7 @@ where
     {
         Self {
             channel: sub.id(),
-            market: format!("{}_{}", sub.instrument.base, sub.instrument.quote).to_uppercase()
+            market: format!("{}_{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
         }
     }
 
@@ -88,7 +87,7 @@ where
                         "event": "subscribe",
                         "payload": [market]
                     })
-                    .to_string()
+                    .to_string(),
                 )
             })
             .collect()
@@ -102,4 +101,3 @@ where
 pub(crate) fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
     SubscriptionId::from(format!("{}|{}", channel, market))
 }
-

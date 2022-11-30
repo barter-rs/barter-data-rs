@@ -1,8 +1,6 @@
-use super::{
-    CoinbaseSubMeta
-};
+use super::CoinbaseSubMeta;
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -11,7 +9,7 @@ use serde::{Deserialize, Serialize};
 /// [`CoinbasePro`] server base url.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview>
-pub const BASE_URL_COINBASE_PRO: &'static str = "wss://ws-feed.exchange.coinbase.com";
+pub const BASE_URL_COINBASE_PRO: &str = "wss://ws-feed.exchange.coinbase.com";
 
 /// [`CoinbasePro`] exchange.
 ///
@@ -27,7 +25,7 @@ impl ExchangeIdentifier for CoinbasePro {
 
 impl<CoinbaseEvent> ExchangeMeta<CoinbaseEvent> for CoinbasePro
 where
-    CoinbaseEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
+    CoinbaseEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = CoinbaseSubMeta;
 

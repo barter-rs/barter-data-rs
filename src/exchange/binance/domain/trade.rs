@@ -1,12 +1,12 @@
-use super::super::{BinanceChannel, subscription_id};
-use crate::{model::{Market, MarketIter, PublicTrade}, exchange::{
-    ExchangeId,
-}, Identifier};
-use barter_integration::{
-    model::{Exchange, Instrument, Side, SubscriptionId},
+use super::super::{subscription_id, BinanceChannel};
+use crate::{
+    exchange::ExchangeId,
+    model::{Market, MarketIter, PublicTrade},
+    Identifier,
 };
-use serde::{Deserialize, Serialize};
+use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Binance real-time trade message.
 ///
@@ -19,7 +19,10 @@ use chrono::{DateTime, Utc};
 pub struct BinanceTrade {
     #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(alias = "T", deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        alias = "T",
+        deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
+    )]
     pub time: DateTime<Utc>,
     #[serde(alias = "t")]
     pub id: u64,
@@ -48,8 +51,8 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketIter<PublicTrade> {
                 id: trade.id.to_string(),
                 price: trade.price,
                 amount: trade.amount,
-                side: trade.side
-            }
+                side: trade.side,
+            },
         })])
     }
 }

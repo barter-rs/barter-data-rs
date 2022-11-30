@@ -1,12 +1,12 @@
 use super::BinanceChannel;
 use crate::{
     exchange::ExchangeId,
-    model::{Market, MarketIter, Liquidation},
+    model::{Liquidation, Market, MarketIter},
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// [`BinanceFuturesUsd`] Liquidation order message.
 ///
@@ -35,8 +35,8 @@ pub struct BinanceLiquidationOrder {
     pub quantity: f64,
 
     #[serde(
-    alias = "T",
-    deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
+        alias = "T",
+        deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
 }
@@ -48,7 +48,9 @@ impl Identifier<SubscriptionId> for BinanceLiquidation {
 }
 
 impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketIter<Liquidation> {
-    fn from((exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation)) -> Self {
+    fn from(
+        (exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation),
+    ) -> Self {
         Self(vec![Ok(Market {
             exchange_time: liquidation.order.time,
             received_time: Utc::now(),
@@ -59,7 +61,7 @@ impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketIter<Liquidati
                 price: liquidation.order.price,
                 quantity: liquidation.order.quantity,
                 time: liquidation.order.time,
-            }
+            },
         })])
     }
 }
@@ -70,6 +72,7 @@ pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<Subscri
 where
     D: serde::de::Deserializer<'de>,
 {
-    Deserialize::deserialize(deserializer)
-        .map(|market: String| SubscriptionId::from(format!("{}|{}", BinanceChannel::LIQUIDATIONS.0, market)))
+    Deserialize::deserialize(deserializer).map(|market: String| {
+        SubscriptionId::from(format!("{}|{}", BinanceChannel::LIQUIDATIONS.0, market))
+    })
 }

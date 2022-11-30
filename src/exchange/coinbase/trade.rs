@@ -1,15 +1,12 @@
-use super::{CoinbaseChannel, subscription_id};
+use super::{subscription_id, CoinbaseChannel};
 use crate::{
-    Identifier,
+    exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
-    exchange::{ExchangeId},
+    Identifier,
 };
-use barter_integration::{
-    model::{Exchange, Instrument, Side, SubscriptionId},
-};
-use serde::{Deserialize, Serialize};
+use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
-
+use serde::{Deserialize, Serialize};
 
 /// Coinbase real-time trade WebSocket message.
 ///
@@ -46,7 +43,7 @@ impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketIter<PublicTrade> {
                 price: trade.price,
                 amount: trade.amount,
                 side: trade.side,
-            }
+            },
         })])
     }
 }
@@ -63,11 +60,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use super::*;
+    use barter_integration::error::SocketError;
     use chrono::NaiveDateTime;
     use serde::de::Error;
-    use barter_integration::error::SocketError;
-    use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn test_de_coinbase_trade() {

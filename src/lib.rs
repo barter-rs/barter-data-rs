@@ -11,21 +11,22 @@ use crate::{
     model::{Market, MarketIter},
     subscriber::subscription::{SubKind, SubscriptionMap},
 };
+use barter_integration::model::SubscriptionId;
 use barter_integration::{
     error::SocketError,
-    ExchangeStream,
     model::Instrument,
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream}, Transformer,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
+    ExchangeStream, Transformer,
 };
-use std::marker::PhantomData;
-use serde::Deserialize;
+use exchange::ExchangeMeta;
 use futures::SinkExt;
+use serde::Deserialize;
+use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::error;
-use barter_integration::model::SubscriptionId;
-use exchange::ExchangeMeta;
 
-
+pub mod exchange;
+pub mod model;
 ///! # Barter-Data
 
 // /// Core data structures to support consuming [`MarketStream`]s.
@@ -38,43 +39,40 @@ use exchange::ExchangeMeta;
 // /// [`Subscription`]s.
 // pub mod builder;
 
-
 /// Todo:
 pub mod subscriber;
-pub mod exchange;
-pub mod model;
 pub mod util;
 
-
-// Todo:
-//  - normalise module structure. ie/ use domain consistently
-//  - SubscriptionIdentifier - find way to do ref in same impl maybe with Cow? AsRef etc?
+// Todo - Train:
+//  1. Kraken broken by heartbeat LOL - fix with KrakenMessage<T> etc.
+//  2. Normalise module structure. ie/ use domain consistently, or don't.
+//  3. Identifier<SubscriptionId> - find way to do ref in same impl maybe with Cow? AsRef etc?
 //    '--> Can it be same as Identifier w/ some magic deref craziness?
-//  - Kraken broken by heartbeat LOL - fix
-//  - Newtype for `PairSymbol(String)` with convenience methods for delimiters & casing :)
+//  4. Go through and add derives #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+//  5. Move all deserialisers in utils to barter-integration imports
+//  6. Add TradeId new type to barter-integration -> is there one in barter-integration to move?
+
+// Todo Later:
+//  - SubscriptionId should probably contain a reference to a String... then use serde borrow
+//   '-- the gats here will probably complicate generics so do it after simplifying...
 //  - Search for todos and fix.
 //  - Uncommon clippy warnings at top of this file & fix lints
 //  - Add tests from historical code we have on github as i've deleted a bunch of de tests
 //  - Add logging in key places! debug too
+//  - Newtype for `PairSymbol(String)` with convenience methods for delimiters & casing :)
 //  - Impl validate for Subscription<Exchange, Kind>
 //  - Check links on exchanges i've seen some strange copy paste...
 //  - Subscriber becomes generic rather than hard-coded WebSocket
 //   '--> Same with SubscriptionMeta::WsMessage, etc
 //  - Try to remove WebSocketSubscriber phantom generics, including sub event
-//  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit since it's not 1-to-1 with ExchangeEvent
-//  - Go through and add derives #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+//  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit atm since it's not 1-to-1 with ExchangeEvent
 //  - Go through and select appropriate access modifiers for everything
 //  - Go through and add tests from develop branch for each part that I've left out (fine tooth comb)
-//  - SubscriptionId should probably contain a reference to a String... then use serde borrow
 //  - Coinbase Pro has some initial snapshot that's coming through after sub validation succeeds...?
-//  - Add TradeId new type to barter-integration, etc.
-//  - Move all deserialisers in utils to barter-integration imports
-
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Exchange: Transformer> = ExchangeStream<
-    WebSocketParser, WsStream, Exchange, Exchange::Output
->;
+pub type ExchangeWsStream<Exchange: Transformer> =
+    ExchangeStream<WebSocketParser, WsStream, Exchange, Exchange::Output>;
 
 pub trait ExchangeIdentifier {
     fn exchange_id() -> ExchangeId;
@@ -89,7 +87,8 @@ pub struct ExchangeTransformer<Exchange, Kind, ExchangeEvent> {
     phantom: PhantomData<(Exchange, ExchangeEvent)>,
 }
 
-impl<Exchange, Kind, ExchangeEvent> Transformer for ExchangeTransformer<Exchange, Kind, ExchangeEvent>
+impl<Exchange, Kind, ExchangeEvent> Transformer
+    for ExchangeTransformer<Exchange, Kind, ExchangeEvent>
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
@@ -105,10 +104,10 @@ where
         match self.subscription_map.find_instrument(&event.id()) {
             Ok(instrument) => {
                 MarketIter::<Kind::Event>::from((Exchange::exchange_id(), instrument, event)).0
-            },
+            }
             Err(unidentifiable) => {
                 vec![Err(unidentifiable)]
-            },
+            }
         }
     }
 }
@@ -117,7 +116,7 @@ impl<Exchange, Kind, ExchangeEvent> ExchangeTransformer<Exchange, Kind, Exchange
     pub fn new(subscription_map: SubscriptionMap<Kind>) -> Self {
         Self {
             subscription_map,
-            phantom: PhantomData::<(Exchange, ExchangeEvent)>::default()
+            phantom: PhantomData::<(Exchange, ExchangeEvent)>::default(),
         }
     }
 }

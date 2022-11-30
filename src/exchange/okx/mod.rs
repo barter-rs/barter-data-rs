@@ -1,6 +1,6 @@
 use self::domain::OkxSubMeta;
 use crate::{
-    exchange::{ExchangeMeta, ExchangeId},
+    exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -12,7 +12,7 @@ pub mod domain;
 /// [`Okx`] server base url.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#overview-api-resources-and-support>
-pub const BASE_URL_OKX: &'static str = "wss://wsaws.okx.com:8443/ws/v5/public";
+pub const BASE_URL_OKX: &str = "wss://wsaws.okx.com:8443/ws/v5/public";
 
 /// Todo:
 ///
@@ -28,7 +28,7 @@ impl ExchangeIdentifier for Okx {
 
 impl<OkxEvent> ExchangeMeta<OkxEvent> for Okx
 where
-    OkxEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>
+    OkxEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = OkxSubMeta;
 
