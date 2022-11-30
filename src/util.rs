@@ -26,12 +26,21 @@ where
 }
 
 /// Deserialize a &str "u64" as `DateTime<Utc>`.
-pub fn de_str_epoch_ms_as_datetime_utc<'de, D>(deserializer: D) -> Result<chrono::DateTime<chrono::Utc>, D::Error>
+pub fn de_str_u64_epoch_ms_as_datetime_utc<'de, D>(deserializer: D) -> Result<chrono::DateTime<chrono::Utc>, D::Error>
 where
     D: serde::de::Deserializer<'de>,
 {
     de_str(deserializer)
         .map(|epoch_ms| datetime_utc_from_epoch_duration(Duration::from_millis(epoch_ms)))
+}
+
+/// Deserialize a &str "f64" as `DateTime<Utc>`.
+pub fn de_str_f64_epoch_ms_as_datetime_utc<'de, D>(deserializer: D) -> Result<chrono::DateTime<chrono::Utc>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+{
+    de_str(deserializer)
+        .map(|epoch_ms: f64| datetime_utc_from_epoch_duration(Duration::from_millis(epoch_ms as u64)))
 }
 
 /// Assists deserialisation of sequences by attempting to extract & parse the next element in the
