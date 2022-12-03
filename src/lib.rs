@@ -5,6 +5,19 @@
     // missing_docs
 )]
 
+//! # Barter-Data
+//! A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency
+//! exchanges - batteries included. It is:
+//! * **Easy**: Barter-Data's simple StreamBuilder interface allows for easy & quick setup (see example below!).
+//! * **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
+//! * **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
+//! * **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to with coding new integrations!
+//!
+//! See [`Readme`].
+//!
+//! [`Readme`]: https://crates.io/crates/barter
+//! Todo: Getting started
+
 use crate::model::{
     subscription::{Subscription, SubscriptionIds, SubscriptionMeta},
     MarketEvent,
@@ -24,8 +37,6 @@ use std::{
 };
 use tokio::sync::mpsc;
 use tracing::error;
-
-///! # Barter-Data
 
 /// Core data structures to support consuming [`MarketStream`]s.
 ///
@@ -216,6 +227,7 @@ pub enum ExchangeId {
     Coinbase,
     Ftx,
     Kraken,
+    Bitfinex,
 }
 
 impl From<ExchangeId> for Exchange {
@@ -240,6 +252,7 @@ impl ExchangeId {
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::Bitfinex => "bitfinex",
         }
     }
 
@@ -251,6 +264,7 @@ impl ExchangeId {
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::Ftx => "ftx",
             ExchangeId::Kraken => "kraken",
+            ExchangeId::Bitfinex => "bitfinex",
         }
     }
 
@@ -291,6 +305,7 @@ impl ExchangeId {
     pub fn supports_candles(&self) -> bool {
         match self {
             ExchangeId::Kraken => true,
+            ExchangeId::Bitfinex => true,
             _ => false,
         }
     }
@@ -407,7 +422,7 @@ pub mod test_util {
                 low: 950.0,
                 close: 1000.0,
                 volume: 100000.0,
-                trade_count: 1000,
+                trade_count: Some(1000),
             }),
         }
     }

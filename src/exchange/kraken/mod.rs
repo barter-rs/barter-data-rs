@@ -372,7 +372,7 @@ mod tests {
                         low: 1000.60000,
                         close: 3586.60000,
                         volume: 0.03373000,
-                        trade_count: 50000,
+                        trade_count: Some(50000),
                     }),
                 })],
             },

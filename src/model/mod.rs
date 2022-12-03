@@ -48,7 +48,7 @@ pub struct Candle {
     pub low: f64,
     pub close: f64,
     pub volume: f64,
-    pub trade_count: u64,
+    pub trade_count: Option<u64>,
 }
 
 /// Normalised Barter [`OrderBook`] snapshot.
