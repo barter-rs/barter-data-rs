@@ -13,7 +13,8 @@ pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;
 
 /// Gateio Spot real-time trade WebSocket message.
 ///
-/// Example:
+/// ## Examples
+/// ### Spot Sell Trade
 /// ```json
 /// {
 ///   "id": 309143071,

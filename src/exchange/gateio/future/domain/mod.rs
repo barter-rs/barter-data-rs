@@ -13,7 +13,8 @@ pub type GateioFuturesTrades = GateioMessage<Vec<GateioFuturesTradeInner>>;
 
 /// Gateio FuturePerpetual real-time trade WebSocket message.
 ///
-/// Example:
+/// ## Examples
+/// ### FuturePerpetual Sell Trade
 /// ```json
 /// {
 ///   "size": -108,

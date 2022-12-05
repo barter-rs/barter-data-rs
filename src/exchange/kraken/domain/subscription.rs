@@ -90,7 +90,8 @@ pub(crate) fn subscription_id(channel: KrakenChannel, market: &str) -> Subscript
 
 /// [`Kraken`] message received in response to WebSocket subscription requests.
 ///
-/// Example: Subscription Ok Response
+/// ## Examples
+/// ### Subscription Trade Ok Response
 /// ```json
 /// {
 ///   "channelID": 10001,
@@ -104,7 +105,7 @@ pub(crate) fn subscription_id(channel: KrakenChannel, market: &str) -> Subscript
 /// }
 /// ```
 ///
-/// Example: Subscription Err Response
+/// ### Subscription Trade Error Response
 /// ```json
 /// {
 ///   "errorMessage": "Subscription name invalid",

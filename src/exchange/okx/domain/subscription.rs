@@ -92,7 +92,8 @@ pub(crate) fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
 
 /// [`Okx`] WebSocket subscription response.
 ///
-/// Example Success:
+/// ## Examples
+/// ### Subscription Trades Ok Response
 /// ```json
 /// {
 ///   "event": "subscribe",
@@ -103,7 +104,7 @@ pub(crate) fn subscription_id(channel: &str, market: &str) -> SubscriptionId {
 /// }
 /// ```
 ///
-/// Example Failure:
+/// ### Subscription Trades Error Response
 /// ```json
 /// {
 ///   "event": "error",

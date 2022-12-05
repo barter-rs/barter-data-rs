@@ -44,7 +44,8 @@ impl From<(ExchangeId, Instrument, KrakenMessage)> for MarketIter<PublicTrade> {
 /// eg/ [`Kraken`] sends a [`KrakenEvent::Heartbeat`] if no subscription traffic has been sent
 /// within the last second.
 ///
-/// Example: Heartbeat
+/// ## Examples
+/// ### Heartbeat
 /// ```json
 /// {
 ///   "event": "heartbeat"
@@ -65,7 +66,8 @@ pub enum KrakenEvent {
 /// be used flexible as a [`KrakenSubResponse::Error`](KrakenSubResponse) or as a generic error
 /// received over the WebSocket while subscriptions are active.
 ///
-/// Example: Subscription Err Response Message
+/// ## Examples
+/// ### Subscription Error Response
 /// ```json
 /// {
 ///   "errorMessage": "Subscription depth not supported"

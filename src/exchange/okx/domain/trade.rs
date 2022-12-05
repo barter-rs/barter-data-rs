@@ -13,7 +13,8 @@ pub type OkxTrades = OkxMessage<OkxTrade>;
 
 /// [`Okx`] market data WebSocket message.
 ///
-/// Example Trade:
+/// ## Examples
+/// ### Spot Buy Trade
 /// ```json
 /// {
 ///   "arg": {
@@ -52,7 +53,8 @@ impl<T> Identifier<Option<SubscriptionId>> for OkxMessage<T> {
 
 /// [`Okx`] real-time trade WebSocket message.
 ///
-/// Example:
+/// ## Examples
+/// ### Spot Buy Trade
 /// ```json
 /// {
 ///   "instId": "BTC-USDT",

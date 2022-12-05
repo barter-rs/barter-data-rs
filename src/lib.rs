@@ -25,9 +25,10 @@ use std::marker::PhantomData;
 use tokio::sync::mpsc;
 use tracing::error;
 
+///! # Barter-Data
+///
 pub mod exchange;
 pub mod model;
-///! # Barter-Data
 
 // /// Core data structures to support consuming [`MarketStream`]s.
 // ///

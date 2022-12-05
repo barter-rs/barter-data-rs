@@ -5,7 +5,8 @@ pub mod subscription;
 
 /// Gateio WebSocket message.
 ///
-/// Example: Subscription Ok Response
+/// ## Examples
+/// ### Subscription Trades Ok Response
 /// ```json
 /// {
 ///   "time": 1606292218,
@@ -17,7 +18,7 @@ pub mod subscription;
 ///     }
 /// }
 /// ```
-/// Example: Trade
+/// ### Spot Sell Trade
 /// ```json
 /// {
 ///   "time": 1606292218,
