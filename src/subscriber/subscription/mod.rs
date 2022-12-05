@@ -22,7 +22,7 @@ pub mod trade;
 pub trait ExchangeSubscription<ExchangeEvent>
 where
     Self: Identifier<SubscriptionId> + Sized,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type Channel;
     type SubResponse: Validator + DeserializeOwned;

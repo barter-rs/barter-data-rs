@@ -1,4 +1,4 @@
-use super::{BinanceChannel, BinanceSubMeta};
+use super::domain::subscription::BinanceSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
@@ -7,7 +7,7 @@ use barter_integration::model::SubscriptionId;
 use serde::Deserialize;
 
 /// Todo:
-pub mod liquidation;
+pub mod domain;
 
 /// [`BinanceFuturesUsd`] server base url.
 ///
@@ -28,7 +28,7 @@ impl ExchangeIdentifier for BinanceFuturesUsd {
 
 impl<BinanceEvent> ExchangeMeta<BinanceEvent> for BinanceFuturesUsd
 where
-    BinanceEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    BinanceEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = BinanceSubMeta;
 

@@ -13,7 +13,7 @@ pub trait SubscriptionMapper {
     where
         Kind: SubKind,
         ExchangeSub: ExchangeSubscription<ExchangeEvent>,
-        ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+        ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
         Subscription<Kind>:
             Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>;
 }
@@ -27,7 +27,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
     where
         Kind: SubKind,
         ExchangeSub: ExchangeSubscription<ExchangeEvent>,
-        ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+        ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
         Subscription<Kind>:
             Identifier<<ExchangeSub as ExchangeSubscription<ExchangeEvent>>::Channel>,
     {

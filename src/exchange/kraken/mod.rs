@@ -1,4 +1,4 @@
-use self::domain::KrakenSubMeta;
+use domain::subscription::KrakenSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
@@ -27,7 +27,7 @@ impl ExchangeIdentifier for Kraken {
 
 impl<KrakenEvent> ExchangeMeta<KrakenEvent> for Kraken
 where
-    KrakenEvent: Identifier<SubscriptionId> + ExchangeIdentifier + for<'de> Deserialize<'de>,
+    KrakenEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = KrakenSubMeta;
 

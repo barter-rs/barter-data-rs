@@ -1,7 +1,7 @@
-use self::domain::{GateioMessage, GateioSubResult};
+use self::domain::GateioMessage;
 use crate::{
-    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
+    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
 };
 use barter_integration::{
     model::{InstrumentKind, SubscriptionId},
@@ -10,6 +10,7 @@ use barter_integration::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use domain::subscription::GateioSubResult;
 
 /// Todo:
 pub mod domain;
@@ -60,7 +61,7 @@ impl Identifier<SubscriptionId> for GateioSubMeta {
 
 impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for GateioSubMeta
 where
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type Channel = GateioChannel;
     type SubResponse = GateioMessage<GateioSubResult>;

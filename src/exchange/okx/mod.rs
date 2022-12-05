@@ -1,4 +1,4 @@
-use self::domain::OkxSubMeta;
+use domain::subscription::OkxSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
@@ -28,7 +28,7 @@ impl ExchangeIdentifier for Okx {
 
 impl<OkxEvent> ExchangeMeta<OkxEvent> for Okx
 where
-    OkxEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    OkxEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = OkxSubMeta;
 

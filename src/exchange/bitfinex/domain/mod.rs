@@ -1,5 +1,5 @@
 
 
 /// Todo:
-pub mod trade;
 pub mod subscription;
+pub mod trade;

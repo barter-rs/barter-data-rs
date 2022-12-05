@@ -30,7 +30,7 @@ impl ExchangeIdentifier for GateioFuturesUsd {
 
 impl<GateioEvent> ExchangeMeta<GateioEvent> for GateioFuturesUsd
 where
-    GateioEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    GateioEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = GateioSubMeta;
 
@@ -53,7 +53,7 @@ impl ExchangeIdentifier for GateioFuturesBtc {
 
 impl<GateioEvent> ExchangeMeta<GateioEvent> for GateioFuturesBtc
 where
-    GateioEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    GateioEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = GateioSubMeta;
 

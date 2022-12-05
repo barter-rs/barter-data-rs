@@ -31,7 +31,7 @@ pub trait Subscriber<Exchange, Kind, ExchangeEvent>
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     Subscription<Kind>: Identifier<
         <<Exchange as ExchangeMeta<ExchangeEvent>>::ExchangeSub as ExchangeSubscription<
             ExchangeEvent,
@@ -58,7 +58,7 @@ impl<Exchange, Kind, ExchangeEvent> Subscriber<Exchange, Kind, ExchangeEvent>
 where
     Exchange: ExchangeMeta<ExchangeEvent> + Sync,
     Kind: SubKind + Send + Sync,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de> + Sync,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de> + Sync,
     Subscription<Kind>: Identifier<
         <<Exchange as ExchangeMeta<ExchangeEvent>>::ExchangeSub as ExchangeSubscription<
             ExchangeEvent,

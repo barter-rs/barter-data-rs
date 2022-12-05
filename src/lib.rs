@@ -41,35 +41,37 @@ pub mod model;
 
 /// Todo:
 pub mod subscriber;
-pub mod util;
 
-// Todo - Train:
-//  BONUS: look into OrderBook transformer?
-//  1. Kraken broken by heartbeat LOL - fix with KrakenMessage<T> etc.
-//  2. Normalise module structure. ie/ use domain consistently, or don't.
-//  3. Identifier<SubscriptionId> - find way to do ref in same impl maybe with Cow? AsRef etc?
-//    '--> Can it be same as Identifier w/ some magic deref craziness?
-//  4. Go through and add derives #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-//  5. Move all deserialisers in utils to barter-integration imports
-//  6. Add TradeId new type to barter-integration -> is there one in barter-integration to move?
+// Todo: Next
+//  0. Implement Bitfinex trades using code from MR
+//  1. Look into adding an OrderBook transformer that uses http
 
-// Todo Later:
-//  - SubscriptionId should probably contain a reference to a String... then use serde borrow
+// Todo: Important & May Cause Large Changes
+//  0. Add TradeId new type to barter-integration -> is there one in barter-execution to move?
+//  1. SubscriptionId should probably contain a reference to a String... then use serde borrow
 //   '-- the gats here will probably complicate generics so do it after simplifying...
-//  - Search for todos and fix.
-//  - Uncommon clippy warnings at top of this file & fix lints
-//  - Add tests from historical code we have on github as i've deleted a bunch of de tests
-//  - Add logging in key places! debug too
-//  - Newtype for `PairSymbol(String)` with convenience methods for delimiters & casing :)
-//  - Impl validate for Subscription<Exchange, Kind>
-//  - Check links on exchanges i've seen some strange copy paste...
-//  - Subscriber becomes generic rather than hard-coded WebSocket
-//   '--> Same with SubscriptionMeta::WsMessage, etc
-//  - Try to remove WebSocketSubscriber phantom generics, including sub event
-//  - ExchangeSubscription to ExchangeSubMeta? Doesn't seem to really fit atm since it's not 1-to-1 with ExchangeEvent
-//  - Go through and select appropriate access modifiers for everything
-//  - Go through and add tests from develop branch for each part that I've left out (fine tooth comb)
-//  - Coinbase Pro has some initial snapshot that's coming through after sub validation succeeds...?
+//   '--> Identifier<&SubscriptionId> etc. or use Cow inside SubscriptionId like Exchange?
+
+// Todo: Simplification of generics & design
+
+// Todo: Nice To Have Once Complicated Is Over
+//  0. Subscriber becomes generic rather than hard-coded WebSocket
+//     '--> Same with SubscriptionMeta::WsMessage, etc
+//  1. Impl validate for Subscription<Exchange, Kind> -> May require generic Exchange...
+//  2. Is it possible to remove enum from KrakenMessage? Way to do this properly so I can remove Identifier<Option<SubscriptionId>>?
+
+// Todo: Just before release
+//  0. Logging in key place, including debug statements.
+//  1. Search for todos & action.
+//  2. Go through and add tests from develop branch for each part that I've left out (fine tooth comb)
+//  3. Normalise code comments & check links on exchanges.
+//  4. Access modifiers on everything
+//  5. Add maximum derives on everything. #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+//  6. Uncomment clippy warnings at the top of this file & fix resulting warnings.
+//  7. Test all exchanges again
+
+// Todo: Front-End
+//  0. Update builder, etc.
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Exchange: Transformer> =
@@ -93,7 +95,7 @@ impl<Exchange, Kind, ExchangeEvent> Transformer
 where
     Exchange: ExchangeMeta<ExchangeEvent>,
     Kind: SubKind,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, ExchangeEvent)>,
 {
     type Input = ExchangeEvent;
@@ -101,8 +103,14 @@ where
     type OutputIter = Vec<Result<Self::Output, SocketError>>;
 
     fn transform(&mut self, event: Self::Input) -> Self::OutputIter {
+        // Determine if the message has an identifiable SubscriptionId
+        let subscription_id = match event.id() {
+            Some(subscription_id) => subscription_id,
+            None => return vec![]
+        };
+
         // Find Instrument associated with Input and transform
-        match self.subscription_map.find_instrument(&event.id()) {
+        match self.subscription_map.find_instrument(&subscription_id) {
             Ok(instrument) => {
                 MarketIter::<Kind::Event>::from((Exchange::exchange_id(), instrument, event)).0
             }

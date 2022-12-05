@@ -1,8 +1,8 @@
-use super::super::{subscription_id, BinanceChannel};
+use super::subscription::{BinanceChannel, subscription_id};
 use crate::{
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
     Identifier,
+    model::{Market, MarketIter, PublicTrade},
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
@@ -21,22 +21,22 @@ pub struct BinanceTrade {
     pub subscription_id: SubscriptionId,
     #[serde(
         alias = "T",
-        deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
     #[serde(alias = "t")]
     pub id: u64,
-    #[serde(alias = "p", deserialize_with = "crate::util::de_str")]
+    #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
-    #[serde(alias = "q", deserialize_with = "crate::util::de_str")]
+    #[serde(alias = "q", deserialize_with = "barter_integration::de::de_str")]
     pub amount: f64,
     #[serde(alias = "m", deserialize_with = "de_side_from_buyer_is_maker")]
     pub side: Side,
 }
 
-impl Identifier<SubscriptionId> for BinanceTrade {
-    fn id(&self) -> SubscriptionId {
-        self.subscription_id.clone()
+impl Identifier<Option<SubscriptionId>> for BinanceTrade {
+    fn id(&self) -> Option<SubscriptionId> {
+        Some(self.subscription_id.clone())
     }
 }
 

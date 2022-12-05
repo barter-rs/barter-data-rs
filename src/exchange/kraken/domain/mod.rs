@@ -1,124 +1,62 @@
+use self::trade::KrakenTrades;
 use crate::{
-    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
+    exchange::ExchangeId,
+    model::{MarketIter, PublicTrade}
 };
-use barter_integration::{
-    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
-};
+use barter_integration::model::{Instrument, SubscriptionId};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
 /// Todo:
 pub mod trade;
+pub mod subscription;
 
-/// Todo:
+
+/// [`Kraken`] message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
-/// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
-pub struct KrakenChannel(&'static str);
-
-impl KrakenChannel {
-    /// [`Kraken`] real-time trades channel name.
-    ///
-    /// See docs: <> Todo:
-    const TRADES: Self = Self("trade");
+/// See docs: <https://docs.kraken.com/websockets/#overview>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[serde(untagged, rename_all = "snake_case")]
+pub enum KrakenMessage {
+    Trades(KrakenTrades),
+    Event(KrakenEvent),
 }
 
-impl Identifier<KrakenChannel> for Subscription<PublicTrades> {
-    fn id(&self) -> KrakenChannel {
-        KrakenChannel::TRADES
-    }
-}
-
-/// Todo:
-///
-/// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
-pub struct KrakenSubMeta {
-    channel: KrakenChannel,
-    market: String,
-}
-
-impl Identifier<SubscriptionId> for KrakenSubMeta {
-    fn id(&self) -> SubscriptionId {
-        subscription_id(self.channel, &self.market)
-    }
-}
-
-impl<ExchangeEvent> ExchangeSubscription<ExchangeEvent> for KrakenSubMeta
-where
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
-{
-    type Channel = KrakenChannel;
-    type SubResponse = KrakenSubResponse;
-
-    fn new<Kind>(sub: &Subscription<Kind>) -> Self
-    where
-        Kind: SubKind,
-        Subscription<Kind>: Identifier<Self::Channel>,
-    {
-        Self {
-            channel: sub.id(),
-            market: format!("{}/{}", sub.instrument.base, sub.instrument.quote).to_uppercase(),
+impl Identifier<Option<SubscriptionId>> for KrakenMessage {
+    fn id(&self) -> Option<SubscriptionId> {
+        match self {
+            KrakenMessage::Trades(trades) => Some(trades.subscription_id.clone()),
+            KrakenMessage::Event(_) => None
         }
     }
+}
 
-    fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage> {
-        subscriptions
-            .into_iter()
-            .map(|Self { channel, market }| {
-                WsMessage::Text(
-                    json!({
-                        "event": "subscribe",
-                        "pair": [market],
-                        "subscription": {
-                            "name": channel.0
-                        }
-                    })
-                    .to_string(),
-                )
-            })
-            .collect()
+impl From<(ExchangeId, Instrument, KrakenMessage)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, KrakenMessage)) -> Self {
+        match message {
+            KrakenMessage::Trades(trades) => Self::from((exchange_id, instrument, trades)),
+            KrakenMessage::Event(_) => Self(vec![])
+        }
     }
 }
 
-/// Generate a [`Kraken`] [`SubscriptionId`] from the channel and market provided.
+/// [`Kraken`] messages received over the WebSocket which are not subscription data.
 ///
-/// Uses "channel|BASE/QUOTE":
-/// eg/ SubscriptionId::from("trade|XBT/USD")
-pub(crate) fn subscription_id(channel: KrakenChannel, market: &str) -> SubscriptionId {
-    SubscriptionId::from(format!("{}|{}", channel.0, market))
-}
-
-/// [`Kraken`] message received in response to WebSocket subscription requests.
+/// eg/ [`Kraken`] sends a [`KrakenEvent::Heartbeat`] if no subscription traffic has been sent
+/// within the last second.
 ///
-/// eg/ KrakenSubResponse::Subscribed {
-///     "channelID":337,
-///     "channelName":"trade",
-///     "event":"subscriptionStatus",
-///     "pair":"XBT/USD",
-///     "status":"subscribed",
-///     "subscription":{"name":"trade"}
+/// Example: Heartbeat
+/// ```json
+/// {
+///   "event": "heartbeat"
 /// }
-/// eg/ KrakenSubResponse::Error {
-///     "errorMessage":"Subscription name invalid",
-///     "event":"subscriptionStatus",
-///     "pair":"ETH/USD",
-///     "status":"error",
-///     "subscription":{"name":"trades"}
-/// }
+/// ```
 ///
-/// See docs: <https://docs.kraken.com/websockets/#message-subscriptionStatus>
+/// See docs: <https://docs.kraken.com/websockets/#message-heartbeat>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-#[serde(tag = "status", rename_all = "camelCase")]
-pub enum KrakenSubResponse {
-    Subscribed {
-        #[serde(alias = "channelID")]
-        channel_id: u64,
-        #[serde(alias = "channelName")]
-        channel_name: String,
-        pair: String,
-    },
+#[serde(tag = "event", rename_all = "camelCase")]
+pub enum KrakenEvent {
+    Heartbeat,
     Error(KrakenError),
 }
 
@@ -128,25 +66,17 @@ pub enum KrakenSubResponse {
 /// be used flexible as a [`KrakenSubResponse::Error`](KrakenSubResponse) or as a generic error
 /// received over the WebSocket while subscriptions are active.
 ///
+/// Example: Subscription Err Response Message
+/// ```json
+/// {
+///   "errorMessage": "Subscription depth not supported"
+/// }
+/// ```
+///
 /// See docs generic: <https://docs.kraken.com/websockets/#errortypes>
 /// See docs subscription failed: <https://docs.kraken.com/websockets/#message-subscriptionStatus>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct KrakenError {
     #[serde(alias = "errorMessage")]
     pub message: String,
-}
-
-impl Validator for KrakenSubResponse {
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized,
-    {
-        match &self {
-            KrakenSubResponse::Subscribed { .. } => Ok(self),
-            KrakenSubResponse::Error(error) => Err(SocketError::Subscribe(format!(
-                "received failure subscription response: {}",
-                error.message
-            ))),
-        }
-    }
 }

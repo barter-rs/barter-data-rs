@@ -10,6 +10,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+
 /// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
@@ -19,7 +20,7 @@ pub struct KrakenTrades {
     pub trades: Vec<KrakenTrade>,
 }
 
-/// `Kraken` trade.
+/// [`Kraken`] trade.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
@@ -31,17 +32,17 @@ pub struct KrakenTrade {
     pub side: Side,
 }
 
-impl Identifier<SubscriptionId> for KrakenTrades {
-    fn id(&self) -> SubscriptionId {
-        self.subscription_id.clone()
+impl Identifier<Option<SubscriptionId>> for KrakenTrades {
+    fn id(&self) -> Option<SubscriptionId> {
+        Some(self.subscription_id.clone())
     }
 }
 
 /// Todo:
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
-        "{}_{:?}_{}_{}",
-        trade.time, trade.side, trade.price, trade.amount
+        "{}_{}_{}_{}",
+        trade.time.timestamp_nanos(), trade.side, trade.price, trade.amount
     )
 }
 
@@ -183,5 +184,41 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
 
         // Use Visitor implementation to deserialise the KrakenTrade
         deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_de_kraken_trades() {
+        let message = r#"
+        [
+          0,
+          [
+            [
+              "5541.20000",
+              "0.15850568",
+              "1534614057.321597",
+              "s",
+              "l",
+              ""
+            ],
+            [
+              "6060.00000",
+              "0.02455000",
+              "1534614057.324998",
+              "b",
+              "l",
+              ""
+            ]
+          ],
+          "trade",
+          "XBT/USD"
+        ]
+        "#;
+
+        let trades = serde_json::from_str::<KrakenTrades>(message).unwrap();
+        assert_eq!(trades.trades.len(), 2);
     }
 }

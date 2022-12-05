@@ -9,12 +9,13 @@ pub mod coinbase;
 pub mod gateio;
 pub mod kraken;
 pub mod okx;
+pub mod bitfinex;
 
 /// Todo:
 pub trait ExchangeMeta<ExchangeEvent>
 where
     Self: ExchangeIdentifier + Clone,
-    ExchangeEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub: ExchangeSubscription<ExchangeEvent>;
 
@@ -27,7 +28,8 @@ where
 pub enum ExchangeId {
     BinanceFuturesUsd,
     BinanceSpot,
-    CoinbasePro,
+    Bitfinex,
+    Coinbase,
     GateioSpot,
     GateioFuturesUsd,
     GateioFuturesBtc,
@@ -53,7 +55,8 @@ impl ExchangeId {
         match self {
             ExchangeId::BinanceSpot => "binance_spot",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
-            ExchangeId::CoinbasePro => "coinbase_pro",
+            ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Coinbase => "coinbase",
             ExchangeId::GateioSpot => "gateio_spot",
             ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
             ExchangeId::GateioFuturesBtc => "gateio_futures_btc",

@@ -1,12 +1,12 @@
-use super::{subscription_id, CoinbaseChannel};
 use crate::{
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
     Identifier,
+    model::{Market, MarketIter, PublicTrade},
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::exchange::coinbase::domain::subscription::{CoinbaseChannel, subscription_id};
 
 /// Coinbase real-time trade WebSocket message.
 ///
@@ -18,16 +18,16 @@ pub struct CoinbaseTrade {
     #[serde(alias = "trade_id")]
     pub id: u64,
     pub time: DateTime<Utc>,
-    #[serde(alias = "size", deserialize_with = "crate::util::de_str")]
+    #[serde(alias = "size", deserialize_with = "barter_integration::de::de_str")]
     pub amount: f64,
-    #[serde(deserialize_with = "crate::util::de_str")]
+    #[serde(deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
     pub side: Side,
 }
 
-impl Identifier<SubscriptionId> for CoinbaseTrade {
-    fn id(&self) -> SubscriptionId {
-        self.subscription_id.clone()
+impl Identifier<Option<SubscriptionId>> for CoinbaseTrade {
+    fn id(&self) -> Option<SubscriptionId> {
+        Some(self.subscription_id.clone())
     }
 }
 

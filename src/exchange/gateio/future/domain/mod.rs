@@ -32,25 +32,21 @@ pub struct GateioFuturesTradeInner {
     pub market: String,
     #[serde(
         rename = "create_time_ms",
-        deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
     pub id: u64,
-    #[serde(deserialize_with = "crate::util::de_str")]
+    #[serde(deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
     #[serde(rename = "size")]
     pub amount: f64,
 }
 
-impl Identifier<SubscriptionId> for GateioFuturesTrades {
-    fn id(&self) -> SubscriptionId {
-        let market = self
-            .data
+impl Identifier<Option<SubscriptionId>> for GateioFuturesTrades {
+    fn id(&self) -> Option<SubscriptionId> {
+        self.data
             .first()
-            .map(|trade| trade.market.as_str())
-            .unwrap_or("unknown due to empty trades vector");
-
-        subscription_id(&self.channel, market)
+            .map(|trade| subscription_id(&self.channel, &trade.market))
     }
 }
 

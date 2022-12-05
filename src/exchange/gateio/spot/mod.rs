@@ -28,7 +28,7 @@ impl ExchangeIdentifier for GateioSpot {
 
 impl<GateioEvent> ExchangeMeta<GateioEvent> for GateioSpot
 where
-    GateioEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    GateioEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = GateioSubMeta;
 

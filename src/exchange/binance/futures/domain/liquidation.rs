@@ -1,4 +1,4 @@
-use super::BinanceChannel;
+use crate::exchange::binance::domain::subscription::BinanceChannel;
 use crate::{
     exchange::ExchangeId,
     model::{Liquidation, Market, MarketIter},
@@ -28,22 +28,22 @@ pub struct BinanceLiquidationOrder {
     #[serde(alias = "S")]
     pub side: Side,
 
-    #[serde(alias = "p", deserialize_with = "crate::util::de_str")]
+    #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
 
-    #[serde(alias = "q", deserialize_with = "crate::util::de_str")]
+    #[serde(alias = "q", deserialize_with = "barter_integration::de::de_str")]
     pub quantity: f64,
 
     #[serde(
         alias = "T",
-        deserialize_with = "crate::util::de_u64_epoch_ms_as_datetime_utc"
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
 }
 
-impl Identifier<SubscriptionId> for BinanceLiquidation {
-    fn id(&self) -> SubscriptionId {
-        self.order.subscription_id.clone()
+impl Identifier<Option<SubscriptionId>> for BinanceLiquidation {
+    fn id(&self) -> Option<SubscriptionId> {
+        Some(self.order.subscription_id.clone())
     }
 }
 

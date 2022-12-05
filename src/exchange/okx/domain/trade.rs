@@ -1,4 +1,4 @@
-use super::subscription_id;
+use crate::exchange::okx::domain::subscription::subscription_id;
 use crate::{
     exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
@@ -44,9 +44,9 @@ pub struct OkxMessage<T> {
     pub data: Vec<T>,
 }
 
-impl<T> Identifier<SubscriptionId> for OkxMessage<T> {
-    fn id(&self) -> SubscriptionId {
-        self.subscription_id.clone()
+impl<T> Identifier<Option<SubscriptionId>> for OkxMessage<T> {
+    fn id(&self) -> Option<SubscriptionId> {
+        Some(self.subscription_id.clone())
     }
 }
 
@@ -69,14 +69,14 @@ impl<T> Identifier<SubscriptionId> for OkxMessage<T> {
 pub struct OkxTrade {
     #[serde(rename = "tradeId")]
     pub id: String,
-    #[serde(rename = "px", deserialize_with = "crate::util::de_str")]
+    #[serde(rename = "px", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
-    #[serde(rename = "sz", deserialize_with = "crate::util::de_str")]
+    #[serde(rename = "sz", deserialize_with = "barter_integration::de::de_str")]
     pub amount: f64,
     pub side: Side,
     #[serde(
         rename = "ts",
-        deserialize_with = "crate::util::de_str_u64_epoch_ms_as_datetime_utc"
+        deserialize_with = "barter_integration::de::de_str_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
 }

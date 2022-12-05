@@ -1,4 +1,4 @@
-use super::BinanceSubMeta;
+use super::domain::subscription::BinanceSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
@@ -25,7 +25,7 @@ impl ExchangeIdentifier for BinanceSpot {
 
 impl<BinanceEvent> ExchangeMeta<BinanceEvent> for BinanceSpot
 where
-    BinanceEvent: Identifier<SubscriptionId> + for<'de> Deserialize<'de>,
+    BinanceEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type ExchangeSub = BinanceSubMeta;
 
