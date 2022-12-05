@@ -1,5 +1,5 @@
 use super::futures::BinanceFuturesUsd;
-use crate::model::{Level, Liquidation, OrderBook};
+use crate::model::{Level, Liquidation, OrderBookL2Snapshot};
 use crate::{
     model::{DataKind, PublicTrade},
     ExchangeId, MarketEvent,
@@ -96,6 +96,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.quantity,
                 side: trade.side,
+                sequence: None,
             }),
         }
     }
@@ -145,7 +146,7 @@ impl From<(ExchangeId, Instrument, BinanceOrderBook)> for MarketEvent {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            kind: DataKind::OrderBook(OrderBook {
+            kind: DataKind::OrderBook(OrderBookL2Snapshot {
                 last_update_time: snapshot.time,
                 last_update_id: snapshot.last_update_id,
                 bids: snapshot.bids.into_iter().map(Level::from).collect(),

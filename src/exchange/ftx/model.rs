@@ -87,6 +87,7 @@ impl From<(ExchangeId, Instrument, FtxTrade)> for MarketEvent {
                 price: trade.price,
                 quantity: trade.size,
                 side: trade.side,
+                sequence: None,
             }),
         }
     }

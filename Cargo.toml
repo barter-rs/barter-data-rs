@@ -18,10 +18,10 @@ categories = ["accessibility", "simulation"]
 barter-integration = "0.4.0"
 
 # Logging
-tracing = "0.1.36"
+tracing = "0.1.37"
 
 # Async
-tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread"] }
+tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread", "signal", "time"] }
 tokio-stream = { version = "0.1.9", features = ["sync"] }
 futures = "0.3.21"
 async-trait = "0.1.57"
@@ -38,3 +38,12 @@ ta = "0.5.0"
 
 # Misc
 chrono = {version = "0.4.21", features = ["serde"]}
+
+# L3 Orderbook last_n_events feature
+bounded-vec-deque = "0.1.1"
+
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+tracing-appender = "0.2.2"
+coinbase-pro-api = "0.2.0"
+anyhow = "1.0.65"
