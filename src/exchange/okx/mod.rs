@@ -1,9 +1,9 @@
-use domain::subscription::OkxSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
+use domain::subscription::OkxSubMeta;
 use serde::{Deserialize, Serialize};
 
 /// Todo:

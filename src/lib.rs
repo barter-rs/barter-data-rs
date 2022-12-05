@@ -106,7 +106,7 @@ where
         // Determine if the message has an identifiable SubscriptionId
         let subscription_id = match event.id() {
             Some(subscription_id) => subscription_id,
-            None => return vec![]
+            None => return vec![],
         };
 
         // Find Instrument associated with Input and transform

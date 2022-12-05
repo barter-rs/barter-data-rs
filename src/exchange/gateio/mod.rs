@@ -1,16 +1,16 @@
 use self::domain::GateioMessage;
 use crate::{
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
 };
 use barter_integration::{
     model::{InstrumentKind, SubscriptionId},
     protocol::websocket::WsMessage,
 };
 use chrono::Utc;
+use domain::subscription::GateioSubResult;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use domain::subscription::GateioSubResult;
 
 /// Todo:
 pub mod domain;

@@ -5,11 +5,11 @@ use std::fmt::{Display, Formatter};
 
 /// Todo:
 pub mod binance;
+pub mod bitfinex;
 pub mod coinbase;
 pub mod gateio;
 pub mod kraken;
 pub mod okx;
-pub mod bitfinex;
 
 /// Todo:
 pub trait ExchangeMeta<ExchangeEvent>

@@ -1,8 +1,8 @@
-use super::subscription::{BinanceChannel, subscription_id};
+use super::subscription::{subscription_id, BinanceChannel};
 use crate::{
     exchange::ExchangeId,
-    Identifier,
     model::{Market, MarketIter, PublicTrade},
+    Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};

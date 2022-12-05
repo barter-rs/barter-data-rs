@@ -1,12 +1,12 @@
+use crate::exchange::coinbase::domain::subscription::{subscription_id, CoinbaseChannel};
 use crate::{
     exchange::ExchangeId,
-    Identifier,
     model::{Market, MarketIter, PublicTrade},
+    Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::exchange::coinbase::domain::subscription::{CoinbaseChannel, subscription_id};
 
 /// Coinbase real-time trade WebSocket message.
 ///

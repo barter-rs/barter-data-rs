@@ -1,9 +1,9 @@
-use domain::subscription::KrakenSubMeta;
 use crate::{
     exchange::{ExchangeId, ExchangeMeta},
     ExchangeIdentifier, Identifier,
 };
 use barter_integration::model::SubscriptionId;
+use domain::subscription::KrakenSubMeta;
 use serde::{Deserialize, Serialize};
 
 pub mod domain;

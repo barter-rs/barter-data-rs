@@ -10,7 +10,6 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
-
 /// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
@@ -42,7 +41,10 @@ impl Identifier<Option<SubscriptionId>> for KrakenTrades {
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
         "{}_{}_{}_{}",
-        trade.time.timestamp_nanos(), trade.side, trade.price, trade.amount
+        trade.time.timestamp_nanos(),
+        trade.side,
+        trade.price,
+        trade.amount
     )
 }
 

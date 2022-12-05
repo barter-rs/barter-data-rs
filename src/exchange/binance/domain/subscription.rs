@@ -1,10 +1,9 @@
 use crate::{
-    Identifier,
     subscriber::subscription::{
-        trade::PublicTrades,
-        liquidation::Liquidations,
-        ExchangeSubscription, SubKind, Subscription, SubscriptionMap
+        liquidation::Liquidations, trade::PublicTrades, ExchangeSubscription, SubKind,
+        Subscription, SubscriptionMap,
     },
+    Identifier,
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
@@ -130,8 +129,8 @@ impl Validator for BinanceSubResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::exchange::binance::*;
     use crate::exchange::binance::domain::subscription::BinanceSubResponse;
+    use crate::exchange::binance::*;
 
     #[test]
     fn test_deserialise_binance_subscription_response() {

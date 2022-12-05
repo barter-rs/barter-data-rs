@@ -1,16 +1,15 @@
 use self::trade::KrakenTrades;
 use crate::{
-    Identifier,
     exchange::ExchangeId,
-    model::{MarketIter, PublicTrade}
+    model::{MarketIter, PublicTrade},
+    Identifier,
 };
 use barter_integration::model::{Instrument, SubscriptionId};
 use serde::{Deserialize, Serialize};
 
+pub mod subscription;
 /// Todo:
 pub mod trade;
-pub mod subscription;
-
 
 /// [`Kraken`] message variants that can be received over [`WebSocket`](crate::WebSocket).
 ///
@@ -26,7 +25,7 @@ impl Identifier<Option<SubscriptionId>> for KrakenMessage {
     fn id(&self) -> Option<SubscriptionId> {
         match self {
             KrakenMessage::Trades(trades) => Some(trades.subscription_id.clone()),
-            KrakenMessage::Event(_) => None
+            KrakenMessage::Event(_) => None,
         }
     }
 }
@@ -35,7 +34,7 @@ impl From<(ExchangeId, Instrument, KrakenMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, KrakenMessage)) -> Self {
         match message {
             KrakenMessage::Trades(trades) => Self::from((exchange_id, instrument, trades)),
-            KrakenMessage::Event(_) => Self(vec![])
+            KrakenMessage::Event(_) => Self(vec![]),
         }
     }
 }

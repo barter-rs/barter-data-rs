@@ -1,6 +1,6 @@
 use crate::{
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
 };
 use barter_integration::{
     error::SocketError,
@@ -141,9 +141,9 @@ impl Validator for OkxSubResponse {
 
 #[cfg(test)]
 mod tests {
-    use barter_integration::error::SocketError;
-    use crate::exchange::okx::domain::*;
     use crate::exchange::okx::domain::subscription::OkxSubResponse;
+    use crate::exchange::okx::domain::*;
+    use barter_integration::error::SocketError;
 
     #[test]
     fn test_de_okx_subscription_response() {

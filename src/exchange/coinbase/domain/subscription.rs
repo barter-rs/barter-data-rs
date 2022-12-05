@@ -1,6 +1,6 @@
 use crate::{
+    subscriber::subscription::{trade::PublicTrades, ExchangeSubscription, SubKind, Subscription},
     Identifier,
-    subscriber::subscription::{ExchangeSubscription, SubKind, Subscription, trade::PublicTrades},
 };
 use barter_integration::{
     error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage, Validator,
