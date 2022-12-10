@@ -70,6 +70,7 @@ pub mod subscriber;
 //  5. Add maximum derives on everything. #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 //  6. Uncomment clippy warnings at the top of this file & fix resulting warnings.
 //  7. Test all exchanges again
+//  8. Rust doc link check
 
 // Todo: Front-End
 //  0. Update builder, etc.

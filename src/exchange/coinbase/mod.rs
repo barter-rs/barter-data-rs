@@ -12,7 +12,7 @@ pub mod domain;
 /// [`Coinbase`] server base url.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview>
-pub const BASE_URL_COINBASE_PRO: &str = "wss://ws-feed.exchange.coinbase.com";
+pub const BASE_URL_COINBASE: &str = "wss://ws-feed.exchange.coinbase.com";
 
 /// [`Coinbase`] exchange.
 ///
@@ -33,6 +33,6 @@ where
     type ExchangeSub = CoinbaseSubMeta;
 
     fn base_url() -> &'static str {
-        BASE_URL_COINBASE_PRO
+        BASE_URL_COINBASE
     }
 }
