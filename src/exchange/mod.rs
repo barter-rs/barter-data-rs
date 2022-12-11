@@ -1,28 +1,28 @@
 use crate::{
     Identifier,
-    subscriber::subscription::{SubKind, Subscription, SubscriptionMap},
+    subscriber::subscription::{Subscription, SubscriptionMap},
 };
-use barter_integration::{
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
-    Validator,
-};
+use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer, Validator};
 use std::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use tokio::sync::mpsc;
+use crate::subscriber::Subscriber;
+use crate::subscriber::validator::SubscriptionValidator;
 
 /// Todo:
 pub mod coinbase;
 
-/// Todo:
+/// Todo: This is basically a subscriber... it has no connection to the Transformer
+/// '--> do we like this... only connection is the ExchangeEvent I guess...?
 pub trait Connector {
     const ID: ExchangeId;
     type Channel: Debug;
     type Market: Debug;
-    // type SubValidator: SubscriptionValidator;
+    type Subscriber: Subscriber<Self::SubValidator>;
+    type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
-
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
     fn expected_responses<Kind>(map: &SubscriptionMap<Kind>) -> usize {
         map.0.len()

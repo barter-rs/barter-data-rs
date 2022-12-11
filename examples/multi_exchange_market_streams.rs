@@ -32,7 +32,10 @@ async fn main() {
     ];
 
 
-    let (websocket, map) = WebSocketSubscriber::<WebSocketSubValidator>::subscribe::<PublicTrades, Coinbase>(&subscriptions)
+    let (
+        websocket,
+        map
+    ) = WebSocketSubscriber::<WebSocketSubValidator>::subscribe::<PublicTrades, Coinbase>(&subscriptions)
         .await
         .expect("failed to subscribe");
 

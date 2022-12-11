@@ -6,7 +6,7 @@ use barter_integration::error::SocketError;
 use barter_integration::model::SubscriptionId;
 use barter_integration::protocol::websocket::WsMessage;
 use barter_integration::Validator;
-use crate::subscriber::subscription::{SubKind, Subscription};
+use crate::subscriber::subscription::{Subscription};
 use crate::subscriber::subscription::trade::PublicTrades;
 
 /// [`Coinbase`] server base url.
