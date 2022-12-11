@@ -1,5 +1,5 @@
 use futures::StreamExt;
-use barter_data::exchange::coinbase::{Coinbase, CoinbaseSubMeta};
+use barter_data::exchange::coinbase::Coinbase;
 use barter_data::exchange::{Connector, ExchangeId};
 use barter_data::subscriber::subscription::trade::PublicTrades;
 use barter_data::subscriber::validator::WebSocketSubValidator;

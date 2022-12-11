@@ -7,7 +7,7 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 /// Todo:
@@ -16,8 +16,8 @@ pub mod coinbase;
 /// Todo:
 pub trait Connector {
     const ID: ExchangeId;
-    type Channel;
-    type Market;
+    type Channel: Debug;
+    type Market: Debug;
     // type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + DeserializeOwned;
 
@@ -31,7 +31,6 @@ pub trait Connector {
     ExchangeSub { channel: sub.id(), market: sub.id() }
 }
 
-    fn subscription_id(sub: &ExchangeSub<Self::Channel, Self::Market>) -> SubscriptionId; // Todo: Perhaps I can hide this...?
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
     fn expected_responses<Kind>(map: &SubscriptionMap<Kind>) -> usize {
         map.0.len()
@@ -41,6 +40,16 @@ pub trait Connector {
 pub struct ExchangeSub<Channel, Market> {
     channel: Channel,
     market: Market,
+}
+
+impl<Channel, Market> Identifier<SubscriptionId> for ExchangeSub<Channel, Market>
+where
+    Channel: Debug,
+    Market: Debug,
+{
+    fn id(&self) -> SubscriptionId {
+        SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market))
+    }
 }
 
 /// Todo: rust docs & check historical rust docs for inspiration

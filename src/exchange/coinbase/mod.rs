@@ -30,10 +30,6 @@ impl Connector for Coinbase {
         BASE_URL_COINBASE
     }
 
-    fn subscription_id(sub_meta: &ExchangeSub<Self::Channel, Self::Market>) -> SubscriptionId {
-        subscription_id(sub_meta.channel, &sub_meta.market.0)
-    }
-
     fn requests(sub_metas: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
         sub_metas
             .into_iter()
@@ -78,29 +74,6 @@ pub struct CoinbaseMarket(pub String);
 impl<Kind> Identifier<CoinbaseMarket> for Subscription<Kind> {
     fn id(&self) -> CoinbaseMarket {
         CoinbaseMarket(format!("{}-{}", self.instrument.base, self.instrument.quote).to_uppercase())
-    }
-}
-
-
-
-
-
-
-
-
-
-
-/// Todo:
-///
-/// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
-pub struct CoinbaseSubMeta {
-    channel: CoinbaseChannel,
-    market: String,
-}
-
-impl Identifier<SubscriptionId> for CoinbaseSubMeta {
-    fn id(&self) -> SubscriptionId {
-        subscription_id(self.channel, &self.market)
     }
 }
 

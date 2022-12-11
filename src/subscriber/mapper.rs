@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use barter_integration::model::SubscriptionId;
 use crate::exchange::{Connector, ExchangeSub};
 use crate::Identifier;
 use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta};
@@ -19,6 +20,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
         Kind: SubKind,
         Exchange: Connector,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut subscription_map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
@@ -31,7 +33,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
                 let exchange_sub = Exchange::subscription(subscription);
 
                 // Determine the SubscriptionId associated with this exchange specific subscription
-                let subscription_id = Exchange::subscription_id(&exchange_sub);
+                let subscription_id = exchange_sub.id();
 
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
                 subscription_map
