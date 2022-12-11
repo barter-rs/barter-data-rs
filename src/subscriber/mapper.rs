@@ -1,24 +1,24 @@
 use std::collections::HashMap;
-use crate::exchange::ExchangeSubscription;
+use crate::exchange::{Connector, ExchangeSub};
 use crate::Identifier;
 use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta};
 
 pub trait SubscriptionMapper {
-    fn map<Kind, ExchangeSub>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        ExchangeSub: ExchangeSubscription,
-        Subscription<Kind>: Identifier<<ExchangeSub as ExchangeSubscription>::Channel>;
+        Exchange: Connector,
+        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Kind, ExchangeSub>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        ExchangeSub: ExchangeSubscription,
-        Subscription<Kind>: Identifier<<ExchangeSub as ExchangeSubscription>::Channel>,
+        Exchange: Connector,
+        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
         let mut subscription_map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
@@ -28,10 +28,10 @@ impl SubscriptionMapper for WebSocketSubMapper {
             .iter()
             .map(|subscription| {
                 // Translate Barter Subscription to exchange specific subscription
-                let exchange_sub = ExchangeSub::new(subscription);
+                let exchange_sub = Exchange::subscription(subscription);
 
                 // Determine the SubscriptionId associated with this exchange specific subscription
-                let subscription_id = exchange_sub.id();
+                let subscription_id = Exchange::subscription_id(&exchange_sub);
 
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
                 subscription_map
@@ -40,13 +40,13 @@ impl SubscriptionMapper for WebSocketSubMapper {
 
                 exchange_sub
             })
-            .collect::<Vec<ExchangeSub>>();
+            .collect::<Vec<ExchangeSub<Exchange::Channel, Exchange::Market>>>();
 
         // Construct WebSocket message subscriptions requests
-        let subscriptions = ExchangeSub::requests(exchange_subs);
+        let subscriptions = Exchange::requests(exchange_subs);
 
         // Determine the expected number of SubResponses from the exchange in response
-        let expected_responses = ExchangeSub::expected_responses(&subscription_map);
+        let expected_responses = Exchange::expected_responses(&subscription_map);
 
         SubscriptionMeta {
             map: subscription_map,

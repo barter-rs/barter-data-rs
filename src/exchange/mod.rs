@@ -11,31 +11,36 @@ use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 /// Todo:
-pub trait Exchange {
-    const ID: ExchangeId;
-    type Sub: ExchangeSubscription;
-    fn base_url() -> &'static str;
-}
+pub mod coinbase;
 
-/// Todo: ExchangeSubscriber? Or Just Subscriber? Simplifies generics I think...
-pub trait ExchangeSubscription
-where
-    Self: Identifier<SubscriptionId> + Sized,
-{
+/// Todo:
+pub trait Connector {
+    const ID: ExchangeId;
     type Channel;
+    type Market;
+    // type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + DeserializeOwned;
 
-    fn new<Kind>(sub: &Subscription<Kind>) -> Self
+    fn base_url() -> &'static str;
+
+    fn subscription<Kind>(sub: &Subscription<Kind>) -> ExchangeSub<Self::Channel, Self::Market>
     where
         Kind: SubKind,
-        // Todo: Do we need this? It makes SubMapper bounds more complex
-        Subscription<Kind>: Identifier<Self::Channel>;
+        Subscription<Kind>: Identifier<Self::Channel> + Identifier<Self::Market>,
+{
+    ExchangeSub { channel: sub.id(), market: sub.id() }
+}
 
-    fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
-
-    fn expected_responses<Kind>(subscription_map: &SubscriptionMap<Kind>) -> usize {
-        subscription_map.0.len()
+    fn subscription_id(sub: &ExchangeSub<Self::Channel, Self::Market>) -> SubscriptionId; // Todo: Perhaps I can hide this...?
+    fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
+    fn expected_responses<Kind>(map: &SubscriptionMap<Kind>) -> usize {
+        map.0.len()
     }
+}
+
+pub struct ExchangeSub<Channel, Market> {
+    channel: Channel,
+    market: Market,
 }
 
 /// Todo: rust docs & check historical rust docs for inspiration

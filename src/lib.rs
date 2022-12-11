@@ -8,9 +8,9 @@
 ///! # Barter-Data
 
 /// Todo:
-mod model;
-mod subscriber;
-mod exchange;
+pub mod model;
+pub mod subscriber;
+pub mod exchange;
 
 pub trait Identifier<T> {
     fn id(&self) -> T;

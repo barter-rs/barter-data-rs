@@ -7,7 +7,7 @@ use barter_integration::{error::SocketError, protocol::websocket::WebSocket};
 use async_trait::async_trait;
 use futures::SinkExt;
 use barter_integration::protocol::websocket::connect;
-use crate::exchange::{Exchange, ExchangeSubscription};
+use crate::exchange::Connector;
 use crate::Identifier;
 use crate::subscriber::mapper::WebSocketSubMapper;
 use crate::subscriber::subscription::{SubKind, SubscriptionMeta};
@@ -20,49 +20,51 @@ pub mod validator;
 
 /// Todo:
 #[async_trait]
-pub trait Subscriber<Ex, Validator>
+pub trait Subscriber<Validator>
 where
-    Ex: Exchange,
+    Validator: SubscriptionValidator,
 {
     type SubMapper: SubscriptionMapper;
 
-    async fn subscribe<Kind>(
-        &self,
+    async fn subscribe<Kind, Exchange>(
         subscriptions: &[Subscription<Kind>],
     ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
     where
         Kind: SubKind + Send + Sync,
-        Subscription<Kind>: Identifier<<<Ex as Exchange>::Sub as ExchangeSubscription>::Channel>;
+        Exchange: Connector,
+        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Validator: 'async_trait;
 }
 
-// Todo: These generics could be replace by generics on subscribe
-//  '--> would require caller to define them -> Validator could assoc type of Ex? eek.
-pub struct WebSocketSubscriber<Ex, Validator> {
-    phantom: PhantomData<(Ex, Validator)>,
+pub struct WebSocketSubscriber<Validator> {
+    phantom: PhantomData<Validator>,
 }
 
 #[async_trait]
-impl<Ex, Validator> Subscriber<Ex, Validator> for WebSocketSubscriber<Ex, Validator>
+impl<Validator> Subscriber<Validator> for WebSocketSubscriber<Validator>
 where
-    Ex: Exchange + Sync,
-    Validator: SubscriptionValidator + Sync,
+    Validator: SubscriptionValidator,
 {
     type SubMapper = WebSocketSubMapper;
 
-    async fn subscribe<Kind>(&self, subscriptions: &[Subscription<Kind>]) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
+    async fn subscribe<Kind, Exchange>(
+        subscriptions: &[Subscription<Kind>],
+    ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
     where
         Kind: SubKind + Send + Sync,
-        Subscription<Kind>: Identifier<<<Ex as Exchange>::Sub as ExchangeSubscription>::Channel>,
+        Exchange: Connector,
+        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Validator: 'async_trait,
     {
         // Connect to exchange
-        let mut websocket = connect(Ex::base_url()).await?;
+        let mut websocket = connect(Exchange::base_url()).await?;
 
         // Map &[Subscription<Kind>] to SubscriptionMeta
         let SubscriptionMeta {
             map,
             subscriptions,
             expected_responses,
-        } = Self::SubMapper::map::<Kind, Ex::Sub>(subscriptions);
+        } = Self::SubMapper::map::<Kind, Exchange>(subscriptions);
 
         // Send Subscriptions
         for subscription in subscriptions {
@@ -70,29 +72,12 @@ where
         }
 
         // Validate Subscriptions
-        let map = Validator::validate::<
-            Kind,
-            <<Ex as Exchange>::Sub as ExchangeSubscription>::SubResponse
-        >(
+        let map = Validator::validate::<Kind, Exchange::SubResponse>(
             map,
             &mut websocket,
             expected_responses
         ).await?;
 
         Ok((websocket, map))
-    }
-}
-
-impl<Ex, Validator> Default for WebSocketSubscriber<Ex, Validator> {
-    fn default() -> Self {
-        Self {
-            phantom: PhantomData::<(Ex, Validator)>::default(),
-        }
-    }
-}
-
-impl<Ex, Validator> WebSocketSubscriber<Ex, Validator> {
-    pub fn new() -> Self {
-        Self::default()
     }
 }
