@@ -23,14 +23,6 @@ pub trait Connector {
 
     fn base_url() -> &'static str;
 
-    fn subscription<Kind>(sub: &Subscription<Kind>) -> ExchangeSub<Self::Channel, Self::Market>
-    where
-        Kind: SubKind,
-        Subscription<Kind>: Identifier<Self::Channel> + Identifier<Self::Market>,
-{
-    ExchangeSub { channel: sub.id(), market: sub.id() }
-}
-
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
     fn expected_responses<Kind>(map: &SubscriptionMap<Kind>) -> usize {
         map.0.len()
@@ -49,6 +41,18 @@ where
 {
     fn id(&self) -> SubscriptionId {
         SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market))
+    }
+}
+
+impl<Channel, Market> ExchangeSub<Channel, Market> {
+    pub fn new<Kind>(sub: &Subscription<Kind>) -> Self
+    where
+        Subscription<Kind>: Identifier<Channel> + Identifier<Market>,
+    {
+        Self {
+            channel: sub.id(),
+            market: sub.id()
+        }
     }
 }
 

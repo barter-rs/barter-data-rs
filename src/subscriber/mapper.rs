@@ -30,7 +30,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
             .iter()
             .map(|subscription| {
                 // Translate Barter Subscription to exchange specific subscription
-                let exchange_sub = Exchange::subscription(subscription);
+                let exchange_sub = ExchangeSub::new(subscription);
 
                 // Determine the SubscriptionId associated with this exchange specific subscription
                 let subscription_id = exchange_sub.id();
