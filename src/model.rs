@@ -1,32 +1,32 @@
 use barter_integration::{
+    error::SocketError,
     model::{Exchange, Instrument, Side},
-    Event,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Barter data structures that support subscribing to exchange specific market data.
-///
-/// eg/ `Subscription`, `SubscriptionId`, etc.
-pub mod subscription;
+/// Todo: Rust docs & make FromIterator more generic for convenience ie/ Into<Market<Event>> etc.
+pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
 
-/// Normalised Barter `MarketEvent` containing metadata about the included [`DataKind`] variant.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct MarketEvent {
+impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Event> {
+    fn from_iter<T>(iter: T) -> Self
+        where
+            T: IntoIterator<Item = Result<Market<Event>, SocketError>>,
+    {
+        Self(iter.into_iter().collect())
+    }
+}
+
+/// Normalised Barter [`Market<Event>`](Self) containing metadata about the included `Event` variant.
+///
+/// Note: `Event` can be an enum if required.
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
+pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
     pub instrument: Instrument,
-    pub kind: DataKind,
-}
-
-/// Defines the type of Barter [`MarketEvent`].
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub enum DataKind {
-    Trade(PublicTrade),
-    Candle(Candle),
-    OrderBook(OrderBook),
-    Liquidation(Liquidation),
+    pub event: Event,
 }
 
 /// Normalised Barter [`PublicTrade`] model.
@@ -34,15 +34,14 @@ pub enum DataKind {
 pub struct PublicTrade {
     pub id: String,
     pub price: f64,
-    pub quantity: f64,
+    pub amount: f64,
     pub side: Side,
 }
 
 /// Normalised Barter OHLCV [`Candle`] model.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
-    pub start_time: DateTime<Utc>,
-    pub end_time: DateTime<Utc>,
+    pub close_time: DateTime<Utc>,
     pub open: f64,
     pub high: f64,
     pub low: f64,
@@ -77,8 +76,8 @@ pub struct Liquidation {
 }
 
 impl<T> From<(T, T)> for Level
-where
-    T: Into<f64>,
+    where
+        T: Into<f64>,
 {
     fn from((price, quantity): (T, T)) -> Self {
         Self::new(price, quantity)
@@ -87,18 +86,12 @@ where
 
 impl Level {
     pub fn new<T>(price: T, quantity: T) -> Self
-    where
-        T: Into<f64>,
+        where
+            T: Into<f64>,
     {
         Self {
             price: price.into(),
             quantity: quantity.into(),
         }
-    }
-}
-
-impl From<Event<MarketEvent>> for MarketEvent {
-    fn from(event: Event<MarketEvent>) -> Self {
-        event.payload
     }
 }

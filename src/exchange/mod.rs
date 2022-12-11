@@ -1,74 +1,125 @@
-use chrono::{DateTime, Utc};
-use serde::ser::SerializeSeq;
-use serde::{de, Serialize};
-use std::{str::FromStr, time::Duration};
+use crate::{
+    Identifier,
+    subscriber::subscription::{SubKind, Subscription, SubscriptionMap},
+};
+use barter_integration::{
+    model::SubscriptionId,
+    protocol::websocket::WsMessage,
+    Validator,
+};
+use std::fmt::{Display, Formatter};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-/// Binance `ExchangeTransformer` & `Subscriber` implementations.
-pub mod binance;
-
-/// Ftx `ExchangeTransformer` & `Subscriber` implementations.
-pub mod ftx;
-
-/// Kraken `ExchangeTransformer` & `Subscriber` implementations.
-pub mod kraken;
-
-/// Coinbase `ExchangeTransformer` & `Subscriber` implementations.
-pub mod coinbase;
-
-/// Determine the `DateTime<Utc>` from the provided `Duration` since the epoch.
-pub fn datetime_utc_from_epoch_duration(duration: Duration) -> DateTime<Utc> {
-    DateTime::<Utc>::from(std::time::UNIX_EPOCH + duration)
+/// Todo:
+pub trait Exchange {
+    const ID: ExchangeId;
+    type Sub: ExchangeSubscription;
+    fn base_url() -> &'static str;
 }
 
-/// Deserialize a `String` as the desired type.
-pub fn de_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+/// Todo: ExchangeSubscriber? Or Just Subscriber? Simplifies generics I think...
+pub trait ExchangeSubscription
 where
-    D: de::Deserializer<'de>,
-    T: FromStr,
-    T::Err: std::fmt::Display,
+    Self: Identifier<SubscriptionId> + Sized,
 {
-    let data: String = de::Deserialize::deserialize(deserializer)?;
-    data.parse::<T>().map_err(de::Error::custom)
+    type Channel;
+    type SubResponse: Validator + DeserializeOwned;
+
+    fn new<Kind>(sub: &Subscription<Kind>) -> Self
+    where
+        Kind: SubKind,
+        // Todo: Do we need this? It makes SubMapper bounds more complex
+        Subscription<Kind>: Identifier<Self::Channel>;
+
+    fn requests(subscriptions: Vec<Self>) -> Vec<WsMessage>;
+
+    fn expected_responses<Kind>(subscription_map: &SubscriptionMap<Kind>) -> usize {
+        subscription_map.0.len()
+    }
 }
 
-/// Deserialize a `u64` as `DateTime<Utc>`.
-pub fn de_u64_epoch_ms_as_datetime_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-where
-    D: de::Deserializer<'de>,
-{
-    let epoch_ms: u64 = de::Deserialize::deserialize(deserializer)?;
-    Ok(datetime_utc_from_epoch_duration(Duration::from_millis(
-        epoch_ms,
-    )))
+/// Todo: rust docs & check historical rust docs for inspiration
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[serde(rename = "exchange", rename_all = "snake_case")]
+pub enum ExchangeId {
+    BinanceFuturesUsd,
+    BinanceSpot,
+    Bitfinex,
+    Coinbase,
+    GateioSpot,
+    GateioFuturesUsd,
+    GateioFuturesBtc,
+    Kraken,
+    Okx,
 }
 
-/// Assists deserialisation of sequences by attempting to extract & parse the next element in the
-/// provided sequence.
-///
-/// A [`serde::de::Error`] is returned if the element does not exist, or it cannot
-/// be deserialized into the `Target` type inferred.
-///
-/// Example sequence: ["20180.30000","0.00010000","1661978265.280067","s","l",""]
-pub fn extract_next<'de, SeqAccessor, Target>(
-    sequence: &mut SeqAccessor,
-    name: &'static str,
-) -> Result<Target, SeqAccessor::Error>
-where
-    SeqAccessor: de::SeqAccess<'de>,
-    Target: de::DeserializeOwned,
-{
-    sequence
-        .next_element::<Target>()?
-        .ok_or_else(|| de::Error::missing_field(name))
+impl From<ExchangeId> for barter_integration::model::Exchange {
+    fn from(exchange_id: ExchangeId) -> Self {
+        barter_integration::model::Exchange::from(exchange_id.as_str())
+    }
 }
 
-/// Serialize a generic element T as a `Vec<T>`.
-pub fn se_element_to_vector<T, S>(element: T, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-    T: Serialize,
-{
-    let mut sequence = serializer.serialize_seq(Some(1))?;
-    sequence.serialize_element(&element)?;
-    sequence.end()
+impl Display for ExchangeId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl ExchangeId {
+    /// Return the &str representation of this [`ExchangeId`]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ExchangeId::BinanceSpot => "binance_spot",
+            ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
+            ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Coinbase => "coinbase",
+            ExchangeId::GateioSpot => "gateio_spot",
+            ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
+            ExchangeId::GateioFuturesBtc => "gateio_futures_btc",
+            ExchangeId::Kraken => "kraken",
+            ExchangeId::Okx => "okx",
+        }
+    }
+
+    /// Todo: Find a way to delete all of this support nonsense
+    /// Determines whether this [`ExchangeId`] supports the ingestion of
+    /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_spot(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => false,
+            _ => true,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_futures(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::Okx => true,
+            _ => false,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// [`PublicTrade`](model::PublicTrade) market data.
+    #[allow(clippy::match_like_matches_macro)]
+    #[allow(clippy::match_single_binding)]
+    pub fn supports_trades(&self) -> bool {
+        match self {
+            _ => true,
+        }
+    }
+
+    /// Determines whether this [`ExchangeId`] supports the collection of
+    /// liquidation orders market data.
+    #[allow(clippy::match_like_matches_macro)]
+    pub fn supports_liquidations(&self) -> bool {
+        match self {
+            ExchangeId::BinanceFuturesUsd => true,
+            _ => false,
+        }
+    }
 }
