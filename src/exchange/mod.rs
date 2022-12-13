@@ -7,26 +7,41 @@ use std::fmt::{Debug, Display, Formatter};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tokio::sync::mpsc;
 use crate::subscriber::Subscriber;
+use crate::subscriber::subscription::SubKind;
 use crate::subscriber::validator::SubscriptionValidator;
 
 /// Todo:
 pub mod coinbase;
 
 /// Todo: This is basically a subscriber... it has no connection to the Transformer
-/// '--> do we like this... only connection is the ExchangeEvent I guess...?
-pub trait Connector {
+///  '--> do we like this... only connection is the ExchangeEvent I guess...?
+///  '--> If the Connector could map SubKind -> ExchangeEvent that would SOLVE ALL OUR PROBLEMS
+///      '--> Connector<SubKind> ? may want to revert back Transformer<Input> etc?
+pub trait Connector<Kind>
+where
+    Self: TransformerConstructor<Kind>,
+    Kind: SubKind,
+{
     const ID: ExchangeId;
     type Channel: Debug;
     type Market: Debug;
+
     type Subscriber: Subscriber<Self::SubValidator>;
     type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
-    fn expected_responses<Kind>(map: &SubscriptionMap<Kind>) -> usize {
-        map.0.len()
-    }
+    fn expected_responses(map: &SubscriptionMap<Kind>) -> usize { map.0.len() }
+}
+
+/// Todo:
+pub trait TransformerConstructor<Kind>
+where
+    Kind: SubKind,
+{
+    type T: Transformer;
+    fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Kind>) -> Self::T;
 }
 
 pub struct ExchangeSub<Channel, Market> {

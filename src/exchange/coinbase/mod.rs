@@ -1,13 +1,20 @@
-use crate::exchange::{Connector, ExchangeId, ExchangeSub};
-use crate::Identifier;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use crate::exchange::{Connector, ExchangeId, ExchangeSub, TransformerConstructor};
+use crate::{Identifier, StatelessTransformer};
+use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap};
+use crate::subscriber::subscription::trade::PublicTrades;
+use crate::subscriber::validator::WebSocketSubValidator;
+use crate::subscriber::WebSocketSubscriber;
 use barter_integration::error::SocketError;
 use barter_integration::model::SubscriptionId;
 use barter_integration::protocol::websocket::WsMessage;
 use barter_integration::Validator;
-use crate::subscriber::subscription::{Subscription};
-use crate::subscriber::subscription::trade::PublicTrades;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tokio::sync::mpsc;
+use crate::exchange::coinbase::trade::CoinbaseTrade;
+
+/// Todo:
+pub mod trade;
 
 /// [`Coinbase`] server base url.
 ///
@@ -20,10 +27,15 @@ pub const BASE_URL_COINBASE: &str = "wss://ws-feed.exchange.coinbase.com";
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct Coinbase;
 
-impl Connector for Coinbase {
+impl<Kind> Connector<Kind> for Coinbase
+where
+    Kind: SubKind,
+{
     const ID: ExchangeId = ExchangeId::Coinbase;
     type Channel = CoinbaseChannel;
     type Market = CoinbaseMarket;
+    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type SubValidator = WebSocketSubValidator;
     type SubResponse = CoinbaseSubResponse;
 
     fn base_url() -> &'static str {
@@ -43,6 +55,15 @@ impl Connector for Coinbase {
                 )
             })
             .collect()
+    }
+}
+
+impl TransformerConstructor<PublicTrades> for Coinbase {
+    type Kind = ();
+    type T = StatelessTransformer<PublicTrades, CoinbaseTrade>;
+
+    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<PublicTrades>) -> Self::T {
+        StatelessTransformer::new(Self::ID, map)
     }
 }
 

@@ -31,7 +31,7 @@ where
     ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
     where
         Kind: SubKind + Send + Sync,
-        Exchange: Connector,
+        Exchange: Connector<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         Validator: 'async_trait;
 }
@@ -52,7 +52,7 @@ where
     ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
     where
         Kind: SubKind + Send + Sync,
-        Exchange: Connector,
+        Exchange: Connector<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         Validator: 'async_trait,
     {

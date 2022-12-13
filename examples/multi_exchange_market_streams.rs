@@ -1,4 +1,5 @@
 use futures::StreamExt;
+use barter_data::{consume, ExchangeWsStream, StatelessTransformer};
 use barter_data::exchange::coinbase::Coinbase;
 use barter_data::exchange::{Connector, ExchangeId};
 use barter_data::subscriber::subscription::trade::PublicTrades;
@@ -30,6 +31,20 @@ async fn main() {
         // (ExchangeId::GateioFuturesUsd, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (ExchangeId::GateioFuturesUsd, "xrp", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
     ];
+
+    consume::<Coinbase, PublicTrades>(subscriptions);
+
+    // consume::<
+    //     Coinbase,
+    //     PublicTrades,
+    //     ExchangeWsStream<StatelessTransformer<PublicTrades>, ExchangeEvent>,
+    // >(subscriptions);
+
+    let handle = tokio::spawn(consume(subscriptions))
+        .await
+        .unwrap();
+
+
 
 
     let (

@@ -8,7 +8,7 @@ pub trait SubscriptionMapper {
     fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        Exchange: Connector,
+        Exchange: Connector<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
@@ -18,7 +18,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
     fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
     where
         Kind: SubKind,
-        Exchange: Connector,
+        Exchange: Connector<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
