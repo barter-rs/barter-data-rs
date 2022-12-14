@@ -1,17 +1,16 @@
-use std::marker::PhantomData;
 use self::{
-    subscription::{Subscription, SubscriptionMap},
-    mapper::SubscriptionMapper,
+    subscription::{SubKind, SubscriptionMeta, Subscription, SubscriptionMap},
+    mapper::{SubscriptionMapper, WebSocketSubMapper},
+    validator::SubscriptionValidator,
 };
-use barter_integration::{error::SocketError, protocol::websocket::WebSocket};
+use crate::{
+    exchange::Connector,
+    Identifier,
+};
+use barter_integration::{error::SocketError, protocol::websocket::{WebSocket, connect}};
 use async_trait::async_trait;
+use std::marker::PhantomData;
 use futures::SinkExt;
-use barter_integration::protocol::websocket::connect;
-use crate::exchange::Connector;
-use crate::Identifier;
-use crate::subscriber::mapper::WebSocketSubMapper;
-use crate::subscriber::subscription::{SubKind, SubscriptionMeta};
-use crate::subscriber::validator::SubscriptionValidator;
 
 /// Todo:
 pub mod subscription;

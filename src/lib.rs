@@ -47,6 +47,7 @@ pub trait Identifier<T> {
 //    '--> Should be able to determine the ExchangeEvent from the Exchange & Kind :)
 
 // Todo: Nice To Have:
+//  - Try removing 'async_trait where it exists :)
 //  - Clean up distribution of responses to the exchange... it's messy.
 //  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
 
@@ -93,8 +94,16 @@ where
         // Split WebSocket into WsStream & WsSink components
         let (ws_sink, ws_stream) = websocket.split();
 
-        // Todo: distribute messages...
+        // Task to distribute ExchangeTransformer outgoing messages (eg/ custom pongs) to exchange
+        // --> ExchangeTransformer is operating in a synchronous trait context
+        // --> ExchangeTransformer sends messages sync via channel to async distribution task
+        // --> Async distribution tasks forwards the messages to the exchange via the ws_sink
         let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
+        tokio::spawn(distribute_responses_to_the_exchange(
+            Exchange::ID,
+            ws_sink,
+            ws_sink_rx,
+        ));
 
         // Construct Transformer associated with this Exchange and SubKind
         let transformer = Exchange::transformer(ws_sink_tx, map);

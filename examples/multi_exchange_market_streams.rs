@@ -13,26 +13,44 @@ use barter_integration::Transformer;
 #[tokio::main]
 async fn main() {
     // Subscriptions
-    // let subscriptions = vec![
-    //     (ExchangeId::Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
-    //     (ExchangeId::Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
-    // ];
+    let subscriptions = vec![
+        (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+    ];
 
-    // let handle = tokio::spawn(consume::<Coinbase, _>(subscriptions))
-    //     .await
-    //     .unwrap();
+    let handle = tokio::spawn(consume(subscriptions))
+        .await
+        .unwrap();
 
 }
 
-// pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
-// where
-//     Exchange: Connector<Kind> + TransformerConstructor<Kind>,
-//     Kind: SubKind + Send + Sync,
-//     Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
-// {
-//     let mut stream: ExchangeWsStream<Exchange::Transformer> = ExchangeWsStream::init::<Exchange>(&subscriptions)
-//         .await
-//         .unwrap();
-//
-//
-// }
+pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+where
+    Exchange: Connector<Kind> + TransformerConstructor<Kind> + Send + Sync,
+    Kind: SubKind + Send + Sync,
+    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+{
+    let mut stream = ExchangeWsStream::init(&subscriptions)
+        .await
+        .unwrap();
+
+    while let Some(event) = stream.next().await {
+        println!("Consumed: {event:?}");
+    }
+}
+
+pub async fn test<Stream, Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+where
+    Stream: MarketStream<Exchange, Kind>,
+    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
+    Kind: SubKind + Send + Sync,
+    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+{
+    let mut stream = Stream::init(&subscriptions)
+        .await
+        .unwrap();
+
+    while let Some(event) = stream.next().await {
+        println!("Consumed: {event:?}");
+    }
+}
