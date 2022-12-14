@@ -2,10 +2,9 @@ use crate::{
     Identifier,
     subscriber::subscription::{Subscription, SubscriptionMap},
 };
-use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer, Validator};
+use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Validator};
 use std::fmt::{Debug, Display, Formatter};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use tokio::sync::mpsc;
 use crate::subscriber::Subscriber;
 use crate::subscriber::subscription::SubKind;
 use crate::subscriber::validator::SubscriptionValidator;
@@ -19,7 +18,7 @@ pub mod coinbase;
 ///      '--> Connector<SubKind> ? may want to revert back Transformer<Input> etc?
 pub trait Connector<Kind>
 where
-    // Self: TransformerConstructor<Kind>,
+    Self: Clone + Sized,
     Kind: SubKind,
 {
     const ID: ExchangeId;
@@ -32,13 +31,10 @@ where
 
     fn base_url() -> &'static str;
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
-    fn expected_responses(map: &SubscriptionMap<Kind>) -> usize { map.0.len() }
-
-    // fn transformer<Kind>(map: SubscriptionMap<Kind>)
-    // where
-    //     Self: TransformerConstructor<Kind>;
+    fn expected_responses(map: &SubscriptionMap<Self, Kind>) -> usize { map.0.len() }
 }
 
+/// Todo: rust docs & move somewhere...
 pub struct ExchangeSub<Channel, Market> {
     channel: Channel,
     market: Market,
@@ -55,9 +51,9 @@ where
 }
 
 impl<Channel, Market> ExchangeSub<Channel, Market> {
-    pub fn new<Kind>(sub: &Subscription<Kind>) -> Self
+    pub fn new<Exchange, Kind>(sub: &Subscription<Exchange, Kind>) -> Self
     where
-        Subscription<Kind>: Identifier<Channel> + Identifier<Market>,
+        Subscription<Exchange, Kind>: Identifier<Channel> + Identifier<Market>,
     {
         Self {
             channel: sub.id(),

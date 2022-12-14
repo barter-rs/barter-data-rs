@@ -26,13 +26,13 @@ where
 {
     type SubMapper: SubscriptionMapper;
 
-    async fn subscribe<Kind, Exchange>(
-        subscriptions: &[Subscription<Kind>],
-    ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
+    async fn subscribe<Exchange, Kind>(
+        subscriptions: &[Subscription<Exchange, Kind>],
+    ) -> Result<(WebSocket, SubscriptionMap<Exchange, Kind>), SocketError>
     where
+        Exchange: Connector<Kind> + Send + Sync,
         Kind: SubKind + Send + Sync,
-        Exchange: Connector<Kind>,
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         Validator: 'async_trait;
 }
 
@@ -47,24 +47,24 @@ where
 {
     type SubMapper = WebSocketSubMapper;
 
-    async fn subscribe<Kind, Exchange>(
-        subscriptions: &[Subscription<Kind>],
-    ) -> Result<(WebSocket, SubscriptionMap<Kind>), SocketError>
+    async fn subscribe<Exchange, Kind>(
+        subscriptions: &[Subscription<Exchange, Kind>],
+    ) -> Result<(WebSocket, SubscriptionMap<Exchange, Kind>), SocketError>
     where
+        Exchange: Connector<Kind> + Send + Sync,
         Kind: SubKind + Send + Sync,
-        Exchange: Connector<Kind>,
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         Validator: 'async_trait,
     {
         // Connect to exchange
         let mut websocket = connect(Exchange::base_url()).await?;
 
-        // Map &[Subscription<Kind>] to SubscriptionMeta
+        // Map &[Subscription<Exchange, Kind>] to SubscriptionMeta
         let SubscriptionMeta {
             map,
             subscriptions,
             expected_responses,
-        } = Self::SubMapper::map::<Kind, Exchange>(subscriptions);
+        } = Self::SubMapper::map::<Exchange, Kind>(subscriptions);
 
         // Send Subscriptions
         for subscription in subscriptions {
@@ -72,7 +72,7 @@ where
         }
 
         // Validate Subscriptions
-        let map = Validator::validate::<Kind, Exchange::SubResponse>(
+        let map = Validator::validate::<Exchange, Kind>(
             map,
             &mut websocket,
             expected_responses

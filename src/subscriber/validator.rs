@@ -1,10 +1,16 @@
+use crate::{
+    subscriber::subscription::{SubKind, SubscriptionMap},
+    exchange::Connector
+};
+use barter_integration::{
+    error::SocketError,
+    protocol::{
+        StreamParser,
+        websocket::{WebSocket, WebSocketParser},
+    },
+    Validator,
+};
 use std::time::Duration;
-use serde::de::DeserializeOwned;
-use barter_integration::error::SocketError;
-use barter_integration::protocol::StreamParser;
-use barter_integration::protocol::websocket::{WebSocket, WebSocketParser};
-use barter_integration::Validator;
-use crate::subscriber::subscription::SubscriptionMap;
 use async_trait::async_trait;
 use tracing::debug;
 use futures::StreamExt;
@@ -14,35 +20,35 @@ use futures::StreamExt;
 pub trait SubscriptionValidator {
     type Parser: StreamParser;
 
-    async fn validate<Kind, SubResponse>(
-        map: SubscriptionMap<Kind>,
+    async fn validate<Exchange, Kind>(
+        map: SubscriptionMap<Exchange, Kind>,
         websocket: &mut WebSocket,
         expected_responses: usize,
-    ) -> Result<SubscriptionMap<Kind>, SocketError>
+    ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
-        Kind: Send,
-        SubResponse: Validator + DeserializeOwned;
+        Exchange: Connector<Kind> + Send,
+        Kind: SubKind + Send;
 
     fn subscription_timeout() -> Duration {
         Duration::from_secs(10)
     }
 }
 
-// Todo: Do I need phantom? If not, why? Could I remove phantoms elsewhere?
+/// Todo:
 pub struct WebSocketSubValidator;
 
 #[async_trait]
 impl SubscriptionValidator for WebSocketSubValidator {
     type Parser = WebSocketParser;
 
-    async fn validate<Kind, SubResponse>(
-        map: SubscriptionMap<Kind>,
+    async fn validate<Exchange, Kind>(
+        map: SubscriptionMap<Exchange, Kind>,
         websocket: &mut WebSocket,
         expected_responses: usize
-    ) -> Result<SubscriptionMap<Kind>, SocketError>
+    ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
-        Kind: Send,
-        SubResponse: Validator + DeserializeOwned
+        Exchange: Connector<Kind> + Send,
+        Kind: SubKind + Send
     {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();
@@ -70,7 +76,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
                         None => break Err(SocketError::Subscribe("WebSocket stream terminated unexpectedly".to_string()))
                     };
 
-                    match Self::Parser::parse::<SubResponse>(response) {
+                    match Self::Parser::parse::<Exchange::SubResponse>(response) {
                         Some(Ok(response)) => match response.validate() {
                             // Subscription success
                             Ok(_) => { success_responses += 1; }

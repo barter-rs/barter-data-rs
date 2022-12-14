@@ -24,11 +24,11 @@ async fn main() {
 
 }
 
-// pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Kind>>)
+// pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
 // where
 //     Exchange: Connector<Kind> + TransformerConstructor<Kind>,
 //     Kind: SubKind + Send + Sync,
-//     Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+//     Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
 // {
 //     let mut stream: ExchangeWsStream<Exchange::Transformer> = ExchangeWsStream::init::<Exchange>(&subscriptions)
 //         .await

@@ -60,10 +60,10 @@ where
 }
 
 impl TransformerConstructor<PublicTrades> for Coinbase {
-    type Transformer = StatelessTransformer<PublicTrades, CoinbaseTrade>;
+    type Transformer = StatelessTransformer<Coinbase, PublicTrades, CoinbaseTrade>;
 
-    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<PublicTrades>) -> Self::Transformer {
-        StatelessTransformer::new(<Coinbase as Connector<PublicTrades>>::ID, map)
+    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Coinbase, PublicTrades>) -> Self::Transformer {
+        StatelessTransformer::new(map)
     }
 }
 
@@ -84,7 +84,7 @@ impl CoinbaseChannel {
     }
 }
 
-impl Identifier<CoinbaseChannel> for Subscription<PublicTrades> {
+impl Identifier<CoinbaseChannel> for Subscription<Coinbase, PublicTrades> {
     fn id(&self) -> CoinbaseChannel {
         CoinbaseChannel::TRADES
     }
@@ -96,7 +96,7 @@ impl Identifier<CoinbaseChannel> for Subscription<PublicTrades> {
 #[derive(Debug, Clone)]
 pub struct CoinbaseMarket(pub String);
 
-impl<Kind> Identifier<CoinbaseMarket> for Subscription<Kind> {
+impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, Kind> {
     fn id(&self) -> CoinbaseMarket {
         CoinbaseMarket(format!("{}-{}", self.instrument.base, self.instrument.quote).to_uppercase())
     }

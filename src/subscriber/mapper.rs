@@ -1,25 +1,29 @@
-use std::collections::HashMap;
+use super::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta};
+use crate::{
+    exchange::{Connector, ExchangeSub},
+    Identifier,
+};
 use barter_integration::model::SubscriptionId;
-use crate::exchange::{Connector, ExchangeSub};
-use crate::Identifier;
-use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta};
+use std::collections::HashMap;
 
+/// Todo:
 pub trait SubscriptionMapper {
-    fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
     where
-        Kind: SubKind,
         Exchange: Connector<Kind>,
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
+        Kind: SubKind,
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
+/// Todo:
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Kind, Exchange>(subscriptions: &[Subscription<Kind>]) -> SubscriptionMeta<Kind>
+    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
     where
-        Kind: SubKind,
         Exchange: Connector<Kind>,
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Kind: SubKind,
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription

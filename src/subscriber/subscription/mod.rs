@@ -1,4 +1,3 @@
-use crate::exchange::ExchangeId;
 use barter_integration::{
     error::SocketError,
     model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
@@ -24,46 +23,46 @@ where
 
 /// Todo:
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub struct Subscription<Kind> {
-    pub exchange: ExchangeId,
+pub struct Subscription<Exchange, Kind> {
+    pub exchange: Exchange,
     #[serde(flatten)]
     pub instrument: Instrument,
     #[serde(alias = "type")]
     pub kind: Kind,
 }
 
-impl<Kind> Display for Subscription<Kind>
+impl<Exchange, Kind> Display for Subscription<Exchange, Kind>
 where
-    Kind: Debug,
+    Exchange: Display,
+    Kind: Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}_{:?}{}", self.exchange, self.kind, self.instrument)
+        write!(f, "{}_{}{}", self.exchange, self.kind, self.instrument)
     }
 }
 
-impl<S, Kind> From<(ExchangeId, S, S, InstrumentKind, Kind)> for Subscription<Kind>
+impl<Exchange, S, Kind> From<(Exchange, S, S, InstrumentKind, Kind)> for Subscription<Exchange, Kind>
 where
     S: Into<Symbol>,
 {
-    fn from(
-        (exchange, base, quote, instrument_kind, kind): (ExchangeId, S, S, InstrumentKind, Kind),
+    fn from((exchange, base, quote, instrument_kind, kind): (Exchange, S, S, InstrumentKind, Kind),
     ) -> Self {
         Self::new(exchange, (base, quote, instrument_kind), kind)
     }
 }
 
-impl<I, Kind> From<(ExchangeId, I, Kind)> for Subscription<Kind>
+impl<Exchange, I, Kind> From<(Exchange, I, Kind)> for Subscription<Exchange, Kind>
 where
     I: Into<Instrument>,
 {
-    fn from((exchange, instrument, kind): (ExchangeId, I, Kind)) -> Self {
+    fn from((exchange, instrument, kind): (Exchange, I, Kind)) -> Self {
         Self::new(exchange, instrument, kind)
     }
 }
 
-impl<Kind> Subscription<Kind> {
+impl<Exchange, Kind> Subscription<Exchange, Kind> {
     /// Constructs a new [`Subscription`] using the provided configuration.
-    pub fn new<I>(exchange: ExchangeId, instrument: I, kind: Kind) -> Self
+    pub fn new<I>(exchange: Exchange, instrument: I, kind: Kind) -> Self
     where
         I: Into<Instrument>,
     {
@@ -79,11 +78,11 @@ impl<Kind> Subscription<Kind> {
 /// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
 /// specific subscription payloads that are sent to the exchange.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct SubscriptionMeta<Kind> {
+pub struct SubscriptionMeta<Exchange, Kind> {
     /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
     /// and a Barter [`Subscription`]. Used to identify the original [`Subscription`] associated
     /// with a received message.
-    pub map: SubscriptionMap<Kind>,
+    pub map: SubscriptionMap<Exchange, Kind>,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
     /// Number of [`Subscription`] responses expected from the exchange. Used to validate all
@@ -96,9 +95,9 @@ pub struct SubscriptionMeta<Kind> {
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct SubscriptionMap<Kind>(pub HashMap<SubscriptionId, Subscription<Kind>>);
+pub struct SubscriptionMap<Exchange, Kind>(pub HashMap<SubscriptionId, Subscription<Exchange, Kind>>);
 
-impl<Kind> SubscriptionMap<Kind> {
+impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
     pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
         self.0

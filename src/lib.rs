@@ -15,7 +15,7 @@ use crate::{
 use barter_integration::{
     error::SocketError,
     ExchangeStream,
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream}, Transformer
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
 };
 use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
@@ -39,6 +39,26 @@ pub trait Identifier<T> {
     fn id(&self) -> T;
 }
 
+// Todo:
+//  - I don't think I need Exchange in the StatelessTransformer generics? Or perhaps I can remove
+//    one of the others since I now have Exchange...
+//    '--> must be a way to go from Exchange, Kind -> CoinbaseTrades
+//  - There is some optimisation to do now that we have Exchange & ExchangeEvent hanging around.
+//    '--> Should be able to determine the ExchangeEvent from the Exchange & Kind :)
+
+// Todo: Nice To Have:
+//  - Clean up distribution of responses to the exchange... it's messy.
+//  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
+
+// Todo: Before Release:
+//  - Fix imports
+//  - Add derives eagerly
+//  - Rust docs
+//  - Check rust docs & fix
+//  - Add unit tests from develop branch, etc.
+
+
+
 /// [`Stream`] that yields [`Market<T>`] events. Type of [`Market<T>`] depends on the provided
 /// [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
@@ -49,27 +69,26 @@ where
     Kind: SubKind,
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
     where
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 #[async_trait]
 impl<Exchange, Kind> MarketStream<Exchange, Kind> for ExchangeWsStream<Exchange::Transformer>
 where
-    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
+    Exchange: Connector<Kind> + TransformerConstructor<Kind> + Send + Sync,
     Kind: SubKind + Send + Sync,
 {
-    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
     where
-        Exchange: Connector<Kind> + TransformerConstructor<Kind>,
-        Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>
     {
         // Connect & subscribe
         let (
             websocket,
             map
-        ) = Exchange::Subscriber::subscribe::<Kind, Exchange>(subscriptions).await?;
+        ) = Exchange::Subscriber::subscribe::<Exchange, Kind>(subscriptions).await?;
 
         // Split WebSocket into WsStream & WsSink components
         let (ws_sink, ws_stream) = websocket.split();
