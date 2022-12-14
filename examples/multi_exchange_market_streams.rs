@@ -1,14 +1,11 @@
 use futures::StreamExt;
-use barter_data::{ExchangeWsStream, Identifier, MarketStream};
 use barter_data::exchange::coinbase::Coinbase;
-use barter_data::exchange::{Connector, ExchangeId};
-use barter_data::subscriber::subscription::trade::PublicTrades;
-use barter_data::subscriber::validator::WebSocketSubValidator;
-use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
+use barter_data::exchange::Connector;
+use barter_data::{ExchangeWsStream, Identifier, MarketStream};
 use barter_data::subscriber::subscription::{SubKind, Subscription};
-use barter_data::transformer::{StatelessTransformer, TransformerConstructor};
+use barter_data::subscriber::subscription::trade::PublicTrades;
+use barter_data::transformer::TransformerConstructor;
 use barter_integration::model::InstrumentKind;
-use barter_integration::Transformer;
 
 #[tokio::main]
 async fn main() {

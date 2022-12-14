@@ -31,14 +31,6 @@ pub mod subscriber;
 pub mod exchange;
 pub mod transformer;
 
-/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
-
-/// Todo:
-pub trait Identifier<T> {
-    fn id(&self) -> T;
-}
-
 // Todo:
 //  - I don't think I need Exchange in the StatelessTransformer generics? Or perhaps I can remove
 //    one of the others since I now have Exchange...
@@ -58,7 +50,13 @@ pub trait Identifier<T> {
 //  - Check rust docs & fix
 //  - Add unit tests from develop branch, etc.
 
+/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
+pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
 
+/// Todo:
+pub trait Identifier<T> {
+    fn id(&self) -> T;
+}
 
 /// [`Stream`] that yields [`Market<T>`] events. Type of [`Market<T>`] depends on the provided
 /// [`SubKind`] of the passed [`Subscription`]s.
