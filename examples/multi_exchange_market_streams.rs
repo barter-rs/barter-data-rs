@@ -1,10 +1,11 @@
 use futures::StreamExt;
-use barter_data::{consume, ExchangeWsStream, StatelessTransformer};
+use barter_data::{consume, ExchangeWsStream};
 use barter_data::exchange::coinbase::Coinbase;
 use barter_data::exchange::{Connector, ExchangeId};
 use barter_data::subscriber::subscription::trade::PublicTrades;
 use barter_data::subscriber::validator::WebSocketSubValidator;
 use barter_data::subscriber::{Subscriber, WebSocketSubscriber};
+use barter_data::transformer::StatelessTransformer;
 use barter_integration::model::InstrumentKind;
 
 // StreamBuilder subscribing to various Futures & Spot MarketStreams from Ftx, Kraken,

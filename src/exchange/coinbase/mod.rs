@@ -1,5 +1,5 @@
 use crate::exchange::{Connector, ExchangeId, ExchangeSub, TransformerConstructor};
-use crate::{Identifier, StatelessTransformer};
+use crate::Identifier;
 use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap};
 use crate::subscriber::subscription::trade::PublicTrades;
 use crate::subscriber::validator::WebSocketSubValidator;
@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::mpsc;
 use crate::exchange::coinbase::trade::CoinbaseTrade;
+use crate::transformer::StatelessTransformer;
 
 /// Todo:
 pub mod trade;
@@ -59,11 +60,10 @@ where
 }
 
 impl TransformerConstructor<PublicTrades> for Coinbase {
-    type Kind = ();
     type T = StatelessTransformer<PublicTrades, CoinbaseTrade>;
 
     fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<PublicTrades>) -> Self::T {
-        StatelessTransformer::new(Self::ID, map)
+        StatelessTransformer::new(<Coinbase as Connector<PublicTrades>>::ID, map)
     }
 }
 
@@ -78,6 +78,10 @@ impl CoinbaseChannel {
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
     pub const TRADES: Self = Self("matches");
+
+    pub fn get_trades() -> String {
+        todo!()
+    }
 }
 
 impl Identifier<CoinbaseChannel> for Subscription<PublicTrades> {

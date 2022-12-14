@@ -19,7 +19,7 @@ pub mod coinbase;
 ///      '--> Connector<SubKind> ? may want to revert back Transformer<Input> etc?
 pub trait Connector<Kind>
 where
-    Self: TransformerConstructor<Kind>,
+    // Self: TransformerConstructor<Kind>,
     Kind: SubKind,
 {
     const ID: ExchangeId;
@@ -33,6 +33,10 @@ where
     fn base_url() -> &'static str;
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
     fn expected_responses(map: &SubscriptionMap<Kind>) -> usize { map.0.len() }
+
+    // fn transformer<Kind>(map: SubscriptionMap<Kind>)
+    // where
+    //     Self: TransformerConstructor<Kind>;
 }
 
 /// Todo:
