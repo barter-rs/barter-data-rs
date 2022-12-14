@@ -25,6 +25,7 @@ where
     fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Self, Kind>) -> Self::Transformer;
 }
 
+/// Todo:
 pub struct StatelessTransformer<Exchange, Kind, ExchangeEvent> {
     pub map: SubscriptionMap<Exchange, Kind>,
     phantom: PhantomData<ExchangeEvent>,

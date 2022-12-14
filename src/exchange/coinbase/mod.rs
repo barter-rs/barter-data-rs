@@ -107,7 +107,10 @@ impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, Kind> {
 /// Uses "channel|market":
 /// eg/ SubscriptionId("matches|ETH-USD")
 pub(crate) fn subscription_id(channel: CoinbaseChannel, market: &str) -> SubscriptionId {
-    SubscriptionId::from(format!("{}|{}", channel.0, market))
+    ExchangeSub {
+        channel: channel.0,
+        market,
+    }.id()
 }
 
 /// Coinbase WebSocket subscription response.

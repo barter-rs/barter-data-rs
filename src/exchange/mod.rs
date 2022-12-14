@@ -46,7 +46,10 @@ where
     Market: Debug,
 {
     fn id(&self) -> SubscriptionId {
-        SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market))
+        panic!("this needs to be normalised...");
+        let x = SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market));
+        println!("SubId: {}", x);
+        x
     }
 }
 
@@ -63,6 +66,7 @@ impl<Channel, Market> ExchangeSub<Channel, Market> {
 }
 
 /// Todo: rust docs & check historical rust docs for inspiration
+///   '--> Do we need this anymore? How can we assist users when they build there streams?
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename = "exchange", rename_all = "snake_case")]
 pub enum ExchangeId {
