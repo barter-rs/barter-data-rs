@@ -4,7 +4,7 @@ use crate::{
 };
 use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer, Validator};
 use std::fmt::{Debug, Display, Formatter};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use tokio::sync::mpsc;
 use crate::subscriber::Subscriber;
 use crate::subscriber::subscription::SubKind;
@@ -37,15 +37,6 @@ where
     // fn transformer<Kind>(map: SubscriptionMap<Kind>)
     // where
     //     Self: TransformerConstructor<Kind>;
-}
-
-/// Todo:
-pub trait TransformerConstructor<Kind>
-where
-    Kind: SubKind,
-{
-    type T: Transformer;
-    fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Kind>) -> Self::T;
 }
 
 pub struct ExchangeSub<Channel, Market> {

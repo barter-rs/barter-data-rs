@@ -1,16 +1,27 @@
 use crate::{
     exchange::ExchangeId,
+    Identifier,
     model::{Market, MarketIter},
     subscriber::subscription::{SubKind, SubscriptionMap},
-    Identifier,
 };
 use barter_integration::{
-    model::{Instrument, SubscriptionId},
     error::SocketError,
+    model::{Instrument, SubscriptionId},
     Transformer,
 };
 use std::marker::PhantomData;
 use serde::Deserialize;
+use tokio::sync::mpsc;
+use barter_integration::protocol::websocket::WsMessage;
+
+/// Todo:
+pub trait TransformerConstructor<Kind>
+where
+    Kind: SubKind,
+{
+    type Transformer: Transformer<Output = Market<Kind::Event>>;
+    fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Kind>) -> Self::Transformer;
+}
 
 pub struct StatelessTransformer<Kind, ExchangeEvent> {
     pub exchange_id: ExchangeId,

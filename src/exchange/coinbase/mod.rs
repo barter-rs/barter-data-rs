@@ -1,4 +1,4 @@
-use crate::exchange::{Connector, ExchangeId, ExchangeSub, TransformerConstructor};
+use crate::exchange::{Connector, ExchangeId, ExchangeSub};
 use crate::Identifier;
 use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap};
 use crate::subscriber::subscription::trade::PublicTrades;
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::mpsc;
 use crate::exchange::coinbase::trade::CoinbaseTrade;
-use crate::transformer::StatelessTransformer;
+use crate::transformer::{StatelessTransformer, TransformerConstructor};
 
 /// Todo:
 pub mod trade;
@@ -60,9 +60,9 @@ where
 }
 
 impl TransformerConstructor<PublicTrades> for Coinbase {
-    type T = StatelessTransformer<PublicTrades, CoinbaseTrade>;
+    type Transformer = StatelessTransformer<PublicTrades, CoinbaseTrade>;
 
-    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<PublicTrades>) -> Self::T {
+    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<PublicTrades>) -> Self::Transformer {
         StatelessTransformer::new(<Coinbase as Connector<PublicTrades>>::ID, map)
     }
 }

@@ -8,19 +8,22 @@
 ///! # Barter-Data
 
 use crate::{
-    exchange::{Connector, ExchangeId, TransformerConstructor},
+    exchange::{Connector, ExchangeId},
     model::Market,
     subscriber::{Subscriber, subscription::{SubKind, Subscription}},
 };
 use barter_integration::{
     error::SocketError,
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
-    ExchangeStream, Transformer
+    ExchangeStream,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream}, Transformer
 };
 use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::error;
+///! # Barter-Data
+
+use transformer::TransformerConstructor;
 
 /// Todo:
 pub mod model;
@@ -39,25 +42,25 @@ pub trait Identifier<T> {
 /// [`Stream`] that yields [`Market<T>`] events. Type of [`Market<T>`] depends on the provided
 /// [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
-pub trait MarketStream<Kind>:
+pub trait MarketStream<Exchange, Kind>:
 where
     Self: Stream<Item = Result<Market<Kind::Event>, SocketError>> + Sized + Unpin,
+    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
     Kind: SubKind,
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
-    async fn init<Exchange>(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
     where
-        Exchange: Connector<Kind> + TransformerConstructor<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 #[async_trait]
-impl<Kind, T> MarketStream<Kind> for ExchangeWsStream<T>
+impl<Exchange, Kind> MarketStream<Exchange, Kind> for ExchangeWsStream<Exchange::Transformer>
 where
+    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
     Kind: SubKind + Send + Sync,
-    T: Transformer<Output = Market<Kind::Event>>,
 {
-    async fn init<Exchange>(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Kind>]) -> Result<Self, SocketError>
     where
         Exchange: Connector<Kind> + TransformerConstructor<Kind>,
         Subscription<Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>
