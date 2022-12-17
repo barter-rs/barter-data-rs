@@ -78,10 +78,6 @@ impl CoinbaseChannel {
     ///
     /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
     pub const TRADES: Self = Self("matches");
-
-    pub fn get_trades() -> String {
-        todo!()
-    }
 }
 
 impl Identifier<CoinbaseChannel> for Subscription<Coinbase, PublicTrades> {
@@ -106,9 +102,9 @@ impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, Kind> {
 ///
 /// Uses "channel|market":
 /// eg/ SubscriptionId("matches|ETH-USD")
-pub(crate) fn subscription_id(channel: CoinbaseChannel, market: &str) -> SubscriptionId {
+pub(crate) fn subscription_id(channel: CoinbaseChannel, market: CoinbaseMarket) -> SubscriptionId {
     ExchangeSub {
-        channel: channel.0,
+        channel,
         market,
     }.id()
 }

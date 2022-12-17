@@ -31,6 +31,12 @@ pub mod subscriber;
 pub mod exchange;
 pub mod transformer;
 
+// Todo: Thoughts
+//  - Have Exchange be a MarketStreamConstructor rather than TransformerConstructor
+//  - Have ExchangeSub as an associated type on the subscriber? Or generic. That way more flexible.
+//  - May sure Connector is protocol agnostic
+//  - SubscriptionId via ExchangeSub is ugly and required eg/ coinbase market to be an owned String
+
 // Todo:
 //  - I don't think I need Exchange in the StatelessTransformer generics? Or perhaps I can remove
 //    one of the others since I now have Exchange...

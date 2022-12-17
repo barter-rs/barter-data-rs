@@ -19,6 +19,10 @@ async fn main() {
         .await
         .unwrap();
 
+    // let handle = tokio::spawn(test(subscriptions))
+    //     .await
+    //     .unwrap();
+
 }
 
 pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)

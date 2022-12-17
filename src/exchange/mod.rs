@@ -46,10 +46,7 @@ where
     Market: Debug,
 {
     fn id(&self) -> SubscriptionId {
-        panic!("this needs to be normalised...");
-        let x = SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market));
-        println!("SubId: {}", x);
-        x
+        SubscriptionId::from(format!("{:?}|{:?}", self.channel, self.market))
     }
 }
 
