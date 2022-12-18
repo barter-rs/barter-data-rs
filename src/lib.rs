@@ -21,40 +21,15 @@ use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::error;
-///! # Barter-Data
 
-use crate::exchange::StreamSelector;
+
 
 /// Todo:
 pub mod model;
 pub mod subscriber;
 pub mod exchange;
-pub mod transformer;
+// pub mod transformer;
 
-// Todo: Thoughts
-//  - Have Exchange be a MarketStreamConstructor rather than TransformerConstructor
-//  - Have ExchangeSub as an associated type on the subscriber? Or generic. That way more flexible.
-//  - May sure Connector is protocol agnostic
-//  - SubscriptionId via ExchangeSub is ugly and required eg/ coinbase market to be an owned String
-
-// Todo:
-//  - I don't think I need Exchange in the StatelessTransformer generics? Or perhaps I can remove
-//    one of the others since I now have Exchange...
-//    '--> must be a way to go from Exchange, Kind -> CoinbaseTrades
-//  - There is some optimisation to do now that we have Exchange & ExchangeEvent hanging around.
-//    '--> Should be able to determine the ExchangeEvent from the Exchange & Kind :)
-
-// Todo: Nice To Have:
-//  - Try removing 'async_trait where it exists :)
-//  - Clean up distribution of responses to the exchange... it's messy.
-//  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
-
-// Todo: Before Release:
-//  - Fix imports
-//  - Add derives eagerly
-//  - Rust docs
-//  - Check rust docs & fix
-//  - Add unit tests from develop branch, etc.
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
@@ -66,55 +41,8 @@ pub trait Identifier<T> {
 
 /// [`Stream`] that yields [`Market<T>`] events. Type of [`Market<T>`] depends on the provided
 /// [`SubKind`] of the passed [`Subscription`]s.
-#[async_trait]
-pub trait MarketStream<Exchange, Kind>:
-where
-    Self: Stream<Item = Result<Market<Kind::Event>, SocketError>> + Sized + Unpin,
-    Exchange: Connector + StreamSelector<Kind>,
-    Kind: SubKind,
-{
-    /// Initialises a new [`MarketStream`] using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
-    where
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
-}
-
-#[async_trait]
-impl<Exchange, Kind> MarketStream<Exchange, Kind> for ExchangeWsStream<Exchange::Transformer>
-where
-    Exchange: Connector + StreamSelector<Kind> + Send + Sync,
-    Kind: SubKind + Send + Sync,
-{
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
-    where
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>
-    {
-        // Connect & subscribe
-        let (
-            websocket,
-            map
-        ) = Exchange::Subscriber::subscribe::<Exchange, Kind>(subscriptions).await?;
-
-        // Split WebSocket into WsStream & WsSink components
-        let (ws_sink, ws_stream) = websocket.split();
-
-        // Task to distribute ExchangeTransformer outgoing messages (eg/ custom pongs) to exchange
-        // --> ExchangeTransformer is operating in a synchronous trait context
-        // --> ExchangeTransformer sends messages sync via channel to async distribution task
-        // --> Async distribution tasks forwards the messages to the exchange via the ws_sink
-        let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
-        tokio::spawn(distribute_responses_to_the_exchange(
-            Exchange::ID,
-            ws_sink,
-            ws_sink_rx,
-        ));
-
-        // Construct Transformer associated with this Exchange and SubKind
-        let transformer = Exchange::transformer(ws_sink_tx, map);
-
-        Ok(ExchangeWsStream::new(ws_stream, transformer))
-    }
-}
+// #[async_trait]
+// pub trait MarketStream<Exchange, Kind>:
 
 /// Todo:
 /// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the
