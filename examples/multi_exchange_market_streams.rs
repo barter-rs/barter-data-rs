@@ -2,13 +2,15 @@ use barter_data::exchange::binance::futures::BinanceFuturesUsd;
 use barter_data::exchange::binance::spot::{BinanceServerSpot, BinanceSpot};
 use barter_data::exchange::binance::Binance;
 use barter_data::exchange::coinbase::Coinbase;
+use barter_data::exchange::kraken::Kraken;
+use barter_data::exchange::okx::Okx;
 use barter_data::subscriber::subscription::trade::PublicTrades;
 use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
-use barter_data::exchange::kraken::Kraken;
-use barter_data::exchange::okx::Okx;
+use barter_data::exchange::gateio::futures::GateioFuturesUsd;
+use barter_data::exchange::gateio::spot::GateioSpot;
 
 #[tokio::main]
 async fn main() {
@@ -24,9 +26,12 @@ async fn main() {
         // (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
         // (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (Kraken, "xbt", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (Kraken, "usdt", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Kraken, "xbt", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Kraken, "usdt", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (GateioFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (GateioFuturesUsd::default(), "shib", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (
         //     BinanceSpot::default(),
         //     "btc",
@@ -61,13 +66,10 @@ fn init_logging() {
     tracing_subscriber::fmt()
         // Filter messages based on the `RUST_LOG` environment variable
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-
         // Disable colours on release builds
         .with_ansi(cfg!(debug_assertions))
-
         // Enable Json formatting
         .json()
-
         // Install this Tracing subscriber as global default
         .init()
 }
