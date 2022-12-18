@@ -13,6 +13,9 @@ use futures::StreamExt;
 // BinanceFuturesUsd & Coinbase
 #[tokio::main]
 async fn main() {
+    // Initialise Tracing log subscriber (uses INFO filter if RUST_LOG env var is not set)
+    init_logging();
+
     // Initialise a `PublicTrade`, `Candle` & `OrderBook``MarketStream` for
     // `BinanceFuturesUsd`, `Ftx`, `Kraken` & `Coinbase`
     let streams = Streams::builder()
@@ -45,4 +48,26 @@ async fn main() {
     while let Some((exchange, event)) = joined_stream.next().await {
         println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
     }
+}
+
+// Initialise a `Subscriber` for `Tracing` Json logs and install it as the global default.
+fn init_logging() {
+    use tracing_subscriber::EnvFilter;
+    use tracing::metadata::LevelFilter;
+
+    let environment_filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(LevelFilter::INFO.to_string()));
+
+    tracing_subscriber::fmt()
+        // Filter messages based on the `RUST_LOG` environment variable
+        .with_env_filter(environment_filter)
+
+        // Disable colours on release builds
+        .with_ansi(cfg!(debug_assertions))
+
+        // Enable Json formatting
+        .json()
+
+        // Install this Tracing subscriber as global default
+        .init()
 }
