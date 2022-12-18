@@ -7,18 +7,22 @@ use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
+use barter_data::exchange::okx::Okx;
 
 #[tokio::main]
 async fn main() {
+    // Initialise Tracing log subscriber (uses INFO filter if RUST_LOG env var is not set)
     init_logging();
 
     // Subscriptions
     let subscriptions = vec![
-        (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (Coinbase, "btc", "gbp", InstrumentKind::Spot, PublicTrades).into(),
-        (Coinbase, "eth", "gbp", InstrumentKind::Spot, PublicTrades).into(),
-        (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        // (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Coinbase, "btc", "gbp", InstrumentKind::Spot, PublicTrades).into(),
+        // (Coinbase, "eth", "gbp", InstrumentKind::Spot, PublicTrades).into(),
+        // (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (
         //     BinanceSpot::default(),
         //     "btc",
