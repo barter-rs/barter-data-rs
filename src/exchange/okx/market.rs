@@ -1,8 +1,5 @@
 use super::Okx;
-use crate::{
-    subscriber::subscription::Subscription,
-    Identifier
-};
+use crate::{subscriber::subscription::Subscription, Identifier};
 use barter_integration::model::InstrumentKind;
 use serde::{Deserialize, Serialize};
 

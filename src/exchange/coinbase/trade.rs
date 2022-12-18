@@ -1,8 +1,8 @@
 use super::CoinbaseChannel;
 use crate::{
     exchange::ExchangeId,
-    subscriber::subscription::exchange::ExchangeSub,
     model::{Market, MarketIter, PublicTrade},
+    subscriber::subscription::exchange::ExchangeSub,
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};

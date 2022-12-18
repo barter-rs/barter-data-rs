@@ -1,7 +1,7 @@
 use crate::exchange::coinbase::Coinbase;
-use crate::Identifier;
-use crate::subscriber::subscription::Subscription;
 use crate::subscriber::subscription::trade::PublicTrades;
+use crate::subscriber::subscription::Subscription;
+use crate::Identifier;
 
 /// Todo:
 ///

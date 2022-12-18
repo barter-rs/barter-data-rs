@@ -1,3 +1,4 @@
+use crate::subscriber::subscription::exchange::ExchangeSub;
 use crate::{
     exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
@@ -6,7 +7,6 @@ use crate::{
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::subscriber::subscription::exchange::ExchangeSub;
 
 /// Terse type alias for an [`Okx`] real-time trades WebSocket message.
 pub type OkxTrades = OkxMessage<OkxTrade>;

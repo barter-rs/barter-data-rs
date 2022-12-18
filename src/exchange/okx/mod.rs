@@ -1,15 +1,12 @@
 use self::{
-    channel::OkxChannel,
-    market::OkxMarket,
-    subscription::OkxSubResponse,
-    trade::OkxTrades,
+    channel::OkxChannel, market::OkxMarket, subscription::OkxSubResponse, trade::OkxTrades,
 };
 use crate::{
     exchange::{Connector, ExchangeId},
     subscriber::{
-        WebSocketSubscriber,
         subscription::{exchange::ExchangeSub, trade::PublicTrades},
         validator::WebSocketSubValidator,
+        WebSocketSubscriber,
     },
     transformer::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
@@ -18,10 +15,9 @@ use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-
+pub mod channel;
 /// Todo:
 pub mod market;
-pub mod channel;
 pub mod subscription;
 pub mod trade;
 

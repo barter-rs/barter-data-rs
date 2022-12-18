@@ -1,7 +1,7 @@
 use super::Subscription;
 use crate::Identifier;
 use barter_integration::model::SubscriptionId;
-use serde::{Deserialize};
+use serde::Deserialize;
 
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize)]
 pub struct ExchangeSub<Channel, Market> {

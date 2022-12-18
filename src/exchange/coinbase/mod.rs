@@ -1,15 +1,13 @@
 use self::{
-    channel::CoinbaseChannel,
-    market::CoinbaseMarket,
-    subscription::CoinbaseSubResponse,
+    channel::CoinbaseChannel, market::CoinbaseMarket, subscription::CoinbaseSubResponse,
     trade::CoinbaseTrade,
 };
 use crate::{
     exchange::{Connector, ExchangeId},
     subscriber::{
-        WebSocketSubscriber,
         subscription::{exchange::ExchangeSub, trade::PublicTrades},
         validator::WebSocketSubValidator,
+        WebSocketSubscriber,
     },
     transformer::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
@@ -18,11 +16,11 @@ use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-/// Todo:
-pub mod trade;
 pub mod channel;
 pub mod market;
 pub mod subscription;
+/// Todo:
+pub mod trade;
 
 /// [`Coinbase`] server base url.
 ///

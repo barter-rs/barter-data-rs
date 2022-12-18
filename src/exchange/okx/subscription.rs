@@ -1,19 +1,13 @@
-use super::{
-    channel::OkxChannel,
-    market::OkxMarket,
-};
+use super::{channel::OkxChannel, market::OkxMarket};
 use crate::subscriber::subscription::exchange::ExchangeSub;
-use barter_integration::{
-    error::SocketError,
-    Validator,
-};
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+use barter_integration::{error::SocketError, Validator};
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 
 // Implement custom Serialize to assist aesthetics of <Okx as Connector>::requests() function.
 impl Serialize for ExchangeSub<OkxChannel, OkxMarket> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer
+        S: Serializer,
     {
         let mut state = serializer.serialize_struct("OkxSubArg", 2)?;
         state.serialize_field("channel", self.channel.as_ref())?;
