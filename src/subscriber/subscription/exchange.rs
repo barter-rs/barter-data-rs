@@ -14,7 +14,11 @@ where
     Market: AsRef<str>,
 {
     fn id(&self) -> SubscriptionId {
-        SubscriptionId::from(format!("{}|{}", self.channel.as_ref(), self.market.as_ref()))
+        SubscriptionId::from(format!(
+            "{}|{}",
+            self.channel.as_ref(),
+            self.market.as_ref()
+        ))
     }
 }
 
@@ -30,7 +34,7 @@ where
     {
         Self {
             channel: sub.id(),
-            market: sub.id()
+            market: sub.id(),
         }
     }
 }
@@ -41,9 +45,6 @@ where
     Market: AsRef<str>,
 {
     fn from((channel, market): (Channel, Market)) -> Self {
-        Self {
-            channel,
-            market
-        }
+        Self { channel, market }
     }
 }

@@ -1,17 +1,17 @@
-use crate::{ExchangeWsStream, Identifier, StreamSelector};
-use barter_integration::error::SocketError;
-use barter_integration::Validator;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use barter_integration::protocol::websocket::WsMessage;
 use crate::exchange::coinbase::trade::CoinbaseTrade;
 use crate::exchange::{Connector, ExchangeId};
-use crate::subscriber::subscription::Subscription;
 use crate::subscriber::subscription::exchange::ExchangeSub;
 use crate::subscriber::subscription::trade::PublicTrades;
+use crate::subscriber::subscription::Subscription;
 use crate::subscriber::validator::WebSocketSubValidator;
 use crate::subscriber::WebSocketSubscriber;
 use crate::transformer::StatelessTransformer;
+use crate::{ExchangeWsStream, Identifier, StreamSelector};
+use barter_integration::error::SocketError;
+use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::Validator;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 /// Todo:
 pub mod trade;
@@ -48,7 +48,8 @@ impl Connector for Coinbase {
                         "type": "subscribe",
                         "product_ids": [market.0],
                         "channels": [channel.0],
-                    }).to_string(),
+                    })
+                    .to_string(),
                 )
             })
             .collect()

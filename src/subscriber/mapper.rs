@@ -1,14 +1,15 @@
-use super::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta, exchange::ExchangeSub};
-use crate::{
-    exchange::Connector,
-    Identifier,
+use super::subscription::{
+    exchange::ExchangeSub, SubKind, Subscription, SubscriptionMap, SubscriptionMeta,
 };
+use crate::{exchange::Connector, Identifier};
 use barter_integration::model::SubscriptionId;
 use std::collections::HashMap;
 
 /// Todo:
 pub trait SubscriptionMapper {
-    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
+    fn map<Exchange, Kind>(
+        subscriptions: &[Subscription<Exchange, Kind>],
+    ) -> SubscriptionMeta<Exchange, Kind>
     where
         Exchange: Connector,
         Kind: SubKind,
@@ -19,7 +20,9 @@ pub trait SubscriptionMapper {
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
+    fn map<Exchange, Kind>(
+        subscriptions: &[Subscription<Exchange, Kind>],
+    ) -> SubscriptionMeta<Exchange, Kind>
     where
         Exchange: Connector,
         Kind: SubKind,

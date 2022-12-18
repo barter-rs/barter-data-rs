@@ -10,8 +10,8 @@ pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
 
 impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Event> {
     fn from_iter<T>(iter: T) -> Self
-        where
-            T: IntoIterator<Item = Result<Market<Event>, SocketError>>,
+    where
+        T: IntoIterator<Item = Result<Market<Event>, SocketError>>,
     {
         Self(iter.into_iter().collect())
     }
@@ -76,8 +76,8 @@ pub struct Liquidation {
 }
 
 impl<T> From<(T, T)> for Level
-    where
-        T: Into<f64>,
+where
+    T: Into<f64>,
 {
     fn from((price, quantity): (T, T)) -> Self {
         Self::new(price, quantity)
@@ -86,8 +86,8 @@ impl<T> From<(T, T)> for Level
 
 impl Level {
     pub fn new<T>(price: T, quantity: T) -> Self
-        where
-            T: Into<f64>,
+    where
+        T: Into<f64>,
     {
         Self {
             price: price.into(),

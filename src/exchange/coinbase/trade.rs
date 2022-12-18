@@ -1,9 +1,13 @@
-use crate::{exchange::ExchangeId, Identifier, model::{Market, MarketIter, PublicTrade}};
-use crate::exchange::coinbase::{CoinbaseChannel};
+use crate::exchange::coinbase::CoinbaseChannel;
+use crate::subscriber::subscription::exchange::ExchangeSub;
+use crate::{
+    exchange::ExchangeId,
+    model::{Market, MarketIter, PublicTrade},
+    Identifier,
+};
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::subscriber::subscription::exchange::ExchangeSub;
 
 /// Coinbase real-time trade WebSocket message.
 ///
@@ -52,9 +56,7 @@ where
     D: serde::de::Deserializer<'de>,
 {
     <&str as Deserialize>::deserialize(deserializer)
-        .map(|product_id| ExchangeSub::from((
-            CoinbaseChannel::TRADES, product_id
-        )).id())
+        .map(|product_id| ExchangeSub::from((CoinbaseChannel::TRADES, product_id)).id())
 }
 
 #[cfg(test)]

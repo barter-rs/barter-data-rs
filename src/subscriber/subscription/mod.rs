@@ -3,16 +3,15 @@ use barter_integration::{
     model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
     protocol::websocket::WsMessage,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt::{Debug, Display, Formatter}
+    fmt::{Debug, Display, Formatter},
 };
-use serde::{Deserialize, Serialize};
 
-
+pub mod exchange;
 /// Todo:
 pub mod trade;
-pub mod exchange;
 
 /// Todo:
 pub trait SubKind
@@ -42,11 +41,13 @@ where
     }
 }
 
-impl<Exchange, S, Kind> From<(Exchange, S, S, InstrumentKind, Kind)> for Subscription<Exchange, Kind>
+impl<Exchange, S, Kind> From<(Exchange, S, S, InstrumentKind, Kind)>
+    for Subscription<Exchange, Kind>
 where
     S: Into<Symbol>,
 {
-    fn from((exchange, base, quote, instrument_kind, kind): (Exchange, S, S, InstrumentKind, Kind),
+    fn from(
+        (exchange, base, quote, instrument_kind, kind): (Exchange, S, S, InstrumentKind, Kind),
     ) -> Self {
         Self::new(exchange, (base, quote, instrument_kind), kind)
     }
@@ -96,7 +97,9 @@ pub struct SubscriptionMeta<Exchange, Kind> {
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct SubscriptionMap<Exchange, Kind>(pub HashMap<SubscriptionId, Subscription<Exchange, Kind>>);
+pub struct SubscriptionMap<Exchange, Kind>(
+    pub HashMap<SubscriptionId, Subscription<Exchange, Kind>>,
+);
 
 impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
@@ -110,8 +113,8 @@ impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::exchange::ExchangeId;
     use super::*;
+    use crate::exchange::ExchangeId;
     use crate::subscriber::subscription::trade::PublicTrades;
 
     #[test]

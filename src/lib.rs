@@ -5,32 +5,28 @@
     // missing_docs
 )]
 
+use crate::subscriber::Subscriber;
 ///! # Barter-Data
-
 use crate::{
     exchange::Connector,
     model::Market,
+    subscriber::subscription::{SubKind, Subscription},
     transformer::ExchangeTransformer,
-    subscriber::{
-        // Subscriber,
-        subscription::{SubKind, Subscription}
-    },
 };
-use barter_integration::{error::SocketError, protocol::websocket::{WebSocketParser, WsStream}, ExchangeStream};
 use async_trait::async_trait;
+use barter_integration::{
+    error::SocketError,
+    protocol::websocket::{WebSocketParser, WsStream},
+    ExchangeStream,
+};
 use futures::{Stream, StreamExt};
 use tokio::sync::mpsc;
-use crate::subscriber::Subscriber;
 
-
+pub mod exchange;
 /// Todo:
 pub mod model;
 pub mod subscriber;
-pub mod exchange;
 pub mod transformer;
-
-// Todo: Defining principles are:
-//  - WE ONLY NEED EXCHANGE & KIND GENERICS TO GENERATE EVERYTHING
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
@@ -40,8 +36,7 @@ pub trait Identifier<T> {
     fn id(&self) -> T;
 }
 
-// Todo: Add ExchangeIdentifier trait again?
-
+/// Todo:
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
@@ -50,6 +45,7 @@ where
     type Stream: MarketStream<Self, Kind>;
 }
 
+/// Todo:
 #[async_trait]
 pub trait MarketStream<Exchange, Kind>
 where
@@ -74,12 +70,10 @@ where
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Connect & subscribe
-        let (
-            websocket,
-            map
-        ) = Exchange::Subscriber::subscribe(&subscriptions).await?;
+        let (websocket, map) = Exchange::Subscriber::subscribe(subscriptions).await?;
 
         // Split WebSocket into WsStream & WsSink components
+        // Todo:
         let (_, ws_stream) = websocket.split();
         let (ws_sink_tx, _) = mpsc::unbounded_channel();
 
@@ -89,27 +83,3 @@ where
         Ok(ExchangeWsStream::new(ws_stream, transformer))
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

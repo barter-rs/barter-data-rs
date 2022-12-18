@@ -1,19 +1,19 @@
 use crate::{
+    exchange::Connector,
     subscriber::subscription::{SubKind, SubscriptionMap},
-    exchange::Connector
 };
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     protocol::{
-        StreamParser,
         websocket::{WebSocket, WebSocketParser},
+        StreamParser,
     },
     Validator,
 };
-use std::time::Duration;
-use async_trait::async_trait;
-use tracing::debug;
 use futures::StreamExt;
+use std::time::Duration;
+use tracing::debug;
 
 /// Todo:
 #[async_trait]
@@ -44,11 +44,11 @@ impl SubscriptionValidator for WebSocketSubValidator {
     async fn validate<Exchange, Kind>(
         map: SubscriptionMap<Exchange, Kind>,
         websocket: &mut WebSocket,
-        expected_responses: usize
+        expected_responses: usize,
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
         Exchange: Connector + Send,
-        Kind: SubKind + Send
+        Kind: SubKind + Send,
     {
         // Establish time limit in which we expect to validate all the Subscriptions
         let timeout = Self::subscription_timeout();

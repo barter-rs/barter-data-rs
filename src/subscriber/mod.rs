@@ -1,20 +1,20 @@
 use self::{
-    subscription::{SubKind, SubscriptionMeta, Subscription, SubscriptionMap},
     mapper::{SubscriptionMapper, WebSocketSubMapper},
+    subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
     validator::SubscriptionValidator,
 };
-use crate::{
-    exchange::Connector,
-    Identifier,
-};
-use barter_integration::{error::SocketError, protocol::websocket::{WebSocket, connect}};
+use crate::{exchange::Connector, Identifier};
 use async_trait::async_trait;
-use std::marker::PhantomData;
+use barter_integration::{
+    error::SocketError,
+    protocol::websocket::{connect, WebSocket},
+};
 use futures::SinkExt;
+use std::marker::PhantomData;
 
+pub mod mapper;
 /// Todo:
 pub mod subscription;
-pub mod mapper;
 pub mod validator;
 
 /// Todo:
@@ -73,11 +73,8 @@ where
         }
 
         // Validate Subscriptions
-        let map = Validator::validate::<Exchange, Kind>(
-            map,
-            &mut websocket,
-            expected_responses
-        ).await?;
+        let map =
+            Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
 
         Ok((websocket, map))
     }

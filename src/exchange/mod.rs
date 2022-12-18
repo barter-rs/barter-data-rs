@@ -1,14 +1,19 @@
-use crate::subscriber::subscription::SubscriptionMap;
-use barter_integration::protocol::websocket::WsMessage;
+use crate::subscriber::{
+    subscription::{
+        exchange::ExchangeSub,
+        SubscriptionMap,
+    },
+    Subscriber,
+    validator::SubscriptionValidator,
+};
+use barter_integration::{
+    protocol::websocket::WsMessage,
+    Validator,
+};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::{Debug, Display};
-use serde::{Deserialize, Serialize};
-use serde::de::DeserializeOwned;
-use barter_integration::Validator;
-use crate::subscriber::Subscriber;
-use crate::subscriber::subscription::exchange::ExchangeSub;
-use crate::subscriber::validator::SubscriptionValidator;
 
-
+/// Todo:
 pub mod coinbase;
 
 pub trait Connector
@@ -16,17 +21,17 @@ where
     Self: Clone + Sized,
 {
     const ID: ExchangeId;
-
     type Channel: AsRef<str>;
     type Market: AsRef<str>;
-
     type Subscriber: Subscriber<Self::SubValidator>;
     type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
-    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize { map.0.len() }
+    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
+        map.0.len()
+    }
 }
 
 /// Todo:
