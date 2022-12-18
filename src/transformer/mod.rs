@@ -35,7 +35,8 @@ pub struct StatelessTransformer<Exchange, Kind, Input> {
     pub map: SubscriptionMap<Exchange, Kind>,
     phantom: PhantomData<Input>,
 }
-impl<Exchange, Kind, Input> ExchangeTransformer<Exchange, Kind> for StatelessTransformer<Exchange, Kind, Input>
+impl<Exchange, Kind, Input> ExchangeTransformer<Exchange, Kind>
+    for StatelessTransformer<Exchange, Kind, Input>
 where
     Exchange: Connector,
     Kind: SubKind,

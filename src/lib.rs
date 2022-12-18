@@ -6,10 +6,8 @@
 )]
 
 ///! # Barter-Data
-
-
 use crate::{
-    exchange::{Connector, PingInterval, ExchangeId},
+    exchange::{Connector, ExchangeId, PingInterval},
     model::Market,
     subscriber::{
         subscription::{SubKind, Subscription},
@@ -17,12 +15,12 @@ use crate::{
     },
     transformer::ExchangeTransformer,
 };
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    protocol::websocket::{WebSocketParser, WsStream, WsSink, WsMessage},
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
     ExchangeStream,
 };
-use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
@@ -32,9 +30,6 @@ pub mod exchange;
 pub mod model;
 pub mod subscriber;
 pub mod transformer;
-
-// Todo: Nice To Have:
-//  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
@@ -108,7 +103,7 @@ where
             tokio::spawn(distribute_pings_to_exchange(
                 Exchange::ID,
                 ws_sink_tx.clone(),
-                ping_interval
+                ping_interval,
             ))
         }
 
@@ -155,7 +150,7 @@ pub async fn distribute_messages_to_exchange(
 pub async fn distribute_pings_to_exchange(
     exchange: ExchangeId,
     ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-    PingInterval { mut interval, ping } : PingInterval,
+    PingInterval { mut interval, ping }: PingInterval,
 ) {
     loop {
         // Wait for next scheduled ping

@@ -24,9 +24,13 @@ where
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
-    fn ping_interval() -> Option<PingInterval> { None }
+    fn ping_interval() -> Option<PingInterval> {
+        None
+    }
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
-    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize { map.0.len() }
+    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
+        map.0.len()
+    }
 }
 
 /// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
