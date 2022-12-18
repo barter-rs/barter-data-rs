@@ -1,10 +1,8 @@
 use futures::StreamExt;
 use barter_data::exchange::coinbase::Coinbase;
-use barter_data::exchange::{Connector, StreamSelector};
-use barter_data::{ExchangeWsStream, Identifier, MarketStream};
+use barter_data::{MarketStream, StreamSelector};
 use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::subscriber::subscription::trade::PublicTrades;
-use barter_data::transformer::TransformerConstructor;
 use barter_integration::model::InstrumentKind;
 
 #[tokio::main]
@@ -25,11 +23,10 @@ async fn main() {
 
 }
 
-// Todo: Defining principles are:
-//  - WE ONLY NEED EXCHANGE & KIND GENERICS TO GENERATE EVERYTHING
-pub async fn we_want_this_api<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
 where
     Exchange: StreamSelector<Kind>,
+    Kind: SubKind,
 {
     let mut stream = Exchange::Stream::init(&subscriptions)
         .await
@@ -39,6 +36,20 @@ where
         println!("Consumed: {event:?}");
     }
 }
+
+
+// pub async fn we_want_this_api<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+// where
+//     Exchange: StreamSelector<Kind>,
+// {
+//     let mut stream = Exchange::Stream::init(&subscriptions)
+//         .await
+//         .unwrap();
+//
+//     while let Some(event) = stream.next().await {
+//         println!("Consumed: {event:?}");
+//     }
+// }
 
 // pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
 // where

@@ -1,12 +1,8 @@
-use crate::{
-    exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
-    Identifier,
-};
+use crate::{exchange::ExchangeId, Identifier, model::{Market, MarketIter, PublicTrade}};
+use crate::exchange::coinbase::{CoinbaseChannel, CoinbaseMarket, subscription_id};
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::exchange::coinbase::{CoinbaseChannel, CoinbaseMarket, subscription_id};
 
 /// Coinbase real-time trade WebSocket message.
 ///

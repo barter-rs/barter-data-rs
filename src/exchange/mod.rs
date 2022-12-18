@@ -1,7 +1,19 @@
+use crate::subscriber::subscription::{Subscription, SubscriptionMap};
+use barter_integration::protocol::websocket::WebSocket;
 use std::fmt::Display;
+use serde::{Deserialize, Serialize};
 
 
-// pub mod coinbase;
+pub mod coinbase;
+
+
+pub trait Connector
+where
+    Self: Sized,
+{
+    fn subscribe<Kind>(subscriptions: &[Subscription<Self, Kind>]) -> (WebSocket, SubscriptionMap<Self, Kind>);
+}
+
 
 /// Todo:
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
