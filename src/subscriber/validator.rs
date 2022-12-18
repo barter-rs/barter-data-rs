@@ -61,6 +61,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
         loop {
             // Break if all Subscriptions were a success
             if success_responses == expected_responses {
+                debug!(exchange = %Exchange::ID, "validated exchange WebSocket subscriptions");
                 break Ok(map);
             }
 
@@ -81,7 +82,16 @@ impl SubscriptionValidator for WebSocketSubValidator {
                     match Self::Parser::parse::<Exchange::SubResponse>(response) {
                         Some(Ok(response)) => match response.validate() {
                             // Subscription success
-                            Ok(_) => { success_responses += 1; }
+                            Ok(response) => {
+                                success_responses += 1;
+                                debug!(
+                                    exchange = %Exchange::ID,
+                                    %success_responses,
+                                    %expected_responses,
+                                    payload = ?response,
+                                    "received valid Ok subscription response",
+                                );
+                            }
 
                             // Subscription failure
                             Err(err) => break Err(err)
@@ -89,9 +99,10 @@ impl SubscriptionValidator for WebSocketSubValidator {
                         Some(Err(SocketError::Deserialise { error, payload })) if success_responses >= 1 => {
                             // Already active subscription payloads, so skip to next SubResponse
                             debug!(
+                                exchange = %Exchange::ID,
                                 ?error,
                                 %payload,
-                                "SubscriptionValidator failed to deserialise non SubResponse payload"
+                                "failed to deserialise non SubResponse payload"
                             );
                             continue
                         }

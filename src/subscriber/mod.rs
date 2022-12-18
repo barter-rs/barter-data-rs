@@ -11,6 +11,7 @@ use barter_integration::{
 };
 use futures::SinkExt;
 use std::marker::PhantomData;
+use tracing::{debug, info};
 
 pub mod mapper;
 /// Todo:
@@ -56,7 +57,9 @@ where
         Validator: 'async_trait,
     {
         // Connect to exchange
-        let mut websocket = connect(Exchange::base_url()).await?;
+        let url = Exchange::base_url();
+        let mut websocket = connect(url).await?;
+        debug!(exchange = %Exchange::ID, %url, "connected to exchange WebSocket");
 
         // Map &[Subscription<Exchange, Kind>] to SubscriptionMeta
         let SubscriptionMeta {
@@ -71,9 +74,10 @@ where
         }
 
         // Validate Subscriptions
-        let map =
-            Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
+        let map = Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
 
+
+        info!(exchange = %Exchange::ID, %url, ?subscriptions, "subscribed to exchange WebSocket");
         Ok((websocket, map))
     }
 }
