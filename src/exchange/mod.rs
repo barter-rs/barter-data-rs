@@ -6,10 +6,14 @@ use crate::subscriber::{
 use barter_integration::{protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display};
-use std::time::Duration;
 
 /// Todo:
+pub mod binance;
+pub mod bitfinex;
 pub mod coinbase;
+pub mod gateio;
+pub mod kraken;
+pub mod okx;
 
 /// Todo:
 pub trait Connector
@@ -17,6 +21,7 @@ where
     Self: Clone + Sized,
 {
     const ID: ExchangeId;
+
     type Channel: AsRef<str>;
     type Market: AsRef<str>;
     type Subscriber: Subscriber<Self::SubValidator>;
@@ -24,10 +29,12 @@ where
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
+
     fn ping_interval() -> Option<PingInterval> {
         None
     }
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
+
     fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
         map.0.len()
     }
@@ -48,9 +55,9 @@ pub enum ExchangeId {
     BinanceSpot,
     Bitfinex,
     Coinbase,
-    GateioSpot,
-    GateioFuturesUsd,
     GateioFuturesBtc,
+    GateioFuturesUsd,
+    GateioSpot,
     Kraken,
     Okx,
 }
