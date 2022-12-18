@@ -1,7 +1,7 @@
-use crate::exchange::coinbase::CoinbaseChannel;
-use crate::subscriber::subscription::exchange::ExchangeSub;
+use super::CoinbaseChannel;
 use crate::{
     exchange::ExchangeId,
+    subscriber::subscription::exchange::ExchangeSub,
     model::{Market, MarketIter, PublicTrade},
     Identifier,
 };
@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// Coinbase real-time trade WebSocket message.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-channels#match>
-#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct CoinbaseTrade {
     #[serde(alias = "product_id", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,

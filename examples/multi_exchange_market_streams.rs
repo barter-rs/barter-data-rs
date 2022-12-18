@@ -10,42 +10,58 @@ use futures::StreamExt;
 
 #[tokio::main]
 async fn main() {
-    // init_logging();
+    init_logging();
 
     // Subscriptions
     let subscriptions = vec![
-        // (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        // (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        // (Coinbase, "btc", "gbp", InstrumentKind::Spot, PublicTrades).into(),
-        // (Coinbase, "eth", "gbp", InstrumentKind::Spot, PublicTrades).into(),
-        // (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-        (
-            BinanceSpot::default(),
-            "btc",
-            "usdt",
-            InstrumentKind::Spot,
-            PublicTrades,
-        )
-            .into(),
-        (
-            BinanceSpot::default(),
-            "eth",
-            "usdt",
-            InstrumentKind::Spot,
-            PublicTrades,
-        )
-            .into(),
-        (
-            BinanceSpot::default(),
-            "xrp",
-            "usdt",
-            InstrumentKind::Spot,
-            PublicTrades,
-        )
-            .into(),
+        (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Coinbase, "btc", "gbp", InstrumentKind::Spot, PublicTrades).into(),
+        (Coinbase, "eth", "gbp", InstrumentKind::Spot, PublicTrades).into(),
+        (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        // (
+        //     BinanceSpot::default(),
+        //     "btc",
+        //     "usdt",
+        //     InstrumentKind::Spot,
+        //     PublicTrades,
+        // )
+        //     .into(),
+        // (
+        //     BinanceSpot::default(),
+        //     "eth",
+        //     "usdt",
+        //     InstrumentKind::Spot,
+        //     PublicTrades,
+        // )
+        //     .into(),
+        // (
+        //     BinanceSpot::default(),
+        //     "xrp",
+        //     "usdt",
+        //     InstrumentKind::Spot,
+        //     PublicTrades,
+        // )
+        //     .into(),
     ];
 
     tokio::spawn(consume(subscriptions)).await.unwrap();
+}
+
+/// Initialise a `Subscriber` for `Tracing` Json logs and install it as the global default.
+fn init_logging() {
+    tracing_subscriber::fmt()
+        // Filter messages based on the `RUST_LOG` environment variable
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+
+        // Disable colours on release builds
+        .with_ansi(cfg!(debug_assertions))
+
+        // Enable Json formatting
+        .json()
+
+        // Install this Tracing subscriber as global default
+        .init()
 }
 
 pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)

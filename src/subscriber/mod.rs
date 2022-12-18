@@ -23,8 +23,6 @@ pub trait Subscriber<Validator>
 where
     Validator: SubscriptionValidator,
 {
-    // Todo: Remove WebSocket coupling
-    // type Socket;
     type SubMapper: SubscriptionMapper;
 
     async fn subscribe<Exchange, Kind>(
