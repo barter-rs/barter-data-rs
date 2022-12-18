@@ -21,8 +21,11 @@ use barter_integration::{
     protocol::websocket::{WebSocketParser, WsStream},
     ExchangeStream,
 };
-use futures::{Stream, StreamExt};
+use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
+use tracing::error;
+use barter_integration::protocol::websocket::{WsMessage, WsSink};
+use crate::exchange::ExchangeId;
 
 pub mod exchange;
 /// Todo:
@@ -49,12 +52,15 @@ pub mod transformer;
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
 
-/// Todo:
+/// Defines a generic identification type for the implementor.
 pub trait Identifier<T> {
     fn id(&self) -> T;
 }
 
-/// Todo:
+/// Defines the [`MarketStream`] kind associated with each exchange [`Subscription`] [`SubKind`].
+///
+/// ### Example: Subscription<Coinbase, PublicTrades>
+/// ` Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>`
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
@@ -63,7 +69,8 @@ where
     type Stream: MarketStream<Self, Kind>;
 }
 
-/// Todo:
+/// [`Stream`] that yields [`Market<Kind>`](Market) events. The type of [`Market<Kind>`](Market)
+/// depends on the provided [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
 pub trait MarketStream<Exchange, Kind>
 where
@@ -91,13 +98,42 @@ where
         let (websocket, map) = Exchange::Subscriber::subscribe(subscriptions).await?;
 
         // Split WebSocket into WsStream & WsSink components
-        // Todo:
-        let (_, ws_stream) = websocket.split();
-        let (ws_sink_tx, _) = mpsc::unbounded_channel();
+        let (ws_sink, ws_stream) = websocket.split();
+
+        // Spawn task to distribute Transformer messages (eg/ custom pongs) to the exchange
+        let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
+        tokio::spawn(send_messages_to_exchange(Exchange::ID, ws_sink, ws_sink_rx));
 
         // Construct Transformer associated with this Exchange and SubKind
         let transformer = Transformer::new(ws_sink_tx, map);
 
         Ok(ExchangeWsStream::new(ws_stream, transformer))
+    }
+}
+
+/// Receive [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them to the
+/// exchange via the [`WsSink`].
+///
+/// Note:
+/// ExchangeTransformer is operating in a synchronous trait context so we use this separate task
+/// to avoid adding `#[\async_trait\]` to the transformer - this avoids allocations.
+async fn send_messages_to_exchange(
+    exchange: ExchangeId,
+    mut ws_sink: WsSink,
+    mut ws_sink_rx: mpsc::UnboundedReceiver<WsMessage>,
+) {
+    while let Some(message) = ws_sink_rx.recv().await {
+        if let Err(error) = ws_sink.send(message).await {
+            if barter_integration::protocol::websocket::is_websocket_disconnected(&error) {
+                break;
+            }
+
+            // Log error only if WsMessage failed to send over a connected WebSocket
+            error!(
+                %exchange,
+                %error,
+                "failed to send  output message to the exchange via WsSink"
+            );
+        }
     }
 }
