@@ -7,6 +7,7 @@ use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
+use barter_data::exchange::kraken::Kraken;
 use barter_data::exchange::okx::Okx;
 
 #[tokio::main]
@@ -21,8 +22,11 @@ async fn main() {
         // (Coinbase, "btc", "gbp", InstrumentKind::Spot, PublicTrades).into(),
         // (Coinbase, "eth", "gbp", InstrumentKind::Spot, PublicTrades).into(),
         // (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-        (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (Kraken, "xbt", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        (Kraken, "eth", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        (Kraken, "xrp", "usdt", InstrumentKind::Spot, PublicTrades).into(),
         // (
         //     BinanceSpot::default(),
         //     "btc",

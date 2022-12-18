@@ -37,7 +37,7 @@ pub const BASE_URL_KRAKEN: &str = "wss://ws.kraken.com/";
 pub struct Kraken;
 
 impl Connector for Kraken {
-    const ID: ExchangeId = ExchangeId::BinanceFuturesUsd;
+    const ID: ExchangeId = ExchangeId::Kraken;
     type Channel = KrakenChannel;
     type Market = KrakenMarket;
     type Subscriber = WebSocketSubscriber<Self::SubValidator>;
