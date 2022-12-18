@@ -50,7 +50,7 @@ pub trait Identifier<T> {
 /// Defines the [`MarketStream`] kind associated with each exchange [`Subscription`] [`SubKind`].
 ///
 /// #### Example: Subscription<Coinbase, PublicTrades>
-/// ` Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>`
+/// `Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>`
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
@@ -100,11 +100,11 @@ where
 
         // Spawn optional task to distribute custom application-level pings to the exchange
         if let Some(ping_interval) = Exchange::ping_interval() {
-            tokio::spawn(distribute_pings_to_exchange(
+            tokio::spawn(schedule_pings_to_exchange(
                 Exchange::ID,
                 ws_sink_tx.clone(),
                 ping_interval,
-            ))
+            ));
         }
 
         // Construct Transformer associated with this Exchange and SubKind
@@ -141,13 +141,13 @@ pub async fn distribute_messages_to_exchange(
     }
 }
 
-/// Send custom application-level ping [`WsMessage`]s to the exchange using the provided
-/// [`PingInterval`] schedule.
+/// Schedule the sending of custom application-level ping [`WsMessage`]s to the exchange using
+/// the provided [`PingInterval`].
 ///
 /// **Notes:**
 ///  - This is only used for those exchanges that require custom application-level pings.
 ///  - This is additional to the protocol-level pings already handled by `tokio_tungstenite`.
-pub async fn distribute_pings_to_exchange(
+pub async fn schedule_pings_to_exchange(
     exchange: ExchangeId,
     ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
     PingInterval { mut interval, ping }: PingInterval,

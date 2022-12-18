@@ -5,7 +5,7 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Todo: Rust docs & make FromIterator more generic for convenience ie/ Into<Market<Event>> etc.
+/// Todo:
 pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
 
 impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Event> {
