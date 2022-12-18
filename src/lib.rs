@@ -5,12 +5,14 @@
     // missing_docs
 )]
 
-use crate::subscriber::Subscriber;
 ///! # Barter-Data
 use crate::{
     exchange::Connector,
     model::Market,
-    subscriber::subscription::{SubKind, Subscription},
+    subscriber::{
+        subscription::{SubKind, Subscription},
+        Subscriber,
+    },
     transformer::ExchangeTransformer,
 };
 use async_trait::async_trait;
@@ -27,6 +29,22 @@ pub mod exchange;
 pub mod model;
 pub mod subscriber;
 pub mod transformer;
+
+// Todo: Thoughts
+//  - May sure Connector is protocol agnostic
+
+// Todo:
+
+// Todo: Nice To Have:
+//  - Clean up distribution of responses to the exchange... it's messy.
+//  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
+
+// Todo: Before Release:
+//  - Fix imports
+//  - Add derives eagerly
+//  - Rust docs
+//  - Check rust docs & fix
+//  - Add unit tests from develop branch, etc.
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;

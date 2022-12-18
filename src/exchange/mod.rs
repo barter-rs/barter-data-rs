@@ -1,16 +1,10 @@
 use crate::subscriber::{
-    subscription::{
-        exchange::ExchangeSub,
-        SubscriptionMap,
-    },
-    Subscriber,
+    subscription::{exchange::ExchangeSub, SubscriptionMap},
     validator::SubscriptionValidator,
+    Subscriber,
 };
-use barter_integration::{
-    protocol::websocket::WsMessage,
-    Validator,
-};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use barter_integration::{protocol::websocket::WsMessage, Validator};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 
 /// Todo:
