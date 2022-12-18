@@ -69,13 +69,13 @@ where
         } = Self::SubMapper::map::<Exchange, Kind>(subscriptions);
 
         // Send Subscriptions
-        for subscription in subscriptions {
-            websocket.send(subscription).await?;
+        for payload in subscriptions {
+            debug!(exchange = %Exchange::ID, ?payload, "sending exchange WebSocket subscription");
+            websocket.send(payload).await?;
         }
 
         // Validate Subscriptions
         let map = Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
-
 
         info!(exchange = %Exchange::ID, %url, ?subscriptions, "subscribed to exchange WebSocket");
         Ok((websocket, map))
