@@ -31,6 +31,10 @@ pub mod model;
 pub mod subscriber;
 pub mod transformer;
 
+// Todo:
+//  - Build front end api for new Subscription<Exchange, SubKind> paradigm.
+//  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
+
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports
@@ -47,10 +51,7 @@ pub trait Identifier<T> {
     fn id(&self) -> T;
 }
 
-/// Defines the [`MarketStream`] kind associated with each exchange [`Subscription`] [`SubKind`].
-///
-/// #### Example: Subscription<Coinbase, PublicTrades>
-/// `Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>`
+/// Defines the [`MarketStream`] kind associated with an exchange [`Subscription`] [`SubKind`].
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
