@@ -1,6 +1,8 @@
-use crate::exchange::coinbase::Coinbase;
-use crate::subscriber::subscription::Subscription;
-use crate::Identifier;
+use super::Coinbase;
+use crate::{
+    subscriber::subscription::Subscription,
+    Identifier,
+};
 
 /// Todo:
 ///

@@ -16,10 +16,10 @@ use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+/// Todo:
 pub mod channel;
 pub mod market;
 pub mod subscription;
-/// Todo:
 pub mod trade;
 
 /// [`Coinbase`] server base url.
