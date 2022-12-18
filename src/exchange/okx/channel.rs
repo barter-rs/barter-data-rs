@@ -1,0 +1,31 @@
+use super::Okx;
+use crate::{
+    subscriber::subscription::{Subscription, trade::PublicTrades},
+    Identifier
+};
+use serde::Serialize;
+
+/// Todo:
+///
+/// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
+pub struct OkxChannel(pub &'static str);
+
+impl OkxChannel {
+    /// [`Okx`] real-time trades channel.
+    ///
+    /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel-trades-channel>
+    pub const TRADES: Self = Self("trades");
+}
+
+impl Identifier<OkxChannel> for Subscription<Okx, PublicTrades> {
+    fn id(&self) -> OkxChannel {
+        OkxChannel::TRADES
+    }
+}
+
+impl AsRef<str> for OkxChannel {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
