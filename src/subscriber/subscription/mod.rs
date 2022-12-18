@@ -9,8 +9,9 @@ use std::{
     fmt::{Debug, Display, Formatter},
 };
 
-pub mod exchange;
 /// Todo:
+pub mod exchange;
+pub mod liquidation;
 pub mod trade;
 
 /// Todo:
@@ -92,7 +93,6 @@ pub struct SubscriptionMeta<Exchange, Kind> {
     pub expected_responses: usize,
 }
 
-/// Todo: Use dyn SubKind?
 /// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
 /// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
 /// [`Subscription`] associated with a received message.
