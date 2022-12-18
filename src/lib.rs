@@ -23,7 +23,7 @@ use tokio::sync::mpsc;
 use tracing::error;
 ///! # Barter-Data
 
-use transformer::TransformerConstructor;
+use crate::exchange::StreamSelector;
 
 /// Todo:
 pub mod model;
@@ -70,7 +70,7 @@ pub trait Identifier<T> {
 pub trait MarketStream<Exchange, Kind>:
 where
     Self: Stream<Item = Result<Market<Kind::Event>, SocketError>> + Sized + Unpin,
-    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
+    Exchange: Connector + StreamSelector<Kind>,
     Kind: SubKind,
 {
     /// Initialises a new [`MarketStream`] using the provided subscriptions.
@@ -82,7 +82,7 @@ where
 #[async_trait]
 impl<Exchange, Kind> MarketStream<Exchange, Kind> for ExchangeWsStream<Exchange::Transformer>
 where
-    Exchange: Connector<Kind> + TransformerConstructor<Kind> + Send + Sync,
+    Exchange: Connector + StreamSelector<Kind> + Send + Sync,
     Kind: SubKind + Send + Sync,
 {
     async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>

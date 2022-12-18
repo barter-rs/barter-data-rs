@@ -26,7 +26,7 @@ pub trait SubscriptionValidator {
         expected_responses: usize,
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
-        Exchange: Connector<Kind> + Send,
+        Exchange: Connector + Send,
         Kind: SubKind + Send;
 
     fn subscription_timeout() -> Duration {
@@ -47,7 +47,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
         expected_responses: usize
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
-        Exchange: Connector<Kind> + Send,
+        Exchange: Connector + Send,
         Kind: SubKind + Send
     {
         // Establish time limit in which we expect to validate all the Subscriptions

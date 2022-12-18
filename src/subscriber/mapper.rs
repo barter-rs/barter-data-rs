@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub trait SubscriptionMapper {
     fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
     where
-        Exchange: Connector<Kind>,
+        Exchange: Connector,
         Kind: SubKind,
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
@@ -21,7 +21,7 @@ pub struct WebSocketSubMapper;
 impl SubscriptionMapper for WebSocketSubMapper {
     fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta<Exchange, Kind>
     where
-        Exchange: Connector<Kind>,
+        Exchange: Connector,
         Kind: SubKind,
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,

@@ -6,39 +6,55 @@ use crate::{
 };
 use barter_integration::{
     error::SocketError,
-    model::{Instrument, SubscriptionId},
+    model::Instrument,
     Transformer,
 };
-use std::marker::PhantomData;
-use serde::Deserialize;
 use tokio::sync::mpsc;
 use barter_integration::protocol::websocket::WsMessage;
-use crate::exchange::Connector;
+use crate::exchange::{Connector, StreamSelector};
 
-/// Todo:
-pub trait TransformerConstructor<Kind>
+// /// Todo:
+// pub trait TransformerConstructor<Kind>
+// where
+//     Self: Sized,
+//     Kind: SubKind,
+// {
+//     type Transformer: Transformer<Output = Market<Kind::Event>>;
+//     fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Self, Kind>) -> Self::Transformer;
+// }
+
+pub trait ExchangeTransformer<Exchange, Kind>
 where
-    Self: Sized,
+    Self: Transformer<Output = Market<Kind::Event>>,
     Kind: SubKind,
 {
-    type Transformer: Transformer<Output = Market<Kind::Event>>;
-    fn transformer(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Self, Kind>) -> Self::Transformer;
+    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Self;
 }
 
+impl<Exchange, Kind> ExchangeTransformer<Exchange, Kind> for StatelessTransformer<Exchange, Kind>
+where
+    Kind: SubKind,
+{
+    fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Self {
+        Self { map }
+    }
+}
+
+
 /// Todo:
-pub struct StatelessTransformer<Exchange, Kind, ExchangeEvent> {
+pub struct StatelessTransformer<Exchange, Kind> {
     pub map: SubscriptionMap<Exchange, Kind>,
-    phantom: PhantomData<ExchangeEvent>,
+    // phantom: PhantomData<ExchangeEvent>,
 }
 
-impl<Exchange, Kind, ExchangeEvent> Transformer for StatelessTransformer<Exchange, Kind, ExchangeEvent>
+// impl<Exchange, Kind, ExchangeEvent> Transformer for StatelessTransformer<Exchange, Kind, ExchangeEvent>
+impl<Exchange, Kind> Transformer for StatelessTransformer<Exchange, Kind>
 where
-    Exchange: Connector<Kind>,
+    Exchange: Connector + StreamSelector<Kind>,
     Kind: SubKind,
-    ExchangeEvent: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
-    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, ExchangeEvent)>,
+    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Exchange::Message)>,
 {
-    type Input = ExchangeEvent;
+    type Input = Exchange::Message;
     type Output = Market<Kind::Event>;
     type OutputIter = Vec<Result<Self::Output, SocketError>>;
 
@@ -61,11 +77,12 @@ where
     }
 }
 
-impl<Exchange, Kind, ExchangeEvent> StatelessTransformer<Exchange, Kind, ExchangeEvent> {
+// impl<Exchange, Kind, ExchangeEvent> StatelessTransformer<Exchange, Kind, ExchangeEvent> {
+impl<Exchange, Kind> StatelessTransformer<Exchange, Kind> {
     pub fn new(map: SubscriptionMap<Exchange, Kind>) -> Self {
         Self {
             map,
-            phantom: PhantomData::<ExchangeEvent>::default(),
+            // phantom: PhantomData::<ExchangeEvent>::default(),
         }
     }
 }

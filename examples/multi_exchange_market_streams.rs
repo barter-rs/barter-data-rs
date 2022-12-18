@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use barter_data::exchange::coinbase::Coinbase;
-use barter_data::exchange::Connector;
+use barter_data::exchange::{Connector, StreamSelector};
 use barter_data::{ExchangeWsStream, Identifier, MarketStream};
 use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::subscriber::subscription::trade::PublicTrades;
@@ -25,13 +25,13 @@ async fn main() {
 
 }
 
-pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+// Todo: Defining principles are:
+//  - WE ONLY NEED EXCHANGE & KIND GENERICS TO GENERATE EVERYTHING
+pub async fn we_want_this_api<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
 where
-    Exchange: Connector<Kind> + TransformerConstructor<Kind> + Send + Sync,
-    Kind: SubKind + Send + Sync,
-    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+    Exchange: StreamSelector<Kind>,
 {
-    let mut stream = ExchangeWsStream::init(&subscriptions)
+    let mut stream = Exchange::Stream::init(&subscriptions)
         .await
         .unwrap();
 
@@ -40,18 +40,19 @@ where
     }
 }
 
-pub async fn test<Stream, Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
-where
-    Stream: MarketStream<Exchange, Kind>,
-    Exchange: Connector<Kind> + TransformerConstructor<Kind>,
-    Kind: SubKind + Send + Sync,
-    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
-{
-    let mut stream = Stream::init(&subscriptions)
-        .await
-        .unwrap();
+// pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
+// where
+//     Exchange: Connector<Kind> + TransformerConstructor<Kind> + Send + Sync,
+//     Kind: SubKind + Send + Sync,
+//     Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+// {
+//     let mut stream = ExchangeWsStream::init(&subscriptions)
+//         .await
+//         .unwrap();
+//
+//     while let Some(event) = stream.next().await {
+//         println!("Consumed: {event:?}");
+//     }
+// }
 
-    while let Some(event) = stream.next().await {
-        println!("Consumed: {event:?}");
-    }
-}
+

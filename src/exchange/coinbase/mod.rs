@@ -1,6 +1,6 @@
 use crate::exchange::{Connector, ExchangeId, ExchangeSub};
 use crate::Identifier;
-use crate::subscriber::subscription::{SubKind, Subscription, SubscriptionMap};
+use crate::subscriber::subscription::Subscription;
 use crate::subscriber::subscription::trade::PublicTrades;
 use crate::subscriber::validator::WebSocketSubValidator;
 use crate::subscriber::WebSocketSubscriber;
@@ -10,9 +10,6 @@ use barter_integration::protocol::websocket::WsMessage;
 use barter_integration::Validator;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tokio::sync::mpsc;
-use crate::exchange::coinbase::trade::CoinbaseTrade;
-use crate::transformer::{StatelessTransformer, TransformerConstructor};
 
 /// Todo:
 pub mod trade;
@@ -28,11 +25,9 @@ pub const BASE_URL_COINBASE: &str = "wss://ws-feed.exchange.coinbase.com";
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct Coinbase;
 
-impl<Kind> Connector<Kind> for Coinbase
-where
-    Kind: SubKind,
-{
+impl Connector for Coinbase {
     const ID: ExchangeId = ExchangeId::Coinbase;
+
     type Channel = CoinbaseChannel;
     type Market = CoinbaseMarket;
     type Subscriber = WebSocketSubscriber<Self::SubValidator>;
@@ -56,14 +51,6 @@ where
                 )
             })
             .collect()
-    }
-}
-
-impl TransformerConstructor<PublicTrades> for Coinbase {
-    type Transformer = StatelessTransformer<Coinbase, PublicTrades, CoinbaseTrade>;
-
-    fn transformer(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Coinbase, PublicTrades>) -> Self::Transformer {
-        StatelessTransformer::new(map)
     }
 }
 

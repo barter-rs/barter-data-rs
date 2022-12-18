@@ -109,6 +109,7 @@ impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
 
 #[cfg(test)]
 mod tests {
+    use crate::exchange::ExchangeId;
     use super::*;
     use crate::subscriber::subscription::trade::PublicTrades;
 
