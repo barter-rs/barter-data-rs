@@ -1,6 +1,6 @@
-use super::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta};
+use super::subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta, exchange::ExchangeSub};
 use crate::{
-    exchange::{Connector, ExchangeSub},
+    exchange::Connector,
     Identifier,
 };
 use barter_integration::model::SubscriptionId;

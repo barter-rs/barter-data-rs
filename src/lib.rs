@@ -20,6 +20,7 @@ use barter_integration::{error::SocketError, protocol::websocket::{WebSocketPars
 use async_trait::async_trait;
 use futures::{Stream, StreamExt};
 use tokio::sync::mpsc;
+use crate::subscriber::Subscriber;
 
 
 /// Todo:
@@ -43,7 +44,7 @@ pub trait Identifier<T> {
 
 pub trait StreamSelector<Kind>
 where
-    Self: Sized,
+    Self: Connector,
     Kind: SubKind,
 {
     type Stream: MarketStream<Self, Kind>;
@@ -53,24 +54,30 @@ where
 pub trait MarketStream<Exchange, Kind>
 where
     Self: Stream<Item = Result<Market<Kind::Event>, SocketError>> + Sized + Unpin,
+    Exchange: Connector,
     Kind: SubKind,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>;
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
+    where
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 #[async_trait]
 impl<Exchange, Kind, Transformer> MarketStream<Exchange, Kind> for ExchangeWsStream<Transformer>
 where
-    Exchange: Connector + Sync,
-    Kind: SubKind + Sync,
+    Exchange: Connector + Send + Sync,
+    Kind: SubKind + Send + Sync,
     Transformer: ExchangeTransformer<Exchange, Kind>,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError> {
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
+    where
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+    {
         // Connect & subscribe
         let (
             websocket,
             map
-        ) = Exchange::subscribe(&subscriptions);
+        ) = Exchange::Subscriber::subscribe(&subscriptions).await?;
 
         // Split WebSocket into WsStream & WsSink components
         let (_, ws_stream) = websocket.split();

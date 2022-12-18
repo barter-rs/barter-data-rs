@@ -1,6 +1,6 @@
 use futures::StreamExt;
 use barter_data::exchange::coinbase::Coinbase;
-use barter_data::{MarketStream, StreamSelector};
+use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::subscriber::subscription::trade::PublicTrades;
 use barter_integration::model::InstrumentKind;
@@ -27,6 +27,7 @@ pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, K
 where
     Exchange: StreamSelector<Kind>,
     Kind: SubKind,
+    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
 {
     let mut stream = Exchange::Stream::init(&subscriptions)
         .await

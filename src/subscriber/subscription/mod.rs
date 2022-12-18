@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod trade;
+pub mod exchange;
 
 /// Todo:
 pub trait SubKind

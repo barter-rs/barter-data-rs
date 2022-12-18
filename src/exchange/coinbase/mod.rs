@@ -1,13 +1,16 @@
 use crate::{ExchangeWsStream, Identifier, StreamSelector};
 use barter_integration::error::SocketError;
-use barter_integration::model::SubscriptionId;
 use barter_integration::Validator;
 use serde::{Deserialize, Serialize};
-use barter_integration::protocol::websocket::WebSocket;
+use serde_json::json;
+use barter_integration::protocol::websocket::WsMessage;
 use crate::exchange::coinbase::trade::CoinbaseTrade;
-use crate::exchange::Connector;
-use crate::subscriber::subscription::{Subscription, SubscriptionMap};
+use crate::exchange::{Connector, ExchangeId};
+use crate::subscriber::subscription::Subscription;
+use crate::subscriber::subscription::exchange::ExchangeSub;
 use crate::subscriber::subscription::trade::PublicTrades;
+use crate::subscriber::validator::WebSocketSubValidator;
+use crate::subscriber::WebSocketSubscriber;
 use crate::transformer::StatelessTransformer;
 
 /// Todo:
@@ -25,8 +28,30 @@ pub const BASE_URL_COINBASE: &str = "wss://ws-feed.exchange.coinbase.com";
 pub struct Coinbase;
 
 impl Connector for Coinbase {
-    fn subscribe<Kind>(subscriptions: &[Subscription<Self, Kind>]) -> (WebSocket, SubscriptionMap<Self, Kind>) {
-        todo!()
+    const ID: ExchangeId = ExchangeId::Coinbase;
+    type Channel = CoinbaseChannel;
+    type Market = CoinbaseMarket;
+    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type SubValidator = WebSocketSubValidator;
+    type SubResponse = CoinbaseSubResponse;
+
+    fn base_url() -> &'static str {
+        BASE_URL_COINBASE
+    }
+
+    fn requests(sub_metas: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+        sub_metas
+            .into_iter()
+            .map(|ExchangeSub { channel, market }| {
+                WsMessage::Text(
+                    json!({
+                        "type": "subscribe",
+                        "product_ids": [market.0],
+                        "channels": [channel.0],
+                    }).to_string(),
+                )
+            })
+            .collect()
     }
 }
 
@@ -39,6 +64,12 @@ impl StreamSelector<PublicTrades> for Coinbase {
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Debug, Copy, Clone)]
 pub struct CoinbaseChannel(pub &'static str);
+
+impl AsRef<str> for CoinbaseChannel {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
 
 impl CoinbaseChannel {
     /// [`Coinbase`] real-time trades channel.
@@ -59,22 +90,16 @@ impl Identifier<CoinbaseChannel> for Subscription<Coinbase, PublicTrades> {
 #[derive(Debug, Clone)]
 pub struct CoinbaseMarket(pub String);
 
+impl AsRef<str> for CoinbaseMarket {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, Kind> {
     fn id(&self) -> CoinbaseMarket {
         CoinbaseMarket(format!("{}-{}", self.instrument.base, self.instrument.quote).to_uppercase())
     }
-}
-
-/// Generate a [`Coinbase`] [`SubscriptionId`] from the channel and market provided.
-///
-/// Uses "channel|market":
-/// eg/ SubscriptionId("matches|ETH-USD")
-pub(crate) fn subscription_id(channel: CoinbaseChannel, market: CoinbaseMarket) -> SubscriptionId {
-    // ExchangeSub {
-    //     channel,
-    //     market,
-    // }.id()
-    todo!()
 }
 
 /// Coinbase WebSocket subscription response.

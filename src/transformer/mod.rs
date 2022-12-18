@@ -26,8 +26,8 @@ pub struct StatelessTransformer<Exchange, Kind, Input> {
 impl<Exchange, Kind, Input> ExchangeTransformer<Exchange, Kind> for StatelessTransformer<Exchange, Kind, Input>
 where
     Kind: SubKind,
-    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
+    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
     fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Self {
         Self { map, phantom: Default::default() }
@@ -37,8 +37,8 @@ where
 impl<Exchange, Kind, Input> Transformer for StatelessTransformer<Exchange, Kind, Input>
 where
     Kind: SubKind,
-    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
+    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
     type Input = Input;
     type Output = Market<Kind::Event>;
