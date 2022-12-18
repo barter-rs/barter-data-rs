@@ -27,19 +27,13 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::error;
 
-pub mod exchange;
 /// Todo:
+pub mod exchange;
 pub mod model;
 pub mod subscriber;
 pub mod transformer;
 
-// Todo: Thoughts
-//  - May sure Connector is protocol agnostic
-
-// Todo:
-
 // Todo: Nice To Have:
-//  - Clean up distribution of responses to the exchange... it's messy.
 //  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
 
 // Todo: Before Release:
@@ -59,7 +53,7 @@ pub trait Identifier<T> {
 
 /// Defines the [`MarketStream`] kind associated with each exchange [`Subscription`] [`SubKind`].
 ///
-/// ### Example: Subscription<Coinbase, PublicTrades>
+/// #### Example: Subscription<Coinbase, PublicTrades>
 /// ` Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>`
 pub trait StreamSelector<Kind>
 where

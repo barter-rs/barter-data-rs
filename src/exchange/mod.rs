@@ -10,6 +10,7 @@ use std::fmt::{Debug, Display};
 /// Todo:
 pub mod coinbase;
 
+/// Todo:
 pub trait Connector
 where
     Self: Clone + Sized,
