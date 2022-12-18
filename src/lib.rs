@@ -34,6 +34,8 @@ pub mod transformer;
 // Todo:
 //  - Build front end api for new Subscription<Exchange, SubKind> paradigm.
 //  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
+//  - Add aliases:
+//    - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
