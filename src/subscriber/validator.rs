@@ -12,6 +12,7 @@ use barter_integration::{
     Validator,
 };
 use futures::StreamExt;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing::debug;
 
@@ -35,6 +36,7 @@ pub trait SubscriptionValidator {
 }
 
 /// Todo:
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubValidator;
 
 #[async_trait]

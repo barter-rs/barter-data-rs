@@ -3,6 +3,7 @@ use super::subscription::{
 };
 use crate::{exchange::Connector, Identifier};
 use barter_integration::model::SubscriptionId;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Todo:
@@ -17,6 +18,7 @@ pub trait SubscriptionMapper {
 }
 
 /// Todo:
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
