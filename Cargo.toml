@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.5.10"
+version = "0.5.11"
 authors = ["keirbailey <keirinvestment@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -13,9 +13,12 @@ categories = ["accessibility", "simulation"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[dev-dependencies]
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.4.0"
+barter-integration = "0.4.1"
 
 # Logging
 tracing = "0.1.36"
