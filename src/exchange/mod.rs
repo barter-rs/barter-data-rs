@@ -6,6 +6,7 @@ use crate::subscriber::{
 use barter_integration::{protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display};
+use std::time::Duration;
 
 /// Todo:
 pub mod coinbase;
@@ -23,10 +24,16 @@ where
     type SubResponse: Validator + DeserializeOwned;
 
     fn base_url() -> &'static str;
+    fn ping_interval() -> Option<PingInterval> { None }
     fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
-    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
-        map.0.len()
-    }
+    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize { map.0.len() }
+}
+
+/// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
+/// require additional application-level pings.
+pub struct PingInterval {
+    pub interval: tokio::time::Interval,
+    pub ping: fn() -> WsMessage,
 }
 
 /// Todo:

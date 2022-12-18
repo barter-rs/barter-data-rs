@@ -5,10 +5,11 @@
     // missing_docs
 )]
 
-use crate::exchange::ExchangeId;
 ///! # Barter-Data
+
+
 use crate::{
-    exchange::Connector,
+    exchange::{Connector, PingInterval, ExchangeId},
     model::Market,
     subscriber::{
         subscription::{SubKind, Subscription},
@@ -16,16 +17,15 @@ use crate::{
     },
     transformer::ExchangeTransformer,
 };
-use async_trait::async_trait;
-use barter_integration::protocol::websocket::{WsMessage, WsSink};
 use barter_integration::{
     error::SocketError,
-    protocol::websocket::{WebSocketParser, WsStream},
+    protocol::websocket::{WebSocketParser, WsStream, WsSink, WsMessage},
     ExchangeStream,
 };
+use async_trait::async_trait;
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
-use tracing::error;
+use tracing::{debug, error};
 
 /// Todo:
 pub mod exchange;
@@ -37,6 +37,7 @@ pub mod transformer;
 //  - Add Pong strategy so StatelessTransformer can be used ubiquitously.
 
 // Todo: Before Release:
+//  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports
 //  - Add derives eagerly
 //  - Rust docs
@@ -102,6 +103,15 @@ where
             ws_sink_rx,
         ));
 
+        // Spawn optional task to distribute custom application-level pings to the exchange
+        if let Some(ping_interval) = Exchange::ping_interval() {
+            tokio::spawn(distribute_pings_to_exchange(
+                Exchange::ID,
+                ws_sink_tx.clone(),
+                ping_interval
+            ))
+        }
+
         // Construct Transformer associated with this Exchange and SubKind
         let transformer = Transformer::new(ws_sink_tx, map);
 
@@ -109,13 +119,13 @@ where
     }
 }
 
-/// Receive [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them to the
+/// Receive [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and distribute them to the
 /// exchange via the [`WsSink`].
 ///
-/// Note:
+/// **Note:**
 /// ExchangeTransformer is operating in a synchronous trait context so we use this separate task
 /// to avoid adding `#[\async_trait\]` to the transformer - this avoids allocations.
-async fn distribute_messages_to_exchange(
+pub async fn distribute_messages_to_exchange(
     exchange: ExchangeId,
     mut ws_sink: WsSink,
     mut ws_sink_rx: mpsc::UnboundedReceiver<WsMessage>,
@@ -132,6 +142,31 @@ async fn distribute_messages_to_exchange(
                 %error,
                 "failed to send  output message to the exchange via WsSink"
             );
+        }
+    }
+}
+
+/// Send custom application-level ping [`WsMessage`]s to the exchange using the provided
+/// [`PingInterval`] schedule.
+///
+/// **Notes:**
+///  - This is only used for those exchanges that require custom application-level pings.
+///  - This is additional to the protocol-level pings already handled by `tokio_tungstenite`.
+pub async fn distribute_pings_to_exchange(
+    exchange: ExchangeId,
+    ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
+    PingInterval { mut interval, ping } : PingInterval,
+) {
+    loop {
+        // Wait for next scheduled ping
+        interval.tick().await;
+
+        // Construct exchange custom application-level ping payload
+        let payload = ping();
+        debug!(%exchange, %payload, "sending custom application-level ping to exchange");
+
+        if ws_sink_tx.send(payload).is_err() {
+            break;
         }
     }
 }
