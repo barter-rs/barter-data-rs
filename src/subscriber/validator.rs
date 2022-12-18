@@ -13,7 +13,6 @@ use barter_integration::{
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use tracing::debug;
 
 /// Todo:
@@ -29,10 +28,6 @@ pub trait SubscriptionValidator {
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send;
-
-    fn subscription_timeout() -> Duration {
-        Duration::from_secs(10)
-    }
 }
 
 /// Todo:
@@ -53,7 +48,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
         Kind: SubKind + Send,
     {
         // Establish time limit in which we expect to validate all the Subscriptions
-        let timeout = Self::subscription_timeout();
+        let timeout = Exchange::subscription_timeout();
 
         // Parameter to keep track of successful Subscription outcomes
         let mut success_responses = 0usize;
@@ -101,6 +96,8 @@ impl SubscriptionValidator for WebSocketSubValidator {
                             debug!(
                                 exchange = %Exchange::ID,
                                 ?error,
+                                %success_responses,
+                                %expected_responses,
                                 %payload,
                                 "failed to deserialise non SubResponse payload"
                             );

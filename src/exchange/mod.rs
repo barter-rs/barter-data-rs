@@ -6,6 +6,7 @@ use crate::subscriber::{
 use barter_integration::{protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display};
+use std::time::Duration;
 
 /// Todo:
 pub mod binance;
@@ -18,7 +19,7 @@ pub mod okx;
 /// Todo:
 pub trait Connector
 where
-    Self: Clone + Sized,
+    Self: Clone + Debug + Sized,
 {
     const ID: ExchangeId;
 
@@ -26,7 +27,7 @@ where
     type Market: AsRef<str>;
     type Subscriber: Subscriber<Self::SubValidator>;
     type SubValidator: SubscriptionValidator;
-    type SubResponse: Validator + DeserializeOwned;
+    type SubResponse: Validator + Debug + DeserializeOwned;
 
     fn base_url() -> &'static str;
 
@@ -38,6 +39,10 @@ where
 
     fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
         map.0.len()
+    }
+
+    fn subscription_timeout() -> Duration {
+        Duration::from_secs(10)
     }
 }
 
