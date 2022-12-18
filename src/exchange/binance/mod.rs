@@ -25,7 +25,9 @@ pub mod subscription;
 pub mod trade;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct Binance<Server> {
     server: PhantomData<Server>,
 }

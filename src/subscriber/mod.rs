@@ -79,11 +79,8 @@ where
         }
 
         // Validate Subscription responses
-        let map = Validator::validate::<Exchange, Kind>(
-            map,
-            &mut websocket,
-            expected_responses
-        ).await?;
+        let map =
+            Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
 
         info!(%exchange, %url, "subscribed to WebSocket");
         Ok((websocket, map))

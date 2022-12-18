@@ -1,9 +1,9 @@
 use super::Kraken;
 use crate::{
-    subscriber::subscription::{Subscription, trade::PublicTrades},
+    subscriber::subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
-use serde::{Serialize};
+use serde::Serialize;
 
 /// Todo:
 ///

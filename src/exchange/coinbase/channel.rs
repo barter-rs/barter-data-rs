@@ -1,6 +1,6 @@
 use super::Coinbase;
 use crate::{
-    subscriber::subscription::{Subscription, trade::PublicTrades},
+    subscriber::subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
 

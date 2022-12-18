@@ -1,7 +1,4 @@
-use barter_integration::{
-    error::SocketError,
-    Validator,
-};
+use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
 /// [`Coinbase`](super::Coinbase) WebSocket subscription response.

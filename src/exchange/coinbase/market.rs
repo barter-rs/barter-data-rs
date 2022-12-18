@@ -1,8 +1,5 @@
 use super::Coinbase;
-use crate::{
-    subscriber::subscription::Subscription,
-    Identifier,
-};
+use crate::{subscriber::subscription::Subscription, Identifier};
 
 /// Todo:
 ///

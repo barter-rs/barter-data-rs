@@ -1,8 +1,5 @@
 use super::message::KrakenError;
-use barter_integration::{
-    error::SocketError,
-    Validator,
-};
+use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
 /// [`Kraken`] message received in response to WebSocket subscription requests.

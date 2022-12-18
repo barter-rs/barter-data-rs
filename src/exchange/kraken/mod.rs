@@ -1,8 +1,6 @@
 use self::{
-    channel::KrakenChannel,
-    market::KrakenMarket,
+    channel::KrakenChannel, market::KrakenMarket, message::KrakenMessage,
     subscription::KrakenSubResponse,
-    message::KrakenMessage
 };
 use crate::{
     exchange::{Connector, ExchangeId},
@@ -21,9 +19,9 @@ use serde_json::json;
 /// Todo:
 pub mod channel;
 pub mod market;
+pub mod message;
 pub mod subscription;
 pub mod trade;
-pub mod message;
 
 /// [`Kraken`] server base url.
 ///
