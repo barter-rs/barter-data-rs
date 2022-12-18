@@ -39,8 +39,8 @@ impl Connector for Coinbase {
         BASE_URL_COINBASE
     }
 
-    fn requests(sub_metas: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
-        sub_metas
+    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+        exchange_subs
             .into_iter()
             .map(|ExchangeSub { channel, market }| {
                 WsMessage::Text(

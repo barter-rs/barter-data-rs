@@ -33,11 +33,18 @@ where
     fn ping_interval() -> Option<PingInterval> {
         None
     }
-    fn requests(subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
+
+    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
     fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
         map.0.len()
     }
+}
+
+/// Todo:
+pub trait ServerSelector: Clone {
+    const ID: ExchangeId;
+    fn base_url() -> &'static str;
 }
 
 /// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
