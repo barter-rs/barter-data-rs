@@ -14,7 +14,7 @@ use crate::{
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData};
 
 pub mod channel;
 /// Todo:
@@ -25,16 +25,14 @@ pub mod subscription;
 pub mod trade;
 
 /// Todo:
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
-)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
 pub struct Binance<Server> {
     server: PhantomData<Server>,
 }
 
 impl<Server> Connector for Binance<Server>
 where
-    Server: ServerSelector,
+    Server: ServerSelector + Debug,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = BinanceChannel;
@@ -79,7 +77,7 @@ where
 
 impl<Server> StreamSelector<PublicTrades> for Binance<Server>
 where
-    Server: ServerSelector + Send + Sync,
+    Server: ServerSelector + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BinanceTrade>>;
 }

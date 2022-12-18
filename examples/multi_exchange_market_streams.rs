@@ -24,9 +24,9 @@ async fn main() {
         // (Coinbase, "sol", "usdt", InstrumentKind::Spot, PublicTrades).into(),
         // (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (Kraken, "xbt", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-        (Kraken, "eth", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-        (Kraken, "xrp", "usdt", InstrumentKind::Spot, PublicTrades).into(),
+        (Kraken, "xbt", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Kraken, "usdt", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (
         //     BinanceSpot::default(),
         //     "btc",

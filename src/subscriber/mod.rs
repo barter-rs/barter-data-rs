@@ -56,10 +56,14 @@ where
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         Validator: 'async_trait,
     {
-        // Connect to exchange
+        // Define variables for logging ergonomics
+        let exchange = Exchange::ID;
         let url = Exchange::base_url();
+        debug!(%exchange, %url, ?subscriptions, "subscribing to WebSocket");
+
+        // Connect to exchange
         let mut websocket = connect(url).await?;
-        debug!(exchange = %Exchange::ID, %url, "connected to exchange WebSocket");
+        debug!(%exchange, %url, ?subscriptions, "connected to WebSocket");
 
         // Map &[Subscription<Exchange, Kind>] to SubscriptionMeta
         let SubscriptionMeta {
@@ -68,16 +72,20 @@ where
             expected_responses,
         } = Self::SubMapper::map::<Exchange, Kind>(subscriptions);
 
-        // Send Subscriptions
-        for payload in subscriptions {
-            debug!(exchange = %Exchange::ID, ?payload, "sending exchange WebSocket subscription");
-            websocket.send(payload).await?;
+        // Send Subscriptions over WebSocket
+        for subscription in subscriptions {
+            debug!(%exchange, %url, payload = ?subscription, "sending exchange subscription");
+            websocket.send(subscription).await?;
         }
 
-        // Validate Subscriptions
-        let map = Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
+        // Validate Subscription responses
+        let map = Validator::validate::<Exchange, Kind>(
+            map,
+            &mut websocket,
+            expected_responses
+        ).await?;
 
-        info!(exchange = %Exchange::ID, %url, ?subscriptions, "subscribed to exchange WebSocket");
+        info!(%exchange, %url, "subscribed to WebSocket");
         Ok((websocket, map))
     }
 }
