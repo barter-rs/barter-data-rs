@@ -5,6 +5,7 @@
     // missing_docs
 )]
 
+use crate::exchange::ExchangeId;
 ///! # Barter-Data
 use crate::{
     exchange::Connector,
@@ -16,6 +17,7 @@ use crate::{
     transformer::ExchangeTransformer,
 };
 use async_trait::async_trait;
+use barter_integration::protocol::websocket::{WsMessage, WsSink};
 use barter_integration::{
     error::SocketError,
     protocol::websocket::{WebSocketParser, WsStream},
@@ -24,8 +26,6 @@ use barter_integration::{
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::error;
-use barter_integration::protocol::websocket::{WsMessage, WsSink};
-use crate::exchange::ExchangeId;
 
 pub mod exchange;
 /// Todo:
@@ -102,7 +102,11 @@ where
 
         // Spawn task to distribute Transformer messages (eg/ custom pongs) to the exchange
         let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
-        tokio::spawn(send_messages_to_exchange(Exchange::ID, ws_sink, ws_sink_rx));
+        tokio::spawn(distribute_messages_to_exchange(
+            Exchange::ID,
+            ws_sink,
+            ws_sink_rx,
+        ));
 
         // Construct Transformer associated with this Exchange and SubKind
         let transformer = Transformer::new(ws_sink_tx, map);
@@ -117,7 +121,7 @@ where
 /// Note:
 /// ExchangeTransformer is operating in a synchronous trait context so we use this separate task
 /// to avoid adding `#[\async_trait\]` to the transformer - this avoids allocations.
-async fn send_messages_to_exchange(
+async fn distribute_messages_to_exchange(
     exchange: ExchangeId,
     mut ws_sink: WsSink,
     mut ws_sink_rx: mpsc::UnboundedReceiver<WsMessage>,
