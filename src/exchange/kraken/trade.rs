@@ -193,6 +193,7 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
 mod tests {
     use super::*;
 
+    #[test]
     fn test_de_kraken_trades() {
         let message = r#"
         [
