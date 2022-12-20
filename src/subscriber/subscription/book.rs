@@ -1,34 +1,40 @@
 use crate::subscriber::subscription::SubKind;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields [`OrderBook`]
+/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
 /// [`Market`](crate::model::Market) events.
 ///
-/// eg/ OrderBooks<Level3>
+/// Level 1 refers to non-aggregated, tick-by-tick, top of [`OrderBook`] data.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct OrderBooks<Kind>;
+pub struct OrderBooksL1;
 
-impl<Kind> SubKind for OrderBooks<Kind> {
+impl SubKind for OrderBooksL1 {
     type Event = OrderBook;
 }
 
-/// Level 1 [`OrderBook`] [`SubKind`].
+/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
+/// [`Market`](crate::model::Market) events.
 ///
-/// Used in conjunction with the [`OrderBooks`] [`SubKind`] to yield non-aggregated, tick-by-tick,
-/// top of book data.
-pub struct Level1;
+/// Level 2 refers to aggregated by price, tick-by-tick, [`OrderBook`] data.
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub struct OrderBooksL2;
 
-/// Level 2 [`OrderBook`] [`SubKind`].
-///
-/// Used in conjunction with the [`OrderBooks`] [`SubKind`] to yield [`OrderBook`]s aggregated
-/// by price, tick-by-tick.
-pub struct Level2;
+impl SubKind for OrderBooksL2 {
+    type Event = OrderBook;
+}
 
-/// Level 3 [`OrderBook`] [`SubKind`].
+/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]
+/// [`Market`](crate::model::Market) events.
 ///
-/// Used in conjunction with the [`OrderBooks`] [`SubKind`] to yield non-aggregated [`OrderBook`]s,
-/// tick-by-tick - replication of the exchange [`OrderBook`].
-pub struct Level3;
+/// Level 3 refers to non-aggregated, tick-by-tick, [`OrderBook`] data. This is a direct
+/// replication of the exchange [`OrderBook`].
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub struct OrderBooksL3;
+
+impl SubKind for OrderBooksL3 {
+    type Event = OrderBook;
+}
 
 /// Normalised Barter [`OrderBook`] snapshot.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
