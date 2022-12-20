@@ -1,11 +1,21 @@
 use super::SubKind;
-use crate::model::PublicTrade;
+use barter_integration::model::Side;
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields [`PublicTrade`]
+/// [`Market`](crate::model::Market) events.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct PublicTrades;
 
 impl SubKind for PublicTrades {
     type Event = PublicTrade;
+}
+
+/// Normalised Barter [`PublicTrade`] model.
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct PublicTrade {
+    pub id: String,
+    pub price: f64,
+    pub amount: f64,
+    pub side: Side,
 }

@@ -10,6 +10,8 @@ use std::{
 };
 
 /// Todo:
+pub mod book;
+pub mod candle;
 pub mod exchange;
 pub mod liquidation;
 pub mod trade;
