@@ -4,14 +4,14 @@ use self::{
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
-    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::trade::PublicTrades,
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    ExchangeWsStream,
+    StreamSelector,
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber}, subscription::trade::PublicTrades,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::transformer::stateless::StatelessTransformer;
 
 /// Todo:
 pub mod channel;

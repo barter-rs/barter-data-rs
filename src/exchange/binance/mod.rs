@@ -5,14 +5,14 @@ use self::{
 use crate::exchange::subscription::ExchangeSub;
 use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
-    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{trade::PublicTrades, SubscriptionMap},
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    ExchangeWsStream,
+    StreamSelector,
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber}, subscription::{SubscriptionMap, trade::PublicTrades},
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
+use crate::transformer::stateless::StatelessTransformer;
 
 pub mod channel;
 /// Todo:

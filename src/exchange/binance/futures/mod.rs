@@ -2,11 +2,11 @@ use self::liquidation::BinanceLiquidation;
 use super::Binance;
 use crate::{
     exchange::{ExchangeId, ServerSelector},
-    subscription::liquidation::Liquidations,
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    ExchangeWsStream,
+    StreamSelector, subscription::liquidation::Liquidations,
 };
 use serde::{Deserialize, Serialize};
+use crate::transformer::stateless::StatelessTransformer;
 
 /// Todo:
 pub mod liquidation;
