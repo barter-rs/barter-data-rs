@@ -1,14 +1,14 @@
 use super::BinanceChannel;
 use crate::{
     event::{Market, MarketIter},
-    subscriber::subscription::trade::PublicTrade,
     exchange::ExchangeId,
-    subscriber::subscription::exchange::ExchangeSub,
     Identifier,
+    subscriber::subscription::trade::PublicTrade,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use crate::exchange::subscription::ExchangeSub;
 
 /// Binance real-time trade message.
 ///

@@ -5,16 +5,17 @@ use self::{
 use crate::exchange::bitfinex::message::BitfinexMessage;
 use crate::{
     exchange::{Connector, ExchangeId},
+    ExchangeWsStream,
+    StreamSelector,
     subscriber::{
-        subscription::{exchange::ExchangeSub, trade::PublicTrades},
+        subscription::trade::PublicTrades,
         WebSocketSubscriber,
-    },
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    }, transformer::StatelessTransformer,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::exchange::subscription::ExchangeSub;
 
 /// Todo:
 pub mod channel;

@@ -1,4 +1,4 @@
-use crate::subscriber::subscription::exchange::ExchangeSub;
+use crate::exchange::subscription::ExchangeSub;
 use crate::{
     event::{Market, MarketIter},
     subscriber::subscription::trade::PublicTrade,

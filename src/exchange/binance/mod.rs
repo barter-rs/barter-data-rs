@@ -4,17 +4,18 @@ use self::{
 };
 use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
+    ExchangeWsStream,
+    StreamSelector,
     subscriber::{
-        subscription::{exchange::ExchangeSub, trade::PublicTrades, SubscriptionMap},
+        subscription::{SubscriptionMap, trade::PublicTrades},
         validator::WebSocketSubValidator,
         WebSocketSubscriber,
-    },
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    }, transformer::StatelessTransformer,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
+use crate::exchange::subscription::ExchangeSub;
 
 pub mod channel;
 /// Todo:

@@ -2,13 +2,14 @@ use self::{channel::GateioChannel, market::GateioMarket, subscription::GateioSub
 use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
     subscriber::{
-        subscription::exchange::ExchangeSub, validator::WebSocketSubValidator, WebSocketSubscriber,
+        validator::WebSocketSubValidator, WebSocketSubscriber,
     },
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Debug, marker::PhantomData};
+use crate::exchange::subscription::ExchangeSub;
 
 /// Todo:
 pub mod channel;

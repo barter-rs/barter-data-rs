@@ -1,5 +1,5 @@
 use super::{channel::OkxChannel, market::OkxMarket};
-use crate::subscriber::subscription::exchange::ExchangeSub;
+use crate::exchange::subscription::ExchangeSub;
 use barter_integration::{error::SocketError, Validator};
 use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 

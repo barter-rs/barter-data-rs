@@ -1,12 +1,13 @@
 use crate::subscriber::{
-    subscription::{exchange::ExchangeSub, SubscriptionMap},
-    validator::SubscriptionValidator,
     Subscriber,
+    subscription::SubscriptionMap,
+    validator::SubscriptionValidator,
 };
 use barter_integration::{protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::fmt::{Debug, Display};
 use std::time::Duration;
+use subscription::ExchangeSub;
 
 /// Todo:
 pub mod binance;
@@ -15,6 +16,7 @@ pub mod coinbase;
 pub mod gateio;
 pub mod kraken;
 pub mod okx;
+pub mod subscription;
 
 /// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
 /// to actioned [`Subscription`] requests.

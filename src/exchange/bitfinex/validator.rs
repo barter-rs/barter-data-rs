@@ -1,25 +1,26 @@
 use super::subscription::{BitfinexPlatformEvent, BitfinexSubResponse};
 use crate::{
     exchange::Connector,
+    Identifier,
     subscriber::{
-        subscription::{exchange::ExchangeSub, SubKind, SubscriptionMap},
+        subscription::{SubKind, SubscriptionMap},
         validator::SubscriptionValidator,
     },
-    Identifier,
 };
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::SubscriptionId,
     protocol::{
-        websocket::{WebSocket, WebSocketParser},
         StreamParser,
+        websocket::{WebSocket, WebSocketParser},
     },
     Validator,
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
+use crate::exchange::subscription::ExchangeSub;
 
 /// Todo:
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]

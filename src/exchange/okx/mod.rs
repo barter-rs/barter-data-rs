@@ -3,17 +3,18 @@ use self::{
 };
 use crate::{
     exchange::{Connector, ExchangeId},
+    ExchangeWsStream,
+    StreamSelector,
     subscriber::{
-        subscription::{exchange::ExchangeSub, trade::PublicTrades},
+        subscription::trade::PublicTrades,
         validator::WebSocketSubValidator,
         WebSocketSubscriber,
-    },
-    transformer::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    }, transformer::StatelessTransformer,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use crate::exchange::subscription::ExchangeSub;
 
 pub mod channel;
 /// Todo:

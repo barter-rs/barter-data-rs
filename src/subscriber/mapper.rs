@@ -1,10 +1,11 @@
 use super::subscription::{
-    exchange::ExchangeSub, SubKind, Subscription, SubscriptionMap, SubscriptionMeta,
+    SubKind, Subscription, SubscriptionMap, SubscriptionMeta,
 };
 use crate::{exchange::Connector, Identifier};
 use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use crate::exchange::subscription::ExchangeSub;
 
 /// Todo:
 pub trait SubscriptionMapper {
