@@ -16,11 +16,16 @@ pub mod gateio;
 pub mod kraken;
 pub mod okx;
 
+/// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
+/// to actioned [`Subscription`] requests.
+pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// Todo:
 pub trait Connector
 where
     Self: Clone + Debug + Sized,
 {
+    /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;
 
     type Channel: AsRef<str>;
@@ -29,6 +34,7 @@ where
     type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + Debug + DeserializeOwned;
 
+    /// Base Url of the exchange server to establish a connection with.
     fn base_url() -> &'static str;
 
     fn ping_interval() -> Option<PingInterval> {
@@ -37,12 +43,16 @@ where
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
+    /// Number of [`Subscription`] responses expected from the exchange in responses to the
+    /// requests send. Used to validate all [`Subscription`]s were accepted.
     fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
         map.0.len()
     }
 
+    /// Expected [`Duration`] the [`SubscriptionValidator`] will wait to receive all success
+    /// responses to actioned [`Subscription`] requests.
     fn subscription_timeout() -> Duration {
-        Duration::from_secs(10)
+        DEFAULT_SUBSCRIPTION_TIMEOUT
     }
 }
 
