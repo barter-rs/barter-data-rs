@@ -1,7 +1,7 @@
 use super::super::message::GateioMessage;
 use crate::{
+    event::{Market, MarketIter, PublicTrade},
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
     subscriber::subscription::exchange::ExchangeSub,
     Identifier,
 };

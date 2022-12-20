@@ -1,6 +1,6 @@
 use crate::{
+    event::{Market, MarketIter, PublicTrade},
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
     Identifier,
 };
 use barter_integration::{

@@ -13,8 +13,8 @@ use futures::SinkExt;
 use std::marker::PhantomData;
 use tracing::{debug, info};
 
-pub mod mapper;
 /// Todo:
+pub mod mapper;
 pub mod subscription;
 pub mod validator;
 

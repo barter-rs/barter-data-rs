@@ -1,6 +1,6 @@
 use crate::{
+    event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
-    model::{Market, MarketIter},
     subscriber::subscription::{SubKind, SubscriptionMap},
     Identifier,
 };

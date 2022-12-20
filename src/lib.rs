@@ -7,8 +7,8 @@
 
 ///! # Barter-Data
 use crate::{
+    event::Market,
     exchange::{Connector, ExchangeId, PingInterval},
-    model::Market,
     subscriber::{
         subscription::{SubKind, Subscription},
         Subscriber,
@@ -25,9 +25,9 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
 
+pub mod event;
 /// Todo:
 pub mod exchange;
-pub mod model;
 pub mod subscriber;
 pub mod transformer;
 
@@ -39,6 +39,7 @@ pub mod transformer;
 //   '--> This Sub compiles: (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
 //  - Add aliases:
 //    - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
+//    - Bitfinex ust -> usdt
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)

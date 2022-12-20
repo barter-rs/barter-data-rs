@@ -1,6 +1,6 @@
 use crate::{
+    event::{Market, MarketIter, PublicTrade},
     exchange::ExchangeId,
-    model::{Market, MarketIter, PublicTrade},
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},

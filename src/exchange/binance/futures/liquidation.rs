@@ -1,7 +1,7 @@
 use super::super::BinanceChannel;
 use crate::{
+    event::{Liquidation, Market, MarketIter},
     exchange::ExchangeId,
-    model::{Liquidation, Market, MarketIter},
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};

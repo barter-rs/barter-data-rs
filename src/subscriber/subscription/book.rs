@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
 use crate::subscriber::subscription::SubKind;
+use chrono::{DateTime, Utc};
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields [`OrderBook`]
 /// [`Market`](crate::model::Market) events.

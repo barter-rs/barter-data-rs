@@ -1,7 +1,7 @@
 use super::trade::BitfinexTrade;
 use crate::{
+    event::{MarketIter, PublicTrade},
     exchange::ExchangeId,
-    model::{MarketIter, PublicTrade},
     Identifier,
 };
 use barter_integration::{
