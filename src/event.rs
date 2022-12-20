@@ -17,12 +17,14 @@ impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Even
     }
 }
 
-/// Normalised Barter [`Market<Event>`](Self) containing metadata about the included `Event` variant.
+/// Normalised Barter [`Market<Event>`](Self) wrapping the `Event` variant in metadata.
 ///
 /// Note: `Event` can be an enum if required.
 ///
-/// eg/ Market<PublicTrade>
-/// eg/ Market<OrderBook<Level3>>
+/// See [`crate::subscription`] for the existing `Event` variant data models.
+///
+/// eg/ [`Market<PublicTrade>`](crate::subscription::trade::PublicTrade)
+/// eg/ [`Market<OrderBookLevel3>`](crate::subscription::book::OrderBookLevel3)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,
