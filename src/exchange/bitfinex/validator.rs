@@ -2,20 +2,23 @@ use super::subscription::{BitfinexPlatformEvent, BitfinexSubResponse};
 use crate::{
     exchange::Connector,
     subscriber::{
-        subscription::{SubKind, SubscriptionMap, exchange::ExchangeSub},
+        subscription::{exchange::ExchangeSub, SubKind, SubscriptionMap},
         validator::SubscriptionValidator,
     },
     Identifier,
 };
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::SubscriptionId,
-    protocol::{StreamParser, websocket::{WebSocket, WebSocketParser}},
+    protocol::{
+        websocket::{WebSocket, WebSocketParser},
+        StreamParser,
+    },
     Validator,
 };
-use serde::{Deserialize, Serialize};
 use futures::StreamExt;
-use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 /// Todo:
@@ -32,7 +35,7 @@ impl SubscriptionValidator for BitfinexWebSocketSubValidator {
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
         Exchange: Connector + Send,
-        Kind: SubKind + Send
+        Kind: SubKind + Send,
     {
         // Establish exchange specific subscription validation parameters
         let timeout = Exchange::subscription_timeout();
@@ -45,7 +48,9 @@ impl SubscriptionValidator for BitfinexWebSocketSubValidator {
 
         loop {
             // Break if all Subscriptions were a success
-            if success_responses == expected_responses && init_snapshots_received == expected_responses {
+            if success_responses == expected_responses
+                && init_snapshots_received == expected_responses
+            {
                 debug!(exchange = %Exchange::ID, "validated exchange WebSocket subscriptions");
                 break Ok(map);
             }
@@ -129,7 +134,6 @@ impl SubscriptionValidator for BitfinexWebSocketSubValidator {
                     }
                 }
             }
-
         }
     }
 }

@@ -2,6 +2,7 @@ use self::{
     channel::BitfinexChannel, market::BitfinexMarket, subscription::BitfinexPlatformEvent,
     validator::BitfinexWebSocketSubValidator,
 };
+use crate::exchange::bitfinex::message::BitfinexMessage;
 use crate::{
     exchange::{Connector, ExchangeId},
     subscriber::{
@@ -14,13 +15,12 @@ use crate::{
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::exchange::bitfinex::message::BitfinexMessage;
 
 /// Todo:
 pub mod channel;
 pub mod market;
-pub mod subscription;
 pub mod message;
+pub mod subscription;
 pub mod trade;
 pub mod validator;
 
@@ -50,7 +50,7 @@ impl Connector for Bitfinex {
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
         exchange_subs
             .into_iter()
-            .map(|ExchangeSub { channel, market}| {
+            .map(|ExchangeSub { channel, market }| {
                 WsMessage::Text(
                     json!({
                         "event": "subscribe",

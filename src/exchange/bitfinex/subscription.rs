@@ -49,7 +49,7 @@ pub enum BitfinexPlatformEvent {
 impl Validator for BitfinexPlatformEvent {
     fn validate(self) -> Result<Self, SocketError>
     where
-        Self: Sized
+        Self: Sized,
     {
         match &self {
             BitfinexPlatformEvent::PlatformStatus(status) => match status.status {
@@ -58,12 +58,12 @@ impl Validator for BitfinexPlatformEvent {
                     "exchange version: {} with server_id: {} is in maintenance mode",
                     status.api_version, status.server_id,
                 ))),
-            }
+            },
             BitfinexPlatformEvent::Subscribed(_) => Ok(self),
             BitfinexPlatformEvent::Error(error) => Err(SocketError::Subscribe(format!(
                 "received failure subscription response code: {} with message: {}",
                 error.code, error.msg,
-            )))
+            ))),
         }
     }
 }
@@ -125,7 +125,7 @@ pub struct BitfinexSubResponse {
     #[serde(rename = "symbol")]
     pub market: String,
     #[serde(rename = "chanId")]
-    pub channel_id: BitfinexChannelId
+    pub channel_id: BitfinexChannelId,
 }
 
 /// Todo:
@@ -201,33 +201,33 @@ mod tests {
             // TC0: platform status is online
             TestCase {
                 input: r#"{"event": "info", "version": 2, "serverId": "5b73a436-19ca-4a15-8160-9069bdd7f181", "platform": { "status": 1 }}"#,
-                expected: Ok(BitfinexPlatformEvent::PlatformStatus(BitfinexPlatformStatus {
-                    api_version: 2,
-                    server_id: "5b73a436-19ca-4a15-8160-9069bdd7f181".to_string(),
-                    status: Status::Operative
-                }))
+                expected: Ok(BitfinexPlatformEvent::PlatformStatus(
+                    BitfinexPlatformStatus {
+                        api_version: 2,
+                        server_id: "5b73a436-19ca-4a15-8160-9069bdd7f181".to_string(),
+                        status: Status::Operative,
+                    },
+                )),
             },
-
             // TC1: platform status is offline
             TestCase {
                 input: r#"{"event": "info", "version": 2, "serverId": "5b73a436-19ca-4a15-8160-9069bdd7f181", "platform": { "status": 0 }}"#,
-                expected: Ok(BitfinexPlatformEvent::PlatformStatus(BitfinexPlatformStatus {
-                    api_version: 2,
-                    server_id: "5b73a436-19ca-4a15-8160-9069bdd7f181".to_string(),
-                    status: Status::Maintenance
-                }))
+                expected: Ok(BitfinexPlatformEvent::PlatformStatus(
+                    BitfinexPlatformStatus {
+                        api_version: 2,
+                        server_id: "5b73a436-19ca-4a15-8160-9069bdd7f181".to_string(),
+                        status: Status::Maintenance,
+                    },
+                )),
             },
-
             // TC1: successful trades channel subscription
             TestCase {
                 input: r#"{"event": "subscribed", "channel": "trades", "chanId": 2203, "symbol": "tBTCUSD", "pair": "BTCUSD"}"#,
-                expected: Ok(BitfinexPlatformEvent::Subscribed(
-                    BitfinexSubResponse {
-                        channel: "trades".to_string(),
-                        channel_id: BitfinexChannelId(2203),
-                        market: "tBTCUSD".to_owned(),
-                    },
-                )),
+                expected: Ok(BitfinexPlatformEvent::Subscribed(BitfinexSubResponse {
+                    channel: "trades".to_string(),
+                    channel_id: BitfinexChannelId(2203),
+                    market: "tBTCUSD".to_owned(),
+                })),
             },
             // TC2: Input response is error
             TestCase {
@@ -264,50 +264,56 @@ mod tests {
         }
 
         let tests = vec![
-            TestCase { // TC0: bitfinex server is offline
+            TestCase {
+                // TC0: bitfinex server is offline
                 input: BitfinexPlatformEvent::PlatformStatus(BitfinexPlatformStatus {
                     api_version: 2,
                     server_id: "server_id".to_string(),
-                    status: Status::Maintenance
+                    status: Status::Maintenance,
                 }),
                 expected: Err(SocketError::Subscribe(format!(
                     "exchange version: {} with server_id: {} is in maintenance mode",
                     2, "server_id",
-                )))
+                ))),
             },
-            TestCase { // TC1: bitfinex server is online
+            TestCase {
+                // TC1: bitfinex server is online
                 input: BitfinexPlatformEvent::PlatformStatus(BitfinexPlatformStatus {
                     api_version: 2,
                     server_id: "server_id".to_string(),
-                    status: Status::Operative
+                    status: Status::Operative,
                 }),
-                expected: Ok(BitfinexPlatformEvent::PlatformStatus(BitfinexPlatformStatus {
-                    api_version: 2,
-                    server_id: "server_id".to_string(),
-                    status: Status::Operative
-                }))
+                expected: Ok(BitfinexPlatformEvent::PlatformStatus(
+                    BitfinexPlatformStatus {
+                        api_version: 2,
+                        server_id: "server_id".to_string(),
+                        status: Status::Operative,
+                    },
+                )),
             },
-            TestCase { // TC2: subscription success
+            TestCase {
+                // TC2: subscription success
                 input: BitfinexPlatformEvent::Subscribed(BitfinexSubResponse {
                     channel: "channel".to_string(),
                     market: "market".to_string(),
-                    channel_id: BitfinexChannelId(1)
+                    channel_id: BitfinexChannelId(1),
                 }),
                 expected: Ok(BitfinexPlatformEvent::Subscribed(BitfinexSubResponse {
                     channel: "channel".to_string(),
                     market: "market".to_string(),
-                    channel_id: BitfinexChannelId(1)
-                }))
+                    channel_id: BitfinexChannelId(1),
+                })),
             },
-            TestCase { // TC3: subscription error
+            TestCase {
+                // TC3: subscription error
                 input: BitfinexPlatformEvent::Error(BitfinexError {
                     msg: "error message".to_string(),
-                    code: 0
+                    code: 0,
                 }),
                 expected: Err(SocketError::Subscribe(format!(
                     "received failure subscription response code: {} with message: {}",
                     0, "error message",
-                )))
+                ))),
             },
         ];
 

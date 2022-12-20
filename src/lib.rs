@@ -32,6 +32,7 @@ pub mod subscriber;
 pub mod transformer;
 
 // Todo:
+//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
 //  - Build front end api for new Subscription<Exchange, SubKind> paradigm.
 //  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
 //   '--> feels like impl Identifier<GateioChannel> for Subscription is a missed opportunity
@@ -46,6 +47,7 @@ pub mod transformer;
 //  - Rust docs
 //  - Check rust docs & fix
 //  - Add unit tests from develop branch, etc.
+//  - Add links & tags to release MR with reference to Shayan's contributions (link MR etc)
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;

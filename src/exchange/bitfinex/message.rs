@@ -5,8 +5,8 @@ use crate::{
     Identifier,
 };
 use barter_integration::{
-    model::{Instrument, SubscriptionId},
     de::extract_next,
+    model::{Instrument, SubscriptionId},
 };
 use serde::Serialize;
 
@@ -87,9 +87,7 @@ impl<'de> serde::Deserialize<'de> for BitfinexMessage {
                     // Filter "tu" Trades since they are identical but slower
                     // '--> use as additional Heartbeat
                     "hb" | "tu" => BitfinexPayload::Heartbeat,
-                    "te" => {
-                        BitfinexPayload::Trade(extract_next(&mut seq, "BitfinexTrade")?)
-                    }
+                    "te" => BitfinexPayload::Trade(extract_next(&mut seq, "BitfinexTrade")?),
                     other => {
                         return Err(serde::de::Error::unknown_variant(
                             other,
@@ -115,11 +113,11 @@ impl<'de> serde::Deserialize<'de> for BitfinexMessage {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-    use barter_integration::de::datetime_utc_from_epoch_duration;
     use super::*;
+    use barter_integration::de::datetime_utc_from_epoch_duration;
     use barter_integration::error::SocketError;
     use barter_integration::model::Side;
+    use std::time::Duration;
 
     #[test]
     fn test_deserialise_bitfinex_message() {

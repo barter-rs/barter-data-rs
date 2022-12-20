@@ -1,13 +1,13 @@
-use barter_integration::{
-    model::{Exchange, Instrument, Side},
-    de::{extract_next, datetime_utc_from_epoch_duration},
-};
 use crate::{
     exchange::ExchangeId,
     model::{Market, MarketIter, PublicTrade},
 };
-use serde::Serialize;
+use barter_integration::{
+    de::{datetime_utc_from_epoch_duration, extract_next},
+    model::{Exchange, Instrument, Side},
+};
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 
 /// [`Bitfinex`](super::Bitfinex) real-time trade message.
 ///
@@ -41,8 +41,8 @@ impl From<(ExchangeId, Instrument, BitfinexTrade)> for MarketIter<PublicTrade> {
                 id: trade.id.to_string(),
                 price: trade.price,
                 amount: trade.amount,
-                side: trade.side
-            }
+                side: trade.side,
+            },
         })])
     }
 }
@@ -84,7 +84,9 @@ impl<'de> serde::Deserialize<'de> for BitfinexTrade {
 
                 Ok(BitfinexTrade {
                     id,
-                    time: datetime_utc_from_epoch_duration(std::time::Duration::from_millis(time_millis)),
+                    time: datetime_utc_from_epoch_duration(std::time::Duration::from_millis(
+                        time_millis,
+                    )),
                     price,
                     amount: amount.abs(),
                     side,

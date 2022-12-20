@@ -1,7 +1,4 @@
-use super::{
-    Gateio,
-    futures::trade::GateioFuturesTrades,
-};
+use super::{futures::trade::GateioFuturesTrades, Gateio};
 use crate::{
     exchange::{ExchangeId, ServerSelector},
     subscriber::subscription::trade::PublicTrades,
@@ -22,7 +19,9 @@ pub const BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt"
 pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct GateioServerFuturesUsd;
 
 impl ServerSelector for GateioServerFuturesUsd {
@@ -46,7 +45,9 @@ pub const BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
 pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct GateioServerFuturesBtc;
 
 impl ServerSelector for GateioServerFuturesBtc {

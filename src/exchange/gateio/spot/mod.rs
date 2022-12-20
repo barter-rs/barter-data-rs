@@ -1,7 +1,4 @@
-use super::{
-    Gateio,
-    spot::trade::GateioSpotTrade,
-};
+use super::{spot::trade::GateioSpotTrade, Gateio};
 use crate::{
     exchange::{ExchangeId, ServerSelector},
     subscriber::subscription::trade::PublicTrades,
@@ -22,7 +19,9 @@ pub const BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
 pub type GateioSpot = Gateio<GateioServerSpot>;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct GateioServerSpot;
 
 impl ServerSelector for GateioServerSpot {

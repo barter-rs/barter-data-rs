@@ -1,29 +1,27 @@
-use self::{
-    channel::GateioChannel, market::GateioMarket, subscription::GateioSubResponse,
-};
+use self::{channel::GateioChannel, market::GateioMarket, subscription::GateioSubResponse};
 use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
     subscriber::{
-        subscription::exchange::ExchangeSub,
-        validator::WebSocketSubValidator,
-        WebSocketSubscriber,
+        subscription::exchange::ExchangeSub, validator::WebSocketSubValidator, WebSocketSubscriber,
     },
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Debug, marker::PhantomData};
 use serde_json::json;
+use std::{fmt::Debug, marker::PhantomData};
 
 /// Todo:
 pub mod channel;
-pub mod market;
-pub mod subscription;
-pub mod message;
 pub mod futures;
+pub mod market;
+pub mod message;
 pub mod spot;
+pub mod subscription;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct Gateio<Server> {
     server: PhantomData<Server>,
 }

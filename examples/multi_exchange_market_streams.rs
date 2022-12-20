@@ -1,7 +1,10 @@
 use barter_data::exchange::binance::futures::BinanceFuturesUsd;
 use barter_data::exchange::binance::spot::{BinanceServerSpot, BinanceSpot};
 use barter_data::exchange::binance::Binance;
+use barter_data::exchange::bitfinex::Bitfinex;
 use barter_data::exchange::coinbase::Coinbase;
+use barter_data::exchange::gateio::futures::GateioFuturesUsd;
+use barter_data::exchange::gateio::spot::GateioSpot;
 use barter_data::exchange::kraken::Kraken;
 use barter_data::exchange::okx::Okx;
 use barter_data::subscriber::subscription::trade::PublicTrades;
@@ -9,8 +12,6 @@ use barter_data::subscriber::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
-use barter_data::exchange::gateio::futures::GateioFuturesUsd;
-use barter_data::exchange::gateio::spot::GateioSpot;
 
 #[tokio::main]
 async fn main() {
@@ -29,9 +30,12 @@ async fn main() {
         // (Kraken, "xbt", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (Kraken, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (Kraken, "usdt", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (GateioFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (GateioFuturesUsd::default(), "shib", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (GateioFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        // (GateioFuturesUsd::default(), "shib", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+        (Bitfinex, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        (Bitfinex, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Bitfinex, "xrp", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (
         //     BinanceSpot::default(),
         //     "btc",

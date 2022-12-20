@@ -35,8 +35,8 @@ pub struct GateioFuturesTradeInner {
     #[serde(rename = "contract")]
     pub market: String,
     #[serde(
-    rename = "create_time_ms",
-    deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
+        rename = "create_time_ms",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
     pub id: u64,
@@ -50,9 +50,7 @@ impl Identifier<Option<SubscriptionId>> for GateioFuturesTrades {
     fn id(&self) -> Option<SubscriptionId> {
         self.data
             .first()
-            .map(|trade| {
-                ExchangeSub::from((&self.channel, &trade.market)).id()
-            })
+            .map(|trade| ExchangeSub::from((&self.channel, &trade.market)).id())
     }
 }
 

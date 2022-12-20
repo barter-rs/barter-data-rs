@@ -34,8 +34,8 @@ pub struct GateioSpotTradeInner {
     #[serde(rename = "currency_pair")]
     pub market: String,
     #[serde(
-    rename = "create_time_ms",
-    deserialize_with = "barter_integration::de::de_str_f64_epoch_ms_as_datetime_utc"
+        rename = "create_time_ms",
+        deserialize_with = "barter_integration::de::de_str_f64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
     pub id: u64,
