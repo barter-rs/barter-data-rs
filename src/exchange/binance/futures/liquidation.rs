@@ -1,6 +1,7 @@
 use super::super::BinanceChannel;
 use crate::{
-    event::{Liquidation, Market, MarketIter},
+    event::{Market, MarketIter},
+    subscriber::subscription::liquidation::Liquidation,
     exchange::ExchangeId,
     Identifier,
 };

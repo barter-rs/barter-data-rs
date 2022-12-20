@@ -1,6 +1,6 @@
 use barter_integration::{
     error::SocketError,
-    model::{Exchange, Instrument, Side},
+    model::{Exchange, Instrument},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

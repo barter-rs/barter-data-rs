@@ -1,6 +1,7 @@
 use super::trade::KrakenTrades;
 use crate::{
-    event::{MarketIter, PublicTrade},
+    event::MarketIter,
+    subscriber::subscription::trade::PublicTrade,
     exchange::ExchangeId,
     Identifier,
 };

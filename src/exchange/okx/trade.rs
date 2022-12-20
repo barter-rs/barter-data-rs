@@ -1,6 +1,7 @@
 use crate::subscriber::subscription::exchange::ExchangeSub;
 use crate::{
-    event::{Market, MarketIter, PublicTrade},
+    event::{Market, MarketIter},
+    subscriber::subscription::trade::PublicTrade,
     exchange::ExchangeId,
     Identifier,
 };

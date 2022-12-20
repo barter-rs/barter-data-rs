@@ -1,6 +1,7 @@
 use super::BinanceChannel;
 use crate::{
-    event::{Market, MarketIter, PublicTrade},
+    event::{Market, MarketIter},
+    subscriber::subscription::trade::PublicTrade,
     exchange::ExchangeId,
     subscriber::subscription::exchange::ExchangeSub,
     Identifier,
