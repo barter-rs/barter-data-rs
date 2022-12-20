@@ -1,5 +1,5 @@
 use crate::{
-    subscriber::subscription::{trade::PublicTrades, Subscription},
+    subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
 use barter_integration::model::InstrumentKind;

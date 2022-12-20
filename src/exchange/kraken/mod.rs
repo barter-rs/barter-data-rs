@@ -3,19 +3,15 @@ use self::{
     subscription::KrakenSubResponse,
 };
 use crate::{
-    exchange::{Connector, ExchangeId},
-    ExchangeWsStream,
-    StreamSelector,
-    subscriber::{
-        subscription::trade::PublicTrades,
-        validator::WebSocketSubValidator,
-        WebSocketSubscriber,
-    }, transformer::StatelessTransformer,
+    exchange::{Connector, ExchangeId, ExchangeSub},
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
+    subscription::trade::PublicTrades,
+    transformer::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::exchange::subscription::ExchangeSub;
 
 /// Todo:
 pub mod channel;

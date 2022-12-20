@@ -9,10 +9,8 @@
 use crate::{
     event::Market,
     exchange::{Connector, ExchangeId, PingInterval},
-    subscriber::{
-        subscription::{SubKind, Subscription},
-        Subscriber,
-    },
+    subscriber::Subscriber,
+    subscription::{SubKind, Subscription},
     transformer::ExchangeTransformer,
 };
 use async_trait::async_trait;
@@ -25,10 +23,11 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
 
-pub mod event;
 /// Todo:
+pub mod event;
 pub mod exchange;
 pub mod subscriber;
+pub mod subscription;
 pub mod transformer;
 
 // Todo:

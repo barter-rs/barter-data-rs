@@ -1,4 +1,4 @@
-use crate::subscriber::subscription::SubKind;
+use crate::subscription::SubKind;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

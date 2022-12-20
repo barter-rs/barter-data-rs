@@ -1,6 +1,6 @@
 use crate::{
     exchange::Connector,
-    subscriber::subscription::{SubKind, SubscriptionMap},
+    subscription::{SubKind, SubscriptionMap},
 };
 use async_trait::async_trait;
 use barter_integration::{

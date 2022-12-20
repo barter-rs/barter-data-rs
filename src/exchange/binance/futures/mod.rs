@@ -2,7 +2,7 @@ use self::liquidation::BinanceLiquidation;
 use super::Binance;
 use crate::{
     exchange::{ExchangeId, ServerSelector},
-    subscriber::subscription::liquidation::Liquidations,
+    subscription::liquidation::Liquidations,
     transformer::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };

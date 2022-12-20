@@ -1,7 +1,6 @@
-use crate::subscriber::{
-    Subscriber,
+use crate::{
+    subscriber::{validator::SubscriptionValidator, Subscriber},
     subscription::SubscriptionMap,
-    validator::SubscriptionValidator,
 };
 use barter_integration::{protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

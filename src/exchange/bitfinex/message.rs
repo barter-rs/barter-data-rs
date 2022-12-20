@@ -1,9 +1,6 @@
 use super::trade::BitfinexTrade;
 use crate::{
-    event::MarketIter,
-    subscriber::subscription::trade::PublicTrade,
-    exchange::ExchangeId,
-    Identifier,
+    event::MarketIter, exchange::ExchangeId, subscription::trade::PublicTrade, Identifier,
 };
 use barter_integration::{
     de::extract_next,

@@ -1,6 +1,6 @@
 use super::Okx;
 use crate::{
-    subscriber::subscription::{trade::PublicTrades, Subscription},
+    subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
 use serde::Serialize;

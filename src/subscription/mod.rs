@@ -12,7 +12,6 @@ use std::{
 /// Todo:
 pub mod book;
 pub mod candle;
-pub mod exchange;
 pub mod liquidation;
 pub mod trade;
 
@@ -114,7 +113,7 @@ impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
 mod tests {
     use super::*;
     use crate::exchange::ExchangeId;
-    use crate::subscriber::subscription::trade::PublicTrades;
+    use crate::subscription::trade::PublicTrades;
 
     #[test]
     fn test_subscription_map_find_instrument() {

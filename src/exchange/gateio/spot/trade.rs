@@ -1,14 +1,13 @@
 use super::super::message::GateioMessage;
 use crate::{
     event::{Market, MarketIter},
-    exchange::ExchangeId,
+    exchange::{ExchangeId, ExchangeSub},
+    subscription::trade::PublicTrade,
     Identifier,
-    subscriber::subscription::trade::PublicTrade,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use crate::exchange::subscription::ExchangeSub;
 
 /// Terse type alias for an [`GateioSpot`](super::GateioSpot) real-time trades WebSocket message.
 pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;

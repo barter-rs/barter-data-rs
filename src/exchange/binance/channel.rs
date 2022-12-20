@@ -1,6 +1,6 @@
 use super::{futures::BinanceFuturesUsd, Binance};
 use crate::{
-    subscriber::subscription::{liquidation::Liquidations, trade::PublicTrades, Subscription},
+    subscription::{liquidation::Liquidations, trade::PublicTrades, Subscription},
     Identifier,
 };
 use serde::Serialize;

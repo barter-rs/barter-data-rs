@@ -1,7 +1,7 @@
 use crate::{
     event::{Market, MarketIter},
-    subscriber::subscription::trade::PublicTrade,
     exchange::ExchangeId,
+    subscription::trade::PublicTrade,
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},

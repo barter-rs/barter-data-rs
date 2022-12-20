@@ -1,7 +1,7 @@
 use crate::{
     event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
-    subscriber::subscription::{SubKind, SubscriptionMap},
+    subscription::{SubKind, SubscriptionMap},
     Identifier,
 };
 use barter_integration::{

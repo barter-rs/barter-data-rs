@@ -1,8 +1,7 @@
-use crate::exchange::subscription::ExchangeSub;
 use crate::{
     event::{Market, MarketIter},
-    subscriber::subscription::trade::PublicTrade,
-    exchange::ExchangeId,
+    exchange::{ExchangeId, ExchangeSub},
+    subscription::trade::PublicTrade,
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};

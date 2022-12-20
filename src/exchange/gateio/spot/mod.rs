@@ -1,7 +1,7 @@
 use super::{spot::trade::GateioSpotTrade, Gateio};
 use crate::{
     exchange::{ExchangeId, ServerSelector},
-    subscriber::subscription::trade::PublicTrades,
+    subscription::trade::PublicTrades,
     transformer::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };

@@ -1,5 +1,5 @@
 use super::Bitfinex;
-use crate::{subscriber::subscription::Subscription, Identifier};
+use crate::{subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
 /// Todo:

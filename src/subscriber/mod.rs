@@ -1,9 +1,12 @@
 use self::{
     mapper::{SubscriptionMapper, WebSocketSubMapper},
-    subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
     validator::SubscriptionValidator,
 };
-use crate::{exchange::Connector, Identifier};
+use crate::{
+    exchange::Connector,
+    subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
+    Identifier,
+};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
@@ -15,7 +18,6 @@ use tracing::{debug, info};
 
 /// Todo:
 pub mod mapper;
-pub mod subscription;
 pub mod validator;
 
 /// Todo:

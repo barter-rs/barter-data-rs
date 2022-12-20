@@ -1,9 +1,6 @@
 use super::trade::KrakenTrades;
 use crate::{
-    event::MarketIter,
-    subscriber::subscription::trade::PublicTrade,
-    exchange::ExchangeId,
-    Identifier,
+    event::MarketIter, exchange::ExchangeId, subscription::trade::PublicTrade, Identifier,
 };
 use barter_integration::model::{Instrument, SubscriptionId};
 use serde::{Deserialize, Serialize};

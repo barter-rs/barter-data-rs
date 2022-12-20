@@ -2,20 +2,17 @@ use self::{
     channel::BinanceChannel, market::BinanceMarket, subscription::BinanceSubResponse,
     trade::BinanceTrade,
 };
+use crate::exchange::subscription::ExchangeSub;
 use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
-    ExchangeWsStream,
-    StreamSelector,
-    subscriber::{
-        subscription::{SubscriptionMap, trade::PublicTrades},
-        validator::WebSocketSubValidator,
-        WebSocketSubscriber,
-    }, transformer::StatelessTransformer,
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
+    subscription::{trade::PublicTrades, SubscriptionMap},
+    transformer::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
 use barter_integration::protocol::websocket::WsMessage;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
-use crate::exchange::subscription::ExchangeSub;
 
 pub mod channel;
 /// Todo:
