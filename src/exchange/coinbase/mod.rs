@@ -52,8 +52,8 @@ impl Connector for Coinbase {
                 WsMessage::Text(
                     json!({
                         "type": "subscribe",
-                        "product_ids": [market.0],
-                        "channels": [channel.0],
+                        "product_ids": [market.as_ref()],
+                        "channels": [channel.as_ref()],
                     })
                     .to_string(),
                 )
