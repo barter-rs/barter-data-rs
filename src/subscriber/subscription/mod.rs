@@ -88,9 +88,6 @@ pub struct SubscriptionMeta<Exchange, Kind> {
     pub map: SubscriptionMap<Exchange, Kind>,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
-    /// Number of [`Subscription`] responses expected from the exchange. Used to validate all
-    /// [`Subscription`] were accepted.
-    pub expected_responses: usize,
 }
 
 /// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange

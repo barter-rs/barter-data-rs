@@ -56,12 +56,8 @@ impl SubscriptionMapper for WebSocketSubMapper {
         // Construct WebSocket message subscriptions requests
         let subscriptions = Exchange::requests(exchange_subs);
 
-        // Determine the expected number of SubResponses from the exchange in response
-        let expected_responses = Exchange::expected_responses(&subscription_map);
-
         SubscriptionMeta {
             map: subscription_map,
-            expected_responses,
             subscriptions,
         }
     }

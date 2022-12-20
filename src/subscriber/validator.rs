@@ -23,7 +23,6 @@ pub trait SubscriptionValidator {
     async fn validate<Exchange, Kind>(
         map: SubscriptionMap<Exchange, Kind>,
         websocket: &mut WebSocket,
-        expected_responses: usize,
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
         Exchange: Connector + Send,
@@ -41,14 +40,14 @@ impl SubscriptionValidator for WebSocketSubValidator {
     async fn validate<Exchange, Kind>(
         map: SubscriptionMap<Exchange, Kind>,
         websocket: &mut WebSocket,
-        expected_responses: usize,
     ) -> Result<SubscriptionMap<Exchange, Kind>, SocketError>
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send,
     {
-        // Establish time limit in which we expect to validate all the Subscriptions
+        // Establish exchange specific subscription validation parameters
         let timeout = Exchange::subscription_timeout();
+        let expected_responses = Exchange::expected_responses(&map);
 
         // Parameter to keep track of successful Subscription outcomes
         let mut success_responses = 0usize;

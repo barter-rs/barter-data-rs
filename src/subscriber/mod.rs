@@ -69,7 +69,6 @@ where
         let SubscriptionMeta {
             map,
             subscriptions,
-            expected_responses,
         } = Self::SubMapper::map::<Exchange, Kind>(subscriptions);
 
         // Send Subscriptions over WebSocket
@@ -79,8 +78,9 @@ where
         }
 
         // Validate Subscription responses
-        let map =
-            Validator::validate::<Exchange, Kind>(map, &mut websocket, expected_responses).await?;
+        let map = Validator::validate::<Exchange, Kind>(
+            map, &mut websocket
+        ).await?;
 
         info!(%exchange, %url, "subscribed to WebSocket");
         Ok((websocket, map))
