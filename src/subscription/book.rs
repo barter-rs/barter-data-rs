@@ -47,10 +47,11 @@ impl SubKind for OrderBooksL3 {
 }
 
 /// Normalised Barter [`OrderBook`] snapshot.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Default, Deserialize, Serialize)]
 pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
     pub last_update_id: u64,
+    pub prev_last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
 }

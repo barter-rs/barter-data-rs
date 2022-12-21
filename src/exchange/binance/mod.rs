@@ -26,6 +26,12 @@ pub mod spot;
 pub mod subscription;
 pub mod trade;
 
+pub trait BinanceServer: Clone {
+    const ID: ExchangeId;
+    fn websocket_url() -> &'static str;
+    fn http_book_snapshot_url() -> &'static str;
+}
+
 /// Todo:
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,

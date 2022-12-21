@@ -4,6 +4,7 @@ use crate::{
 };
 use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
+use barter_integration::error::SocketError;
 
 /// Generic OrderBook [`ExchangeTransformer`] implementations.
 pub mod book;
@@ -22,5 +23,5 @@ where
     fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         map: SubscriptionMap<Exchange, Kind>,
-    ) -> Self;
+    ) -> Result<Self, SocketError>;
 }

@@ -1,11 +1,16 @@
-use super::Binance;
-use crate::exchange::{ExchangeId, ServerSelector};
+use super::{Binance, BinanceServer};
+use crate::exchange::ExchangeId;
 use serde::{Deserialize, Serialize};
 
-/// [`BinanceSpot`] server base url.
+/// [`BinanceSpot`] WebSocket server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
-pub const BASE_URL_BINANCE_SPOT: &str = "wss://stream.binance.com:9443/ws";
+pub const WEBSOCKET_URL_BINANCE_SPOT: &str = "wss://stream.binance.com:9443/ws";
+
+/// [`BinanceSpot`] HTTP OrderBook snapshot url.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#order-book>
+pub const HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.com/api/v3/depth";
 
 /// Todo:
 pub type BinanceSpot = Binance<BinanceServerSpot>;
@@ -16,10 +21,14 @@ pub type BinanceSpot = Binance<BinanceServerSpot>;
 )]
 pub struct BinanceServerSpot;
 
-impl ServerSelector for BinanceServerSpot {
+impl BinanceServer for BinanceServerSpot {
     const ID: ExchangeId = ExchangeId::BinanceSpot;
 
-    fn base_url() -> &'static str {
-        BASE_URL_BINANCE_SPOT
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_URL_BINANCE_SPOT
+    }
+
+    fn http_book_snapshot_url() -> &'static str {
+        HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT
     }
 }

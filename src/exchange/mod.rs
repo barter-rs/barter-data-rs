@@ -60,12 +60,6 @@ where
     }
 }
 
-/// Todo:
-pub trait ServerSelector: Clone {
-    const ID: ExchangeId;
-    fn base_url() -> &'static str;
-}
-
 /// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
 /// require additional application-level pings.
 pub struct PingInterval {

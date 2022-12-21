@@ -1,5 +1,5 @@
 use self::liquidation::BinanceLiquidation;
-use super::Binance;
+use super::{Binance, BinanceServer};
 use crate::transformer::stateless::StatelessTransformer;
 use crate::{
     exchange::{ExchangeId, ServerSelector},
@@ -11,10 +11,15 @@ use serde::{Deserialize, Serialize};
 /// Todo:
 pub mod liquidation;
 
-/// [`BinanceFuturesUsd`] server base url.
+/// [`BinanceFuturesUsd`] WebSocket server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
-pub const BASE_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
+pub const WEBSOCKET_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
+
+/// [`BinanceFuturesUsd`] HTTP OrderBook snapshot url.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#order-book>
+pub const HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://fapi.binance.com/fapi/v1/depth";
 
 /// Todo:
 ///
@@ -27,11 +32,15 @@ pub type BinanceFuturesUsd = Binance<BinanceServerFuturesUsd>;
 )]
 pub struct BinanceServerFuturesUsd;
 
-impl ServerSelector for BinanceServerFuturesUsd {
+impl BinanceServer for BinanceServerFuturesUsd {
     const ID: ExchangeId = ExchangeId::BinanceFuturesUsd;
 
-    fn base_url() -> &'static str {
-        BASE_URL_BINANCE_FUTURES_USD
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_URL_BINANCE_FUTURES_USD
+    }
+
+    fn http_book_snapshot_url() -> &'static str {
+        HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT
     }
 }
 

@@ -30,11 +30,11 @@ where
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
-    fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Self {
-        Self {
+    fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, SocketError> {
+        Ok(Self {
             map,
             phantom: Default::default(),
-        }
+        })
     }
 }
 
@@ -59,9 +59,7 @@ where
         // Find Instrument associated with Input and transform
         match self.map.find_instrument(&subscription_id) {
             Ok(instrument) => MarketIter::<Kind::Event>::from((Exchange::ID, instrument, input)).0,
-            Err(unidentifiable) => {
-                vec![Err(unidentifiable)]
-            }
+            Err(unidentifiable) => vec![Err(unidentifiable)],
         }
     }
 }
