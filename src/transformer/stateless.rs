@@ -11,11 +11,12 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Transformer,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
 
 /// Todo:
+#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct StatelessTransformer<Exchange, Kind, Input> {
     pub map: SubscriptionMap<Exchange, Kind>,
     phantom: PhantomData<Input>,
