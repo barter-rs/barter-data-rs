@@ -39,14 +39,14 @@ async fn main() {
         //     OrderBooksL1,
         // )
         //     .into(),
-        (
-            BinanceSpot::default(),
-            "eth",
-            "usdt",
-            InstrumentKind::Spot,
-            OrderBooksL2,
-        )
-            .into(),
+        // (
+        //     BinanceFuturesUsd::default(),
+        //     "btc",
+        //     "usdt",
+        //     InstrumentKind::FuturePerpetual,
+        //     OrderBooksL2,
+        // )
+        //     .into(),
         // (
         //     BinanceSpot::default(),
         //     "xrp",

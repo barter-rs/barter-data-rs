@@ -34,12 +34,11 @@ impl BinanceChannel {
     /// See docs:<https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
     pub const ORDER_BOOK_L1: Self = Self("@bookTicker");
 
-    /// [`Binance`](super::Binance) OrderBook Level2 snapshot channel name (100ms updates at
-    /// 20 levels depth).
+    /// [`Binance`](super::Binance) OrderBook Level2 channel name (100ms delta updates).
     ///
-    /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams>
-    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
-    pub const ORDER_BOOK_L2_SNAPSHOT: Self = Self("@depth20@100ms");
+    /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#diff-depth-stream>
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#diff-book-depth-streams>
+    pub const ORDER_BOOK_L2: Self = Self("@depth@100ms");
 
     /// [`BinanceFuturesUsd`](super::futures::BinanceFuturesUsd) liquidation orders channel name.
     ///
@@ -61,7 +60,7 @@ impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderB
 
 impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL2> {
     fn id(&self) -> BinanceChannel {
-        BinanceChannel::ORDER_BOOK_L2_SNAPSHOT
+        BinanceChannel::ORDER_BOOK_L2
     }
 }
 

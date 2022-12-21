@@ -1,16 +1,16 @@
 use self::{
-    book::{BinanceOrderBookL1, BinanceOrderBookL2},
     channel::BinanceChannel,
     market::BinanceMarket,
     subscription::BinanceSubResponse,
     trade::BinanceTrade,
+    book::l1::BinanceOrderBookL1,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, ServerSelector},
+    ExchangeWsStream,
+    StreamSelector,
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::{OrderBooksL1, OrderBooksL2}, trade::PublicTrades, SubscriptionMap},
-    transformer::stateless::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    subscription::{book::OrderBooksL1, SubscriptionMap, trade::PublicTrades}, transformer::stateless::StatelessTransformer,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
@@ -93,9 +93,10 @@ where
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
 }
 
-impl<Server> StreamSelector<OrderBooksL2> for Binance<Server>
-where
-    Server: ServerSelector + Debug + Send + Sync,
-{
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL2, BinanceOrderBookL2>>;
-}
+// Todo:
+// impl<Server> StreamSelector<OrderBooksL2> for Binance<Server>
+// where
+//     Server: ServerSelector + Debug + Send + Sync,
+// {
+//     type Stream = ExchangeWsStream<BookTransformer<Self, OrderBooksL2, BinanceOrderBookL2Delta>>;
+// }
