@@ -32,6 +32,7 @@ pub mod transformer;
 
 // Todo:
 //  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
+//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
 //  - Build front end api for new Subscription<Exchange, SubKind> paradigm.
 //  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
 //   '--> feels like impl Identifier<GateioChannel> for Subscription is a missed opportunity

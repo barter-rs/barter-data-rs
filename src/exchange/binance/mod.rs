@@ -1,11 +1,14 @@
 use self::{
-    book::BinanceOrderBookL1, channel::BinanceChannel, market::BinanceMarket,
-    subscription::BinanceSubResponse, trade::BinanceTrade,
+    book::{BinanceOrderBookL1, BinanceOrderBookL2},
+    channel::BinanceChannel,
+    market::BinanceMarket,
+    subscription::BinanceSubResponse,
+    trade::BinanceTrade,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, ServerSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::OrderBooksL1, trade::PublicTrades, SubscriptionMap},
+    subscription::{book::{OrderBooksL1, OrderBooksL2}, trade::PublicTrades, SubscriptionMap},
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };
@@ -14,8 +17,8 @@ use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
-pub mod book;
 /// Todo:
+pub mod book;
 pub mod channel;
 pub mod futures;
 pub mod market;
@@ -88,4 +91,11 @@ where
     Server: ServerSelector + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
+}
+
+impl<Server> StreamSelector<OrderBooksL2> for Binance<Server>
+where
+    Server: ServerSelector + Debug + Send + Sync,
+{
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL2, BinanceOrderBookL2>>;
 }

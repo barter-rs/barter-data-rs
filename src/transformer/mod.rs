@@ -2,10 +2,7 @@ use crate::{
     event::Market,
     subscription::{SubKind, SubscriptionMap},
 };
-use barter_integration::{
-    protocol::websocket::WsMessage,
-    Transformer,
-};
+use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 
 /// Generic OrderBook [`ExchangeTransformer`] implementations.

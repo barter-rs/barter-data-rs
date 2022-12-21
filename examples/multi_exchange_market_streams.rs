@@ -1,10 +1,12 @@
-
-use futures::StreamExt;
+use barter_data::exchange::binance::futures::BinanceFuturesUsd;
+use barter_data::exchange::binance::spot::BinanceSpot;
 use barter_data::exchange::bitfinex::Bitfinex;
-use barter_data::{Identifier, MarketStream, StreamSelector};
-use barter_data::subscription::{SubKind, Subscription};
+use barter_data::subscription::book::{OrderBookL1, OrderBooksL1, OrderBooksL2};
 use barter_data::subscription::trade::PublicTrades;
+use barter_data::subscription::{SubKind, Subscription};
+use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
+use futures::StreamExt;
 
 #[tokio::main]
 async fn main() {
@@ -26,25 +28,25 @@ async fn main() {
         // (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (GateioFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
         // (GateioFuturesUsd::default(), "shib", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
-        (Bitfinex, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
-        (Bitfinex, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Bitfinex, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+        // (Bitfinex, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (Bitfinex, "xrp", "usd", InstrumentKind::Spot, PublicTrades).into(),
         // (
-        //     BinanceSpot::default(),
+        //     BinanceFuturesUsd::default(),
         //     "btc",
         //     "usdt",
-        //     InstrumentKind::Spot,
-        //     PublicTrades,
+        //     InstrumentKind::FuturePerpetual,
+        //     OrderBooksL1,
         // )
         //     .into(),
-        // (
-        //     BinanceSpot::default(),
-        //     "eth",
-        //     "usdt",
-        //     InstrumentKind::Spot,
-        //     PublicTrades,
-        // )
-        //     .into(),
+        (
+            BinanceSpot::default(),
+            "eth",
+            "usdt",
+            InstrumentKind::Spot,
+            OrderBooksL2,
+        )
+            .into(),
         // (
         //     BinanceSpot::default(),
         //     "xrp",

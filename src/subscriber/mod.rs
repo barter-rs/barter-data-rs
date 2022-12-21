@@ -60,12 +60,12 @@ where
     {
         // Define variables for logging ergonomics
         let exchange = Exchange::ID;
-        let url = Exchange::base_url();
+        let url = Exchange::url()?;
         debug!(%exchange, %url, ?subscriptions, "subscribing to WebSocket");
 
         // Connect to exchange
         let mut websocket = connect(url).await?;
-        debug!(%exchange, %url, ?subscriptions, "connected to WebSocket");
+        debug!(%exchange, ?subscriptions, "connected to WebSocket");
 
         // Map &[Subscription<Exchange, Kind>] to SubscriptionMeta
         let SubscriptionMeta { map, subscriptions } =
@@ -73,14 +73,14 @@ where
 
         // Send Subscriptions over WebSocket
         for subscription in subscriptions {
-            debug!(%exchange, %url, payload = ?subscription, "sending exchange subscription");
+            debug!(%exchange, payload = ?subscription, "sending exchange subscription");
             websocket.send(subscription).await?;
         }
 
         // Validate Subscription responses
         let map = Validator::validate::<Exchange, Kind>(map, &mut websocket).await?;
 
-        info!(%exchange, %url, "subscribed to WebSocket");
+        info!(%exchange, "subscribed to WebSocket");
         Ok((websocket, map))
     }
 }

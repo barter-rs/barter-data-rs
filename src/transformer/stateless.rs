@@ -2,8 +2,8 @@ use super::ExchangeTransformer;
 use crate::{
     event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
-    Identifier,
     subscription::{SubKind, SubscriptionMap},
+    Identifier,
 };
 use barter_integration::{
     error::SocketError,

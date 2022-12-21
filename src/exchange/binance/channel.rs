@@ -1,7 +1,10 @@
 use super::{futures::BinanceFuturesUsd, Binance};
 use crate::{
     subscription::{
-        book::OrderBooksL1, liquidation::Liquidations, trade::PublicTrades, Subscription,
+        book::{OrderBooksL1, OrderBooksL2},
+        liquidation::Liquidations,
+        trade::PublicTrades,
+        Subscription,
     },
     Identifier,
 };
@@ -14,22 +17,31 @@ use serde::Serialize;
 pub struct BinanceChannel(pub &'static str);
 
 impl BinanceChannel {
-    /// Binance real-time trades channel name.
+    /// [`Binance`](super::Binance) real-time trades channel name.
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
     ///
     /// Note:
-    /// - For [`BinanceFuturesUsd`] this real-time stream is undocumented.
+    /// For [`BinanceFuturesUsd`](super::futures::BinanceFuturesUsd) this real-time
+    /// stream is undocumented.
+    ///
     /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
     pub const TRADES: Self = Self("@trade");
 
-    /// Binance real-time OrderBook level 1 (top of book) channel name.
+    /// [`Binance`](super::Binance) real-time OrderBook Level1 (top of book) channel name.
     ///
     /// See docs:<https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams>
     /// See docs:<https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
     pub const ORDER_BOOK_L1: Self = Self("@bookTicker");
 
-    /// [`BinanceFuturesUsd`] liquidation orders channel name.
+    /// [`Binance`](super::Binance) OrderBook Level2 snapshot channel name (100ms updates at
+    /// 20 levels depth).
+    ///
+    /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams>
+    /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+    pub const ORDER_BOOK_L2_SNAPSHOT: Self = Self("@depth20@100ms");
+
+    /// [`BinanceFuturesUsd`](super::futures::BinanceFuturesUsd) liquidation orders channel name.
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
     pub const LIQUIDATIONS: Self = Self("@forceOrder");
@@ -44,6 +56,12 @@ impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, Public
 impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL1> {
     fn id(&self) -> BinanceChannel {
         BinanceChannel::ORDER_BOOK_L1
+    }
+}
+
+impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL2> {
+    fn id(&self) -> BinanceChannel {
+        BinanceChannel::ORDER_BOOK_L2_SNAPSHOT
     }
 }
 
