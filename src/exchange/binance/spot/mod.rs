@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// [`BinanceSpot`] WebSocket server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
-pub const WEBSOCKET_URL_BINANCE_SPOT: &str = "wss://stream.binance.com:9443/ws";
+pub const WEBSOCKET_BASE_URL_BINANCE_SPOT: &str = "wss://stream.binance.com:9443/ws";
 
 /// [`BinanceSpot`] HTTP OrderBook snapshot url.
 ///
@@ -25,7 +25,7 @@ impl BinanceServer for BinanceServerSpot {
     const ID: ExchangeId = ExchangeId::BinanceSpot;
 
     fn websocket_url() -> &'static str {
-        WEBSOCKET_URL_BINANCE_SPOT
+        WEBSOCKET_BASE_URL_BINANCE_SPOT
     }
 
     fn http_book_snapshot_url() -> &'static str {

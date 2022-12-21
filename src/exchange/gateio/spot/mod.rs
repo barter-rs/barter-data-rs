@@ -1,8 +1,9 @@
-use super::{spot::trade::GateioSpotTrade, Gateio};
-use crate::transformer::stateless::StatelessTransformer;
+use self::trade::GateioSpotTrade;
+use super::{Gateio, GateioServer};
 use crate::{
-    exchange::{ExchangeId, ServerSelector},
+    exchange::ExchangeId,
     subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
@@ -10,10 +11,10 @@ use serde::{Deserialize, Serialize};
 /// Todo:
 pub mod trade;
 
-/// [`GateioSpot`] server base url.
+/// [`GateioSpot`] WebSocket server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/>
-pub const BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
+pub const WEBSOCKET_BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
 
 /// Todo:
 pub type GateioSpot = Gateio<GateioServerSpot>;
@@ -24,11 +25,11 @@ pub type GateioSpot = Gateio<GateioServerSpot>;
 )]
 pub struct GateioServerSpot;
 
-impl ServerSelector for GateioServerSpot {
+impl GateioServer for GateioServerSpot {
     const ID: ExchangeId = ExchangeId::GateioSpot;
 
-    fn base_url() -> &'static str {
-        BASE_URL_GATEIO_SPOT
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_BASE_URL_GATEIO_SPOT
     }
 }
 

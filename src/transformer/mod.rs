@@ -2,25 +2,27 @@ use crate::{
     event::Market,
     subscription::{SubKind, SubscriptionMap},
 };
-use barter_integration::{protocol::websocket::WsMessage, Transformer};
+use barter_integration::{protocol::websocket::WsMessage, error::SocketError, Transformer};
 use tokio::sync::mpsc;
-use barter_integration::error::SocketError;
+use async_trait::async_trait;
 
+/// Todo:
 /// Generic OrderBook [`ExchangeTransformer`] implementations.
-pub mod book;
+// pub mod book;
 
 /// Generic stateless [`ExchangeTransformer`] implementation - often used for transforming
 /// [`PublicTrade`](crate::subscription::trade::PublicTrade) streams.
 pub mod stateless;
 
 /// Todo:
+#[async_trait]
 pub trait ExchangeTransformer<Exchange, Kind>
 where
-    Self: Transformer<Output = Market<Kind::Event>>,
+    Self: Transformer<Output = Market<Kind::Event>> + Sized,
     Kind: SubKind,
 {
     /// Todo:
-    fn new(
+    async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         map: SubscriptionMap<Exchange, Kind>,
     ) -> Result<Self, SocketError>;

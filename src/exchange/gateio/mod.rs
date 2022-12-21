@@ -1,7 +1,7 @@
 use self::{channel::GateioChannel, market::GateioMarket, subscription::GateioSubResponse};
 use crate::exchange::subscription::ExchangeSub;
 use crate::{
-    exchange::{Connector, ExchangeId, ServerSelector},
+    exchange::{Connector, ExchangeId},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
@@ -18,6 +18,11 @@ pub mod message;
 pub mod spot;
 pub mod subscription;
 
+pub trait GateioServer: Clone + Send{
+    const ID: ExchangeId;
+    fn websocket_url() -> &'static str;
+}
+
 /// Todo:
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
@@ -28,7 +33,7 @@ pub struct Gateio<Server> {
 
 impl<Server> Connector for Gateio<Server>
 where
-    Server: ServerSelector + Debug,
+    Server: GateioServer + Debug,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = GateioChannel;
@@ -38,7 +43,7 @@ where
     type SubResponse = GateioSubResponse;
 
     fn url() -> Result<Url, SocketError> {
-        Url::parse(Server::base_url()).map_err(SocketError::UrlParse)
+        Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {

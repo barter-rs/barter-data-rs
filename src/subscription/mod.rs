@@ -8,7 +8,6 @@ use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
 };
-use std::ops::Deref;
 
 /// Todo:
 pub mod book;

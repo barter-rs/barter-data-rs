@@ -14,6 +14,7 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
+use async_trait::async_trait;
 
 /// Todo:
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
@@ -22,15 +23,16 @@ pub struct StatelessTransformer<Exchange, Kind, Input> {
     phantom: PhantomData<Input>,
 }
 
+#[async_trait]
 impl<Exchange, Kind, Input> ExchangeTransformer<Exchange, Kind>
     for StatelessTransformer<Exchange, Kind, Input>
 where
-    Exchange: Connector,
-    Kind: SubKind,
+    Exchange: Connector + Send,
+    Kind: SubKind + Send,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
-    fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, SocketError> {
+    async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, SocketError> {
         Ok(Self {
             map,
             phantom: Default::default(),

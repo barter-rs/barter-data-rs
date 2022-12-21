@@ -6,7 +6,7 @@ use self::{
     book::l1::BinanceOrderBookL1,
 };
 use crate::{
-    exchange::{Connector, ExchangeId, ExchangeSub, ServerSelector},
+    exchange::{Connector, ExchangeId, ExchangeSub},
     ExchangeWsStream,
     StreamSelector,
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
@@ -26,7 +26,7 @@ pub mod spot;
 pub mod subscription;
 pub mod trade;
 
-pub trait BinanceServer: Clone {
+pub trait BinanceServer: Clone + Send {
     const ID: ExchangeId;
     fn websocket_url() -> &'static str;
     fn http_book_snapshot_url() -> &'static str;
@@ -42,7 +42,7 @@ pub struct Binance<Server> {
 
 impl<Server> Connector for Binance<Server>
 where
-    Server: ServerSelector + Debug,
+    Server: BinanceServer + Debug,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = BinanceChannel;
@@ -52,7 +52,7 @@ where
     type SubResponse = BinanceSubResponse;
 
     fn url() -> Result<Url, SocketError> {
-        Url::parse(Server::base_url()).map_err(SocketError::UrlParse)
+        Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
@@ -87,14 +87,14 @@ where
 
 impl<Server> StreamSelector<PublicTrades> for Binance<Server>
 where
-    Server: ServerSelector + Debug + Send + Sync,
+    Server: BinanceServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BinanceTrade>>;
 }
 
 impl<Server> StreamSelector<OrderBooksL1> for Binance<Server>
 where
-    Server: ServerSelector + Debug + Send + Sync,
+    Server: BinanceServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
 }

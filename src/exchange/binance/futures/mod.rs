@@ -2,7 +2,7 @@ use self::liquidation::BinanceLiquidation;
 use super::{Binance, BinanceServer};
 use crate::transformer::stateless::StatelessTransformer;
 use crate::{
-    exchange::{ExchangeId, ServerSelector},
+    exchange::ExchangeId,
     subscription::liquidation::Liquidations,
     ExchangeWsStream, StreamSelector,
 };
@@ -14,7 +14,7 @@ pub mod liquidation;
 /// [`BinanceFuturesUsd`] WebSocket server base url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
-pub const WEBSOCKET_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
+pub const WEBSOCKET_BASE_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
 
 /// [`BinanceFuturesUsd`] HTTP OrderBook snapshot url.
 ///
@@ -36,7 +36,7 @@ impl BinanceServer for BinanceServerFuturesUsd {
     const ID: ExchangeId = ExchangeId::BinanceFuturesUsd;
 
     fn websocket_url() -> &'static str {
-        WEBSOCKET_URL_BINANCE_FUTURES_USD
+        WEBSOCKET_BASE_URL_BINANCE_FUTURES_USD
     }
 
     fn http_book_snapshot_url() -> &'static str {

@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tracing::Instrument;
-use url::Url;
 use barter_integration::error::SocketError;
 use barter_integration::model::{Instrument, SubscriptionId};
 use barter_integration::protocol::websocket::WsMessage;
@@ -13,6 +11,7 @@ use crate::Identifier;
 use crate::subscription::book::{Level, OrderBook, OrderBooksL2};
 use crate::subscription::{Subscription, SubscriptionMap};
 use crate::transformer::ExchangeTransformer;
+use async_trait::async_trait;
 
 // Todo:
 //  - Create new type for BookMap<SubscriptionId, OrderBook>, Or it could be &str, OrderBook?
@@ -30,7 +29,7 @@ pub struct InstrumentOrderBook {
 }
 
 impl InstrumentOrderBook {
-    pub fn new(instrument: Instrument, book: Orderbook) -> Self {
+    pub fn new(instrument: Instrument, book: OrderBook) -> Self {
         Self {
             instrument,
             book
@@ -59,7 +58,7 @@ impl OrderBookMap {
     }
 }
 
-pub(super) struct BookL2DeltaTransformer<Server> {
+pub(super) struct BookL2DeltaTransformer {
     pub books: OrderBookMap,
 }
 
@@ -69,11 +68,15 @@ pub(super) struct BinanceOrderBookSnapshot {
     asks: Vec<Level>,
 }
 
-impl<Server> ExchangeTransformer<Binance<Server>, OrderBooksL2> for BookL2DeltaTransformer<Server>
+#[async_trait]
+impl<Server> ExchangeTransformer<Binance<Server>, OrderBooksL2> for BookL2DeltaTransformer
 where
-    Server: BinanceServer,
+    Server: BinanceServer + Send,
 {
-    fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Binance<Server>, OrderBooksL2>) -> Self {
+    async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Binance<Server>, OrderBooksL2>) -> Result<Self, SocketError>
+    where
+        Server: 'async_trait,
+    {
         struct Lego {
             subscription_id: SubscriptionId,
             instrument: Instrument,
@@ -87,27 +90,29 @@ where
             .map(|(sub_id, sub)| {
                 Lego {
                     subscription_id: sub_id,
-                    instrument: sub.instrument,
                     snapshot_url:format!(
                         "{}?symbol={}{}&limit=50",
                         Server::http_book_snapshot_url(),
                         sub.instrument.base.as_ref().to_uppercase(),
                         sub.instrument.quote.as_ref().to_uppercase()
-                    )
+                    ),
+                    instrument: sub.instrument,
                 }
             })
-            .collect::<Lego>();
+            .collect::<Vec<Lego>>();
 
         // Todo: Send requests in parallel... where did I do that recently? I can't remember...
         // Ahh it was somewhere in the simulated exchange / exchange client
 
-        Self {
-            books: OrderBookMap::from(map),
-        }
+        // Self {
+        //     books: OrderBookMap::from(map),
+        // }
+
+        todo!()
     }
 }
 
-impl<Server> Transformer for BookL2DeltaTransformer<Server> {
+impl Transformer for BookL2DeltaTransformer {
     type Input = BinanceOrderBookL2Delta;
     type Output = Market<OrderBook>;
     type OutputIter = Vec<Result<Self::Output, SocketError>>;
@@ -122,13 +127,12 @@ impl<Server> Transformer for BookL2DeltaTransformer<Server> {
         // Retrieve the OrderBook associated with this delta
         let book = match self.books.find_book_mut(&subscription_id) {
             Ok(book) => book,
-            Err(unidentifiable) => vec![Err(unidentifiable)],
+            Err(unidentifiable) => return vec![Err(unidentifiable)],
         };
 
         // De-structure for ease
         let InstrumentOrderBook { instrument, book } = book;
 
-
-
+        todo!()
     }
 }

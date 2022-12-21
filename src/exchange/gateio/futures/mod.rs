@@ -1,7 +1,8 @@
-use super::{futures::trade::GateioFuturesTrades, Gateio};
+use self::trade::GateioFuturesTrades;
+use super::{Gateio, GateioServer};
 use crate::transformer::stateless::StatelessTransformer;
 use crate::{
-    exchange::{ExchangeId, ServerSelector},
+    exchange::ExchangeId,
     subscription::trade::PublicTrades,
     ExchangeWsStream, StreamSelector,
 };
@@ -10,10 +11,10 @@ use serde::{Deserialize, Serialize};
 /// Todo:
 pub mod trade;
 
-/// [`GateioFuturesUsd`] server base url.
+/// [`GateioFuturesUsd`] WebSocket server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
+pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
 
 /// Todo:
 pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
@@ -24,11 +25,11 @@ pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 )]
 pub struct GateioServerFuturesUsd;
 
-impl ServerSelector for GateioServerFuturesUsd {
+impl GateioServer for GateioServerFuturesUsd {
     const ID: ExchangeId = ExchangeId::GateioFuturesUsd;
 
-    fn base_url() -> &'static str {
-        BASE_URL_GATEIO_FUTURES_USD
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_BASE_URL_GATEIO_FUTURES_USD
     }
 }
 
@@ -36,10 +37,10 @@ impl StreamSelector<PublicTrades> for GateioFuturesUsd {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioFuturesTrades>>;
 }
 
-/// [`GateioFuturesBtc`] server base url.
+/// [`GateioFuturesBtc`] WebSocket server base url.
 ///
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
+pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
 
 /// Todo:
 pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
@@ -50,11 +51,11 @@ pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
 )]
 pub struct GateioServerFuturesBtc;
 
-impl ServerSelector for GateioServerFuturesBtc {
+impl GateioServer for GateioServerFuturesBtc {
     const ID: ExchangeId = ExchangeId::GateioFuturesBtc;
 
-    fn base_url() -> &'static str {
-        BASE_URL_GATEIO_FUTURES_BTC
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_BASE_URL_GATEIO_FUTURES_BTC
     }
 }
 

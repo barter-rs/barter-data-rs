@@ -116,7 +116,7 @@ where
         }
 
         // Construct Transformer associated with this Exchange and SubKind
-        let transformer = Transformer::new(ws_sink_tx, map);
+        let transformer = Transformer::new(ws_sink_tx, map).await?;
 
         Ok(ExchangeWsStream::new(ws_stream, transformer))
     }
