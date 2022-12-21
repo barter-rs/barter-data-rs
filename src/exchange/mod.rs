@@ -1,12 +1,15 @@
+use self::subscription::ExchangeSub;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
     subscription::SubscriptionMap,
 };
-use barter_integration::{protocol::websocket::WsMessage, Validator};
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::fmt::{Debug, Display};
-use std::time::Duration;
-use subscription::ExchangeSub;
+use std::{
+    fmt::{Debug, Display},
+    time::Duration,
+};
+use url::Url;
 
 /// Todo:
 pub mod binance;
@@ -36,7 +39,7 @@ where
     type SubResponse: Validator + Debug + DeserializeOwned;
 
     /// Base Url of the exchange server to establish a connection with.
-    fn base_url() -> &'static str;
+    fn url() -> Result<Url, SocketError>;
 
     fn ping_interval() -> Option<PingInterval> {
         None

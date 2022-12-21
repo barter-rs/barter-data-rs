@@ -4,14 +4,15 @@ use self::{
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
-    ExchangeWsStream,
-    StreamSelector,
-    subscriber::WebSocketSubscriber, subscription::trade::PublicTrades,
+    subscriber::WebSocketSubscriber,
+    subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
-use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::transformer::stateless::StatelessTransformer;
+use url::Url;
 
 /// Todo:
 pub mod channel;
@@ -40,8 +41,8 @@ impl Connector for Bitfinex {
     type SubValidator = BitfinexWebSocketSubValidator;
     type SubResponse = BitfinexPlatformEvent;
 
-    fn base_url() -> &'static str {
-        BASE_URL_BITFINEX
+    fn url() -> Result<Url, SocketError> {
+        Url::parse(BASE_URL_BITFINEX).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {

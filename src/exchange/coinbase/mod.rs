@@ -4,14 +4,15 @@ use self::{
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
-    ExchangeWsStream,
-    StreamSelector,
-    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber}, subscription::trade::PublicTrades,
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
+    subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
-use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::transformer::stateless::StatelessTransformer;
+use url::Url;
 
 /// Todo:
 pub mod channel;
@@ -38,8 +39,8 @@ impl Connector for Coinbase {
     type SubValidator = WebSocketSubValidator;
     type SubResponse = CoinbaseSubResponse;
 
-    fn base_url() -> &'static str {
-        BASE_URL_COINBASE
+    fn url() -> Result<Url, SocketError> {
+        Url::parse(BASE_URL_COINBASE).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {

@@ -1,6 +1,8 @@
 use super::{futures::BinanceFuturesUsd, Binance};
 use crate::{
-    subscription::{liquidation::Liquidations, trade::PublicTrades, Subscription},
+    subscription::{
+        book::OrderBooksL1, liquidation::Liquidations, trade::PublicTrades, Subscription,
+    },
     Identifier,
 };
 use serde::Serialize;
@@ -21,6 +23,12 @@ impl BinanceChannel {
     /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
     pub const TRADES: Self = Self("@trade");
 
+    /// Binance real-time OrderBook level 1 (top of book) channel name.
+    ///
+    /// See docs:<https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams>
+    /// See docs:<https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
+    pub const ORDER_BOOK_L1: Self = Self("@bookTicker");
+
     /// [`BinanceFuturesUsd`] liquidation orders channel name.
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
@@ -30,6 +38,12 @@ impl BinanceChannel {
 impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, PublicTrades> {
     fn id(&self) -> BinanceChannel {
         BinanceChannel::TRADES
+    }
+}
+
+impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL1> {
+    fn id(&self) -> BinanceChannel {
+        BinanceChannel::ORDER_BOOK_L1
     }
 }
 

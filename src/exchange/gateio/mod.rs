@@ -4,10 +4,11 @@ use crate::{
     exchange::{Connector, ExchangeId, ServerSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
 };
-use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Debug, marker::PhantomData};
+use url::Url;
 
 /// Todo:
 pub mod channel;
@@ -36,8 +37,8 @@ where
     type SubValidator = WebSocketSubValidator;
     type SubResponse = GateioSubResponse;
 
-    fn base_url() -> &'static str {
-        Server::base_url()
+    fn url() -> Result<Url, SocketError> {
+        Url::parse(Server::base_url()).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {

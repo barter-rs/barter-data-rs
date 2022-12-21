@@ -1,11 +1,11 @@
 use super::{futures::trade::GateioFuturesTrades, Gateio};
+use crate::transformer::stateless::StatelessTransformer;
 use crate::{
     exchange::{ExchangeId, ServerSelector},
-    ExchangeWsStream,
-    StreamSelector, subscription::trade::PublicTrades,
+    subscription::trade::PublicTrades,
+    ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
-use crate::transformer::stateless::StatelessTransformer;
 
 /// Todo:
 pub mod trade;

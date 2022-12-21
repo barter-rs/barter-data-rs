@@ -1,21 +1,22 @@
 use self::{
-    channel::BinanceChannel, market::BinanceMarket, subscription::BinanceSubResponse,
-    trade::BinanceTrade,
+    book::BinanceOrderBookL1, channel::BinanceChannel, market::BinanceMarket,
+    subscription::BinanceSubResponse, trade::BinanceTrade,
 };
-use crate::exchange::subscription::ExchangeSub;
 use crate::{
-    exchange::{Connector, ExchangeId, ServerSelector},
-    ExchangeWsStream,
-    StreamSelector,
-    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber}, subscription::{SubscriptionMap, trade::PublicTrades},
+    exchange::{Connector, ExchangeId, ExchangeSub, ServerSelector},
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
+    subscription::{book::OrderBooksL1, trade::PublicTrades, SubscriptionMap},
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
-use barter_integration::protocol::websocket::WsMessage;
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
-use crate::transformer::stateless::StatelessTransformer;
+use url::Url;
 
-pub mod channel;
+pub mod book;
 /// Todo:
+pub mod channel;
 pub mod futures;
 pub mod market;
 pub mod spot;
@@ -41,8 +42,8 @@ where
     type SubValidator = WebSocketSubValidator;
     type SubResponse = BinanceSubResponse;
 
-    fn base_url() -> &'static str {
-        Server::base_url()
+    fn url() -> Result<Url, SocketError> {
+        Url::parse(Server::base_url()).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
@@ -80,4 +81,11 @@ where
     Server: ServerSelector + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BinanceTrade>>;
+}
+
+impl<Server> StreamSelector<OrderBooksL1> for Binance<Server>
+where
+    Server: ServerSelector + Debug + Send + Sync,
+{
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
 }
