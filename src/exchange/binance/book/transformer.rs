@@ -71,11 +71,9 @@ pub(super) struct BinanceOrderBookSnapshot {
 #[async_trait]
 impl<Server> ExchangeTransformer<Binance<Server>, OrderBooksL2> for BookL2DeltaTransformer
 where
-    Server: BinanceServer + Send,
+    Server: BinanceServer + 'static,
 {
     async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Binance<Server>, OrderBooksL2>) -> Result<Self, SocketError>
-    where
-        Server: 'async_trait,
     {
         struct Lego {
             subscription_id: SubscriptionId,

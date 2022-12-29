@@ -26,6 +26,7 @@ pub mod spot;
 pub mod subscription;
 pub mod trade;
 
+/// Todo:
 pub trait BinanceServer: Clone + Send {
     const ID: ExchangeId;
     fn websocket_url() -> &'static str;
