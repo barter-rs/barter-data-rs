@@ -6,33 +6,54 @@ use barter_integration::protocol::websocket::WsMessage;
 use barter_integration::Transformer;
 use crate::event::Market;
 use crate::exchange::binance::{Binance, BinanceServer};
-use crate::exchange::binance::book::l2::BinanceOrderBookL2Delta;
+use crate::exchange::binance::book::l2::{BinanceOrderBookL2Delta, BinanceOrderBookL2Snapshot};
 use crate::Identifier;
-use crate::subscription::book::{Level, OrderBook, OrderBooksL2};
+use crate::subscription::book::{OrderBook, OrderBooksL2};
 use crate::subscription::{Subscription, SubscriptionMap};
 use crate::transformer::ExchangeTransformer;
 use async_trait::async_trait;
 
 // Todo:
-//  - Create new type for BookMap<SubscriptionId, OrderBook>, Or it could be &str, OrderBook?
 //  - should find_book / find_instrument take an Identifier<Option<&SubscriptionId>>?
-//  - Configure depth, currently we have hard-coded to 50
+//  - Configure depth, currently we have hard-coded to 100
 
 // Todo: Bonus Points:
 //  - Generalise this transformer if possible
+//  - Impl FromIterator for SubscriptionMap
+//  - Should SubscriptionMap actually just be InstrumentMap, or should InstrumentOB be SubscriptionOB?
+//  - Use const generics w/ fixed sized arrays and Copy for Vec<Level>
 
+/// Todo:
 pub struct OrderBookMap(pub HashMap<SubscriptionId, InstrumentOrderBook>);
 
+impl FromIterator<(SubscriptionId, InstrumentOrderBook)> for OrderBookMap {
+    fn from_iter<Iter>(iter: Iter) -> Self
+    where
+        Iter: IntoIterator<Item = (SubscriptionId, InstrumentOrderBook)>,
+    {
+        Self(
+            iter.into_iter()
+                .collect::<HashMap<SubscriptionId, InstrumentOrderBook>>()
+        )
+    }
+}
+
+/// Todo:
 pub struct InstrumentOrderBook {
     instrument: Instrument,
     book: OrderBook,
 }
 
 impl InstrumentOrderBook {
-    pub fn new(instrument: Instrument, book: OrderBook) -> Self {
+    /// Todo:
+    pub fn new<I, OB>(instrument: I, book: OB) -> Self
+    where
+        I: Into<Instrument>,
+        OB: Into<OrderBook>,
+    {
         Self {
-            instrument,
-            book
+            instrument: instrument.into(),
+            book: book.into()
         }
     }
 }
@@ -62,12 +83,6 @@ pub(super) struct BookL2DeltaTransformer {
     pub books: OrderBookMap,
 }
 
-pub(super) struct BinanceOrderBookSnapshot {
-    last_update_id: u64,
-    bids: Vec<Level>,
-    asks: Vec<Level>,
-}
-
 #[async_trait]
 impl<Server> ExchangeTransformer<Binance<Server>, OrderBooksL2> for BookL2DeltaTransformer
 where
@@ -75,38 +90,25 @@ where
 {
     async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Binance<Server>, OrderBooksL2>) -> Result<Self, SocketError>
     {
-        struct Lego {
-            subscription_id: SubscriptionId,
-            instrument: Instrument,
-            snapshot_url: String,
-        }
-
-        // Get initial snapshots urls for all the Subscription OrderBooks
-        let book_legos = map
+        // Fetch initial OrderBook snapshots for all Subscriptions via HTTP
+        let futures = map
             .0
             .into_iter()
-            .map(|(sub_id, sub)| {
-                Lego {
-                    subscription_id: sub_id,
-                    snapshot_url:format!(
-                        "{}?symbol={}{}&limit=50",
-                        Server::http_book_snapshot_url(),
-                        sub.instrument.base.as_ref().to_uppercase(),
-                        sub.instrument.quote.as_ref().to_uppercase()
-                    ),
-                    instrument: sub.instrument,
-                }
-            })
-            .collect::<Vec<Lego>>();
+            .map(|(sub_id, subscription)| {
+                fetch_initial_order_book(sub_id, subscription)
+            });
 
-        // Todo: Send requests in parallel... where did I do that recently? I can't remember...
-        // Ahh it was somewhere in the simulated exchange / exchange client
+        // Await all initial OrderBook snapshot requests
+        let subscription_order_books = futures::future::join_all(futures).await;
 
-        // Self {
-        //     books: OrderBookMap::from(map),
-        // }
+        // Construct OrderBookMap if all requests successful
+        let books = subscription_order_books
+            .into_iter()
+            .collect::<Result<OrderBookMap, SocketError>>()?;
 
-        todo!()
+        Ok(Self {
+            books
+        })
     }
 }
 
@@ -133,4 +135,29 @@ impl Transformer for BookL2DeltaTransformer {
 
         todo!()
     }
+}
+
+async fn fetch_initial_order_book<Server>(
+    subscription_id: SubscriptionId,
+    subscription: Subscription<Binance<Server>, OrderBooksL2>,
+) -> Result<(SubscriptionId, InstrumentOrderBook), SocketError>
+where
+    Server: BinanceServer,
+{
+    // Construct initial OrderBook snapshot GET url
+    let snapshot_url = format!(
+        "{}?symbol={}{}&limit=100",
+        Server::http_book_snapshot_url(),
+        subscription.instrument.base.as_ref().to_uppercase(),
+        subscription.instrument.quote.as_ref().to_uppercase()
+    );
+
+    // Fetch initial OrderBook snapshot via HTTP
+    let snapshot = reqwest::get(snapshot_url)
+        .await?
+        .json::<BinanceOrderBookL2Snapshot>()
+        .await
+        .map(OrderBook::from)?;
+
+    Ok((subscription_id, InstrumentOrderBook::new(subscription.instrument, snapshot)))
 }

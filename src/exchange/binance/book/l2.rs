@@ -1,12 +1,40 @@
 use crate::{
     exchange::{binance::channel::BinanceChannel, subscription::ExchangeSub},
-    subscription::book::Level,
+    subscription::book::{OrderBook, Level},
     Identifier,
 };
 use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
+use chrono::Utc;
 
-/// [`Binance`](super::Binance) OrderBook Level2 deltas message.
+/// [`Binance`](super::Binance) OrderBook Level2 snapshot HTTP message.
+///
+/// Used as the starting [`OrderBook`] before [`BinanceOrderBookL2Delta`] WebSocket updates are
+/// applied.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#order-book>
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#order-book>
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct BinanceOrderBookL2Snapshot {
+    #[serde(rename = "lastUpdateId")]
+    last_update_id: u64,
+    bids: Vec<Level>,
+    asks: Vec<Level>,
+}
+
+impl From<BinanceOrderBookL2Snapshot> for OrderBook {
+    fn from(snapshot: BinanceOrderBookL2Snapshot) -> Self {
+        Self {
+            last_update_time: Utc::now(),
+            last_update_id: snapshot.last_update_id,
+            prev_last_update_id: 0,
+            bids: snapshot.bids,
+            asks: snapshot.asks
+        }
+    }
+}
+
+/// [`Binance`](super::Binance) OrderBook Level2 deltas WebSocket message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams>
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
