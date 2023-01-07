@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod liquidation;
+pub mod l2;
 
 /// [`BinanceFuturesUsd`] WebSocket server base url.
 ///

@@ -59,7 +59,6 @@ impl SubKind for OrderBooksL3 {
 pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
     pub last_update_id: u64,
-    pub prev_last_update_id: u64,
     pub bids: Vec<Level>,
     pub asks: Vec<Level>,
 }

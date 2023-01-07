@@ -27,7 +27,6 @@ impl From<BinanceOrderBookL2Snapshot> for OrderBook {
         Self {
             last_update_time: Utc::now(),
             last_update_id: snapshot.last_update_id,
-            prev_last_update_id: 0,
             bids: snapshot.bids,
             asks: snapshot.asks
         }
