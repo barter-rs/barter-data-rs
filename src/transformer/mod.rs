@@ -8,7 +8,7 @@ use async_trait::async_trait;
 
 /// Todo:
 /// Generic OrderBook [`ExchangeTransformer`] implementations.
-// pub mod book;
+pub mod book;
 
 /// Generic stateless [`ExchangeTransformer`] implementation - often used for transforming
 /// [`PublicTrade`](crate::subscription::trade::PublicTrade) streams.

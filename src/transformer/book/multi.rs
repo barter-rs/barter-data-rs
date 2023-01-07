@@ -1,82 +1,32 @@
-
-use barter_integration::{
-    error::SocketError,
-    model::{Instrument, SubscriptionId},
-    Transformer,
-};
+use super::{OrderBookUpdater, OrderBookMap, InstrumentOrderBook};
 use crate::{
     event::{Market, MarketIter},
     exchange::Connector,
-    subscription::book::OrderBook,
     Identifier,
+    subscription::{book::OrderBook, SubKind, SubscriptionMap},
+    transformer::ExchangeTransformer,
+};
+use barter_integration::{
+    error::SocketError,
+    model::SubscriptionId,
+    protocol::websocket::WsMessage,
+    Transformer,
 };
 use std::{
-    collections::HashMap,
     marker::PhantomData,
 };
 use async_trait::async_trait;
 use serde::Deserialize;
 use tokio::sync::mpsc;
-use barter_integration::protocol::websocket::WsMessage;
-use crate::subscription::{SubKind, Subscription, SubscriptionMap};
-use crate::transformer::ExchangeTransformer;
 
 // Todo:
-#[async_trait]
-pub trait OrderBookUpdater
-where
-    Self: Sized,
-{
-    type OrderBook;
-    type Update;
-
-    async fn init<Exchange, Kind>(
-        ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        subscription: Subscription<Exchange, Kind>
-    ) -> Result<InstrumentOrderBook<Self>, SocketError>
-    where
-        Exchange: Send,
-        Kind: Send;
-
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<(), SocketError>;
-}
-
-// Todo:
-pub struct OrderBookMap<Updater>(pub HashMap<SubscriptionId, InstrumentOrderBook<Updater>>);
-
-impl<Updater> FromIterator<(SubscriptionId, InstrumentOrderBook<Updater>)> for OrderBookMap<Updater> {
-    fn from_iter<Iter>(iter: Iter) -> Self
-    where
-        Iter: IntoIterator<Item = (SubscriptionId, InstrumentOrderBook<Updater>)>,
-    {
-        Self(iter.into_iter().collect::<HashMap<SubscriptionId, InstrumentOrderBook<Updater>>>())
-    }
-}
-
-impl<Updater> OrderBookMap<Updater> {
-    // Todo:
-    pub fn find_book_mut(&mut self, id: &SubscriptionId) -> Result<&mut InstrumentOrderBook<Updater>, SocketError> {
-        self.0
-            .get_mut(id)
-            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
-    }
-}
-
-// Todo:
-pub struct InstrumentOrderBook<Updater> {
-    pub instrument: Instrument,
-    pub updater: Updater,
-    pub book: OrderBook,
-}
-
-// Todo:
-pub struct BookTransformer<Exchange, Kind, Updater> {
+pub struct MultiBookTransformer<Exchange, Kind, Updater> {
     pub book_map: OrderBookMap<Updater>,
     phantom: PhantomData<(Exchange, Kind)>,
 }
 
 #[async_trait]
-impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind> for BookTransformer<Exchange, Kind, Updater>
+impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind> for MultiBookTransformer<Exchange, Kind, Updater>
 where
     Exchange: Connector + Send,
     Kind: SubKind<Event = OrderBook> + Send,
@@ -113,7 +63,7 @@ where
     }
 }
 
-impl<Exchange, Kind, Updater> Transformer for BookTransformer<Exchange, Kind, Updater>
+impl<Exchange, Kind, Updater> Transformer for MultiBookTransformer<Exchange, Kind, Updater>
 where
     Exchange: Connector,
     Kind: SubKind<Event = OrderBook>,

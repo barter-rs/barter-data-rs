@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use tokio::sync::mpsc;
 use barter_integration::error::SocketError;
 use barter_integration::protocol::websocket::WsMessage;
-use crate::book::{InstrumentOrderBook, OrderBookUpdater};
 use crate::exchange::binance::BinanceServer;
 use crate::exchange::binance::book::l2::BinanceOrderBookL2Snapshot;
 use crate::exchange::binance::futures::BinanceServerFuturesUsd;
 use crate::subscription::book::OrderBook;
 use crate::subscription::Subscription;
+use crate::transformer::book::{InstrumentOrderBook, OrderBookUpdater};
 
 pub struct BinanceFuturesBookUpdater {
     first_update_id: u64,
