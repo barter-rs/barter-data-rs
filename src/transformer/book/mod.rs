@@ -32,7 +32,7 @@ where
         Exchange: Send,
         Kind: Send;
 
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<(), SocketError>;
+    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, SocketError>;
 }
 
 // Todo:

@@ -40,6 +40,7 @@ pub mod transformer;
 //  - Add aliases:
 //    - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 //    - Bitfinex ust -> usdt
+//  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)

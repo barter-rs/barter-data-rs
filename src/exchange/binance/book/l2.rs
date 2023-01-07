@@ -6,6 +6,7 @@ use crate::{
 use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
+use crate::subscription::book::OrderBookSide;
 
 /// [`Binance`](super::Binance) OrderBook Level2 snapshot HTTP message.
 ///
@@ -17,18 +18,17 @@ use chrono::Utc;
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceOrderBookL2Snapshot {
     #[serde(rename = "lastUpdateId")]
-    last_update_id: u64,
-    bids: Vec<Level>,
-    asks: Vec<Level>,
+    pub last_update_id: u64,
+    pub bids: Vec<Level>,
+    pub asks: Vec<Level>,
 }
 
 impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     fn from(snapshot: BinanceOrderBookL2Snapshot) -> Self {
         Self {
             last_update_time: Utc::now(),
-            last_update_id: snapshot.last_update_id,
-            bids: snapshot.bids,
-            asks: snapshot.asks
+            bids: OrderBookSide::from_iter(snapshot.bids),
+            asks: OrderBookSide::from_iter(snapshot.asks),
         }
     }
 }
@@ -47,6 +47,9 @@ pub struct BinanceOrderBookL2Delta {
 
     #[serde(alias = "u")]
     pub last_update_id: u64,
+
+    #[serde(alias = "pu")]
+    pub prev_last_update_id: u64,
 
     #[serde(alias = "b")]
     pub bids: Vec<BinanceLevel>,

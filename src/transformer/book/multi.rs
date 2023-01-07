@@ -94,8 +94,9 @@ where
 
         // Apply update (snapshot or delta) to OrderBook & generate Market<OrderBook> snapshot
         match updater.update(book, update) {
-            Ok(()) => MarketIter::<OrderBook>::from((Exchange::ID, instrument.clone(), book.clone())).0,
-            Err(error) => vec![Err(error)]
+            Ok(Some(book)) => MarketIter::<OrderBook>::from((Exchange::ID, instrument.clone(), book)).0,
+            Ok(None) => vec![],
+            Err(error) => vec![Err(error)],
         }
     }
 }

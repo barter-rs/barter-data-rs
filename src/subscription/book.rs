@@ -6,6 +6,7 @@ use crate::{
 use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use barter_integration::error::SocketError;
 
 // Todo:
 // - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
@@ -58,9 +59,29 @@ impl SubKind for OrderBooksL3 {
 #[derive(Clone, PartialEq, PartialOrd, Debug, Default, Deserialize, Serialize)]
 pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
-    pub last_update_id: u64,
-    pub bids: Vec<Level>,
-    pub asks: Vec<Level>,
+    pub bids: OrderBookSide,
+    pub asks: OrderBookSide,
+}
+
+/// Normalised Barter [`Level`]s for one [`Side`] of the [`OrderBook`].
+pub struct OrderBookSide(pub Vec<Level>);
+
+impl<L> FromIterator<L> for OrderBookSide
+where
+    Level: From<L>,
+{
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = L>,
+    {
+        Self(iter.into_iter().map(Level::from).collect())
+    }
+}
+
+impl OrderBookSide {
+    pub fn upsert<Iter>(&mut self, levels: Iter) -> Result<(), SocketError> {
+        todo!()
+    }
 }
 
 /// Normalised Barter OrderBook [`Level`].
