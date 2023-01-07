@@ -79,7 +79,7 @@ pub struct BookTransformer<Exchange, Kind, Updater> {
 impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind> for BookTransformer<Exchange, Kind, Updater>
 where
     Exchange: Connector + Send,
-    Kind: SubKind + Send,
+    Kind: SubKind<Event = OrderBook> + Send,
     Updater: OrderBookUpdater<OrderBook = Kind::Event> + Send,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
@@ -116,7 +116,7 @@ where
 impl<Exchange, Kind, Updater> Transformer for BookTransformer<Exchange, Kind, Updater>
 where
     Exchange: Connector,
-    Kind: SubKind,
+    Kind: SubKind<Event = OrderBook>,
     Updater: OrderBookUpdater<OrderBook = Kind::Event>,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {

@@ -22,7 +22,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
     type Update = BinanceFuturesOrderBookL2Delta;
 
     async fn init<Exchange, Kind>(
-        ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
+        _: mpsc::UnboundedSender<WsMessage>,
         subscription: Subscription<Exchange, Kind>
     ) -> Result<InstrumentOrderBook<Self>, SocketError>
     where
