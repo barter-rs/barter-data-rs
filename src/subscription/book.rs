@@ -1,6 +1,14 @@
-use crate::subscription::SubKind;
+use super::SubKind;
+use crate::{
+    event::{MarketIter, Market},
+    exchange::ExchangeId,
+};
+use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+// Todo:
+// - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
 /// [`Market`](crate::model::Market) events.
@@ -81,5 +89,17 @@ impl Level {
             price: price.into(),
             amount: amount.into(),
         }
+    }
+}
+
+impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
+    fn from((exchange_id, instrument, book): (ExchangeId, Instrument, OrderBook)) -> Self {
+        Self(vec![Ok(Market {
+            exchange_time: book.last_update_time,
+            received_time: Utc::now(),
+            exchange: Exchange::from(exchange_id),
+            instrument,
+            event: book,
+        })])
     }
 }
