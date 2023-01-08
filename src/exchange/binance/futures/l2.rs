@@ -152,8 +152,8 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         // 7. The data in each event is the absolute quantity for a price level.
         // 8. If the quantity is 0, remove the price level.
         book.last_update_time = Utc::now();
-        book.bids.upsert(update.bids)?;
-        book.asks.upsert(update.asks)?;
+        book.bids.upsert(update.bids);
+        book.asks.upsert(update.asks);
 
         // Update OrderBookUpdater metadata
         self.updates_processed += 1;

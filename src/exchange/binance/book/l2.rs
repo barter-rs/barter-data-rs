@@ -3,7 +3,7 @@ use crate::{
     subscription::book::{OrderBook, Level},
     Identifier,
 };
-use barter_integration::model::SubscriptionId;
+use barter_integration::model::{Side, SubscriptionId};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 use crate::subscription::book::OrderBookSide;
@@ -27,8 +27,8 @@ impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     fn from(snapshot: BinanceOrderBookL2Snapshot) -> Self {
         Self {
             last_update_time: Utc::now(),
-            bids: OrderBookSide::from_iter(snapshot.bids),
-            asks: OrderBookSide::from_iter(snapshot.asks),
+            bids: OrderBookSide::new(Side::Buy, snapshot.bids),
+            asks: OrderBookSide::new(Side::Sell, snapshot.asks),
         }
     }
 }

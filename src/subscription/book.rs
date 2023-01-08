@@ -3,10 +3,12 @@ use crate::{
     event::{MarketIter, Market},
     exchange::ExchangeId,
 };
-use barter_integration::model::{Exchange, Instrument};
+use barter_integration::{
+    model::{Exchange, Instrument, Side},
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use barter_integration::error::SocketError;
+use tracing::warn;
 
 // Todo:
 // - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
@@ -56,7 +58,7 @@ impl SubKind for OrderBooksL3 {
 }
 
 /// Normalised Barter [`OrderBook`] snapshot.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
     pub bids: OrderBookSide,
@@ -64,28 +66,91 @@ pub struct OrderBook {
 }
 
 /// Normalised Barter [`Level`]s for one [`Side`] of the [`OrderBook`].
-pub struct OrderBookSide(pub Vec<Level>);
-
-impl<L> FromIterator<L> for OrderBookSide
-where
-    Level: From<L>,
-{
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = L>,
-    {
-        Self(iter.into_iter().map(Level::from).collect())
-    }
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct OrderBookSide {
+    side: Side,
+    levels: Vec<Level>,
 }
 
 impl OrderBookSide {
-    pub fn upsert<Iter>(&mut self, levels: Iter) -> Result<(), SocketError> {
-        todo!()
+    /// Construct a new [`Self`] with the [`Level`]s provided.
+    pub fn new<Iter, L>(side: Side, levels: Iter) -> Self
+    where
+        Iter: IntoIterator<Item = L>,
+        L: Into<Level>,
+    {
+        Self {
+            side,
+            levels: levels
+                .into_iter()
+                .map(|level| level.into())
+                .collect()
+        }
+
+    }
+
+    /// Todo:
+    pub fn upsert<Iter, L>(&mut self, levels: Iter)
+    where
+        Iter: IntoIterator<Item = L>,
+        L: Into<Level>,
+    {
+        levels
+            .into_iter()
+            .for_each(|level| self.upsert_single(level))
+    }
+
+    /// Todo:
+    ///
+    /// ### Upsert Scenarios
+    /// #### 1 Level Already Exists
+    /// 1a) New value is 0, remove the level
+    /// 1b) New value is > 0, replace the level
+    ///
+    /// #### 2 Level Does Not Exist
+    /// 2a) New value is > 0, insert new level
+    /// 2b) New value is 0, log error and continue
+    pub fn upsert_single<L>(&mut self, new_level: L)
+    where
+        L: Into<Level>,
+    {
+        let new_level = new_level.into();
+
+        match self
+            .levels
+            .iter_mut()
+            .enumerate()
+            .find(|(_index, level)| level.eq_price(new_level.price))
+        {
+            // Scenario 1a: Level exists & new value is 0 => remove Level
+            Some((index, _)) if new_level.price == 0.0 => {
+                self.levels.remove(index);
+            }
+
+            // Scenario 1b: Level exists & new value is > 0 => replace Level
+            Some((_, level)) => {
+                *level = new_level;
+            }
+
+            // Scenario 2a: Level does not exist & new value > 0 => insert new Level
+            None if new_level.price > 0.0 => {
+                self.levels.push(new_level)
+            }
+
+            // Scenario 2b: Level does not exist & new value is 0 => log error & continue
+            _ => {
+                warn!(
+                    ?new_level,
+                    side = %self.side,
+                    "Level to remove not found",
+                );
+            }
+        };
     }
 }
 
 /// Normalised Barter OrderBook [`Level`].
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Default, Deserialize, Serialize)]
 pub struct Level {
     pub price: f64,
     pub amount: f64,
@@ -109,6 +174,11 @@ impl Level {
             price: price.into(),
             amount: amount.into(),
         }
+    }
+
+    pub fn eq_price(&self, price: f64) -> bool {
+        let diff = (price - self.price).abs();
+        f64::EPSILON > diff
     }
 }
 
