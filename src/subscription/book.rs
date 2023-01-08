@@ -100,7 +100,7 @@ impl OrderBookSide {
 
     }
 
-    /// Todo:
+    /// Upsert a collection of [`Level`]s into this [`OrderBookSide`].
     pub fn upsert<Iter, L>(&mut self, levels: Iter)
     where
         Iter: IntoIterator<Item = L>,
@@ -111,7 +111,7 @@ impl OrderBookSide {
             .for_each(|level| self.upsert_single(level))
     }
 
-    /// Todo:
+    /// Upsert a single [`Level`] into this [`OrderBookSide`].
     ///
     /// ### Upsert Scenarios
     /// #### 1 Level Already Exists
@@ -159,8 +159,7 @@ impl OrderBookSide {
         };
     }
 
-    /// Todo:
-    ///
+    /// Sort this [`OrderBookSide`] (bids are reversed).
     pub fn sort(&mut self) {
         // Sort Levels
         self.levels.sort_unstable();
