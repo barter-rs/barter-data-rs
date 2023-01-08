@@ -1,8 +1,9 @@
 use crate::{
+    error::DataError,
     event::Market,
     subscription::{SubKind, SubscriptionMap},
 };
-use barter_integration::{protocol::websocket::WsMessage, error::SocketError, Transformer};
+use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 use async_trait::async_trait;
 
@@ -18,12 +19,12 @@ pub mod stateless;
 #[async_trait]
 pub trait ExchangeTransformer<Exchange, Kind>
 where
-    Self: Transformer<Output = Market<Kind::Event>> + Sized,
+    Self: Transformer<Output = Market<Kind::Event>, Error = DataError> + Sized,
     Kind: SubKind,
 {
     /// Todo:
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         map: SubscriptionMap<Exchange, Kind>,
-    ) -> Result<Self, SocketError>;
+    ) -> Result<Self, DataError>;
 }

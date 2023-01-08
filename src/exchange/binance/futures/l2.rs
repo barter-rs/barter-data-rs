@@ -4,14 +4,17 @@ use super::super::{
 };
 use super::BinanceServerFuturesUsd;
 use crate::{
-    Identifier, subscription::{book::OrderBook, Subscription}, transformer::book::{InstrumentOrderBook, OrderBookUpdater}};
+    Identifier,
+    error::DataError,
+    subscription::{book::OrderBook, Subscription}, transformer::book::{InstrumentOrderBook, OrderBookUpdater}};
 use barter_integration::{
-    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage,
+    model::SubscriptionId, protocol::websocket::WsMessage,
 };
 use async_trait::async_trait;
 use chrono::Utc;
 use tokio::sync::mpsc;
 use serde::{Deserialize, Serialize};
+use barter_integration::error::SocketError;
 
 /// [`BinanceFuturesUsd`] OrderBook Level2 deltas WebSocket message.
 ///
@@ -94,7 +97,7 @@ impl BinanceFuturesBookUpdater {
     /// "The first processed event should have U <= lastUpdateId AND u >= lastUpdateId"
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
-    pub fn validate_first_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), SocketError> {
+    pub fn validate_first_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
         if update.first_update_id > self.last_update_id {
             // Error
             todo!()
@@ -113,7 +116,7 @@ impl BinanceFuturesBookUpdater {
     ///  event's u, otherwise initialize the process from step 3."
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
-    pub fn validate_next_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), SocketError> {
+    pub fn validate_next_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
         if update.prev_last_update_id != self.last_update_id {
             // Error
             todo!()
@@ -131,7 +134,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
     async fn init<Exchange, Kind>(
         _: mpsc::UnboundedSender<WsMessage>,
         subscription: Subscription<Exchange, Kind>
-    ) -> Result<InstrumentOrderBook<Self>, SocketError>
+    ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
         Kind: Send,
@@ -146,9 +149,11 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
 
         // Fetch initial OrderBook snapshot via HTTP
         let snapshot = reqwest::get(snapshot_url)
-            .await?
+            .await
+            .map_err(SocketError::Http)?
             .json::<BinanceOrderBookL2Snapshot>()
-            .await?;
+            .await
+            .map_err(SocketError::Http)?;
 
         Ok(InstrumentOrderBook {
             instrument: subscription.instrument,
@@ -157,7 +162,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         })
     }
 
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, SocketError> {
+    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, DataError> {
         // BinanceFuturesUsd: How To Manage A Local OrderBook Correctly
         // See Self's Rust Docs for more information on each numbered step
         // See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>

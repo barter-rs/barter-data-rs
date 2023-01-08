@@ -7,6 +7,7 @@
 
 ///! # Barter-Data
 use crate::{
+    error::DataError,
     event::Market,
     exchange::{Connector, ExchangeId, PingInterval},
     subscriber::Subscriber,
@@ -15,7 +16,6 @@ use crate::{
 };
 use async_trait::async_trait;
 use barter_integration::{
-    error::SocketError,
     protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
     ExchangeStream,
 };
@@ -76,11 +76,11 @@ where
 #[async_trait]
 pub trait MarketStream<Exchange, Kind>
 where
-    Self: Stream<Item = Result<Market<Kind::Event>, SocketError>> + Sized + Unpin,
+    Self: Stream<Item = Result<Market<Kind::Event>, DataError>> + Sized + Unpin,
     Exchange: Connector,
     Kind: SubKind,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
     where
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
@@ -92,7 +92,7 @@ where
     Kind: SubKind + Send + Sync,
     Transformer: ExchangeTransformer<Exchange, Kind>,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, SocketError>
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
     where
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {

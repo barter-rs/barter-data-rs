@@ -1,12 +1,12 @@
 use super::ExchangeTransformer;
 use crate::{
+    error::DataError,
     event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
     subscription::{SubKind, SubscriptionMap},
     Identifier,
 };
 use barter_integration::{
-    error::SocketError,
     model::{Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
     Transformer,
@@ -32,7 +32,7 @@ where
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
-    async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, SocketError> {
+    async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, DataError> {
         Ok(Self {
             map,
             phantom: Default::default(),
@@ -47,9 +47,10 @@ where
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
+    type Error = DataError;
     type Input = Input;
     type Output = Market<Kind::Event>;
-    type OutputIter = Vec<Result<Self::Output, SocketError>>;
+    type OutputIter = Vec<Result<Self::Output, Self::Error>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
         // Determine if the message has an identifiable SubscriptionId
@@ -61,7 +62,7 @@ where
         // Find Instrument associated with Input and transform
         match self.map.find_instrument(&subscription_id) {
             Ok(instrument) => MarketIter::<Kind::Event>::from((Exchange::ID, instrument, input)).0,
-            Err(unidentifiable) => vec![Err(unidentifiable)],
+            Err(unidentifiable) => vec![Err(DataError::Socket(unidentifiable))],
         }
     }
 }

@@ -1,17 +1,17 @@
+use crate::error::DataError;
 use barter_integration::{
-    error::SocketError,
     model::{Exchange, Instrument},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Todo:
-pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, SocketError>>);
+pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, DataError>>);
 
-impl<Event> FromIterator<Result<Market<Event>, SocketError>> for MarketIter<Event> {
+impl<Event> FromIterator<Result<Market<Event>, DataError>> for MarketIter<Event> {
     fn from_iter<T>(iter: T) -> Self
     where
-        T: IntoIterator<Item = Result<Market<Event>, SocketError>>,
+        T: IntoIterator<Item = Result<Market<Event>, DataError>>,
     {
         Self(iter.into_iter().collect())
     }

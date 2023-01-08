@@ -1,5 +1,5 @@
 use crate::{
-    subscription::{book::OrderBook, Subscription},
+    subscription::{book::OrderBook, Subscription}, error::DataError,
 };
 use barter_integration::{
     error::SocketError,
@@ -27,12 +27,12 @@ where
     async fn init<Exchange, Kind>(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         subscription: Subscription<Exchange, Kind>
-    ) -> Result<InstrumentOrderBook<Self>, SocketError>
+    ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
         Kind: Send;
 
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, SocketError>;
+    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, DataError>;
 }
 
 // Todo:

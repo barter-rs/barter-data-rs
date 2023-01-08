@@ -1,5 +1,6 @@
 use super::{OrderBookUpdater, OrderBookMap, InstrumentOrderBook};
 use crate::{
+    error::DataError,
     event::{Market, MarketIter},
     exchange::Connector,
     Identifier,
@@ -7,7 +8,6 @@ use crate::{
     transformer::ExchangeTransformer,
 };
 use barter_integration::{
-    error::SocketError,
     model::SubscriptionId,
     protocol::websocket::WsMessage,
     Transformer,
@@ -36,7 +36,7 @@ where
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         map: SubscriptionMap<Exchange, Kind>
-    ) -> Result<Self, SocketError>
+    ) -> Result<Self, DataError>
     {
         // Initialise InstrumentOrderBooks for all Subscriptions
         let (sub_ids, init_book_requests): (Vec<_>, Vec<_>)  = map
@@ -51,7 +51,7 @@ where
         let init_order_books = futures::future::join_all(init_book_requests)
             .await
             .into_iter()
-            .collect::<Result<Vec<InstrumentOrderBook<Updater>>, SocketError>>()?;
+            .collect::<Result<Vec<InstrumentOrderBook<Updater>>, DataError>>()?;
 
         // Construct OrderBookMap if all requests successful
         let book_map = sub_ids
@@ -70,9 +70,10 @@ where
     Updater: OrderBookUpdater<OrderBook = Kind::Event>,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
+    type Error = DataError;
     type Input = Updater::Update;
     type Output = Market<Kind::Event>;
-    type OutputIter = Vec<Result<Self::Output, SocketError>>;
+    type OutputIter = Vec<Result<Self::Output, Self::Error>>;
 
     fn transform(&mut self, update: Self::Input) -> Self::OutputIter {
         // Determine if the update has an identifiable SubscriptionId
@@ -84,7 +85,7 @@ where
         // Retrieve the InstrumentOrderBook associated with this update (snapshot or delta)
         let book = match self.book_map.find_book_mut(&subscription_id) {
             Ok(book) => book,
-            Err(unidentifiable) => return vec![Err(unidentifiable)],
+            Err(unidentifiable) => return vec![Err(DataError::Socket(unidentifiable))],
         };
 
         // De-structure for ease
