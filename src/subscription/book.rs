@@ -67,7 +67,7 @@ pub struct OrderBook {
 }
 
 impl OrderBook {
-    /// Todo:
+    /// Generate an [`OrderBook`] snapshot by cloning [`Self`] after sorting each [`OrderBookSide`].
     pub fn snapshot(&mut self) -> Self {
         // Sort OrderBook & Clone
         self.bids.sort();
