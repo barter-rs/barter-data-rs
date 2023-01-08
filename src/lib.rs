@@ -30,6 +30,7 @@ pub mod exchange;
 pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
+pub mod builder;
 
 // Todo:
 //  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id

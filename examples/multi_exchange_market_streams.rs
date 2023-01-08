@@ -7,6 +7,7 @@ use barter_data::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
+use barter_data::builder::consume;
 
 #[tokio::main]
 async fn main() {
@@ -71,17 +72,4 @@ fn init_logging() {
         .json()
         // Install this Tracing subscriber as global default
         .init()
-}
-
-pub async fn consume<Exchange, Kind>(subscriptions: Vec<Subscription<Exchange, Kind>>)
-where
-    Exchange: StreamSelector<Kind>,
-    Kind: SubKind,
-    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
-{
-    let mut stream = Exchange::Stream::init(&subscriptions).await.unwrap();
-
-    while let Some(event) = stream.next().await {
-        println!("\nConsumed: {event:?}");
-    }
 }
