@@ -43,6 +43,7 @@ pub mod builder;
 //    - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 //    - Bitfinex ust -> usdt
 //  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
+//  - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
 
 // Todo:
 //  - Need a SocketError that causes the Stream to re-initialise at the `fn consume()` level for OBs

@@ -11,9 +11,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-// Todo:
-// - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
-
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
 /// [`Market`](crate::model::Market) events.
 ///
