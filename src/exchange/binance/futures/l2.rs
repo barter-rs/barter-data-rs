@@ -67,6 +67,7 @@ impl Identifier<Option<SubscriptionId>> for BinanceFuturesOrderBookL2Delta {
 ///  - Receiving an event that removes a price level that is not in your local order book can happen and is normal.
 ///  - Uppercase U => first_update_id
 ///  - Lowercase u => last_update_id,
+///  - Lowercase pu => prev_last_update_id
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -98,17 +99,14 @@ impl BinanceFuturesBookUpdater {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
     pub fn validate_first_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
-        if update.first_update_id > self.last_update_id {
-            // Error
-            todo!()
+        if update.first_update_id <= self.last_update_id && update.last_update_id >= self.last_update_id {
+            Ok(())
+        } else {
+            Err(DataError::InvalidSequence {
+                prev_last_update_id: self.last_update_id,
+                first_update_id: update.first_update_id
+            })
         }
-        
-        if update.last_update_id < self.last_update_id {
-            // Error
-            todo!()
-        }
-        
-        Ok(())
     }
 
     /// BinanceFuturesUsd: How To Manage A Local OrderBook Correctly: Step 6:
@@ -117,12 +115,14 @@ impl BinanceFuturesBookUpdater {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
     pub fn validate_next_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
-        if update.prev_last_update_id != self.last_update_id {
-            // Error
-            todo!()
+        if update.prev_last_update_id == self.last_update_id {
+            Ok(())
+        } else {
+            Err(DataError::InvalidSequence {
+                prev_last_update_id: self.last_update_id,
+                first_update_id: update.first_update_id
+            })
         }
-
-        Ok(())
     }
 }
 

@@ -39,22 +39,22 @@ async fn main() {
         //     OrderBooksL2,
         // )
         //     .into(),
-        (
-            BinanceFuturesUsd::default(),
-            "eth",
-            "usdt",
-            InstrumentKind::FuturePerpetual,
-            OrderBooksL2,
-        )
-            .into(),
         // (
-        //     BinanceSpot::default(),
-        //     "btc",
+        //     BinanceFuturesUsd::default(),
+        //     "eth",
         //     "usdt",
-        //     InstrumentKind::Spot,
+        //     InstrumentKind::FuturePerpetual,
         //     OrderBooksL2,
         // )
         //     .into(),
+        (
+            BinanceSpot::default(),
+            "btc",
+            "usdt",
+            InstrumentKind::Spot,
+            OrderBooksL2,
+        )
+            .into(),
     ];
 
     tokio::spawn(consume(subscriptions)).await.unwrap();

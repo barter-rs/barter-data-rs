@@ -97,17 +97,15 @@ impl BinanceSpotBookUpdater {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#how-to-manage-a-local-order-book-correctly>
     pub fn validate_first_update(&self, update: &BinanceSpotOrderBookL2Delta) -> Result<(), DataError> {
-        if update.first_update_id > self.last_update_id + 1 {
-            // Error
-            todo!()
+        let expected_next_id = self.last_update_id + 1;
+        if update.first_update_id <= expected_next_id && update.last_update_id >= expected_next_id {
+            Ok(())
+        } else {
+            Err(DataError::InvalidSequence {
+                prev_last_update_id: self.last_update_id,
+                first_update_id: update.first_update_id
+            })
         }
-
-        if update.last_update_id < self.last_update_id + 1 {
-            // Error
-            todo!()
-        }
-
-        Ok(())
     }
 
     /// BinanceFuturesUsd: How To Manage A Local OrderBook Correctly: Step 6:
@@ -116,12 +114,15 @@ impl BinanceSpotBookUpdater {
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#how-to-manage-a-local-order-book-correctly>
     pub fn validate_next_update(&self, update: &BinanceSpotOrderBookL2Delta) -> Result<(), DataError> {
-        if update.first_update_id != self.prev_last_update_id + 1 {
-            // Error
-            todo!()
+        let expected_next_id = self.last_update_id + 1;
+        if update.first_update_id == expected_next_id {
+            Ok(())
+        } else {
+            Err(DataError::InvalidSequence {
+                prev_last_update_id: self.last_update_id,
+                first_update_id: update.first_update_id
+            })
         }
-
-        Ok(())
     }
 }
 
