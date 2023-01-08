@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use super::SubKind;
 use crate::{
     event::{MarketIter, Market},
@@ -8,7 +9,7 @@ use barter_integration::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use tracing::warn;
+use tracing::debug;
 
 // Todo:
 // - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
@@ -63,6 +64,16 @@ pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
     pub bids: OrderBookSide,
     pub asks: OrderBookSide,
+}
+
+impl OrderBook {
+    /// Todo:
+    pub fn snapshot(&mut self) -> Self {
+        // Sort OrderBook & Clone
+        self.bids.sort();
+        self.asks.sort();
+        self.clone()
+    }
 }
 
 /// Normalised Barter [`Level`]s for one [`Side`] of the [`OrderBook`].
@@ -139,7 +150,7 @@ impl OrderBookSide {
 
             // Scenario 2b: Level does not exist & new value is 0 => log error & continue
             _ => {
-                warn!(
+                debug!(
                     ?new_level,
                     side = %self.side,
                     "Level to remove not found",
@@ -147,10 +158,22 @@ impl OrderBookSide {
             }
         };
     }
+
+    /// Todo:
+    ///
+    pub fn sort(&mut self) {
+        // Sort Levels
+        self.levels.sort_unstable();
+
+        // Reverse Bids
+        if let Side::Buy = self.side {
+            self.levels.reverse();
+        }
+    }
 }
 
 /// Normalised Barter OrderBook [`Level`].
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Debug, Default, Deserialize, Serialize)]
 pub struct Level {
     pub price: f64,
     pub amount: f64,
@@ -164,6 +187,24 @@ where
         Self::new(price, amount)
     }
 }
+
+impl Ord for Level {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other)
+            .unwrap_or_else(|| panic!("{:?}.partial_cmp({:?}) impossible", self, other))
+    }
+}
+
+impl PartialOrd for Level {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.price.partial_cmp(&other.price)? {
+            Ordering::Equal => self.amount.partial_cmp(&other.amount),
+            non_equal => Some(non_equal)
+        }
+    }
+}
+
+impl Eq for Level {}
 
 impl Level {
     pub fn new<T>(price: T, amount: T) -> Self

@@ -1,17 +1,23 @@
+use super::super::{
+    BinanceServer,
+    book::l2::{BinanceOrderBookL2Delta, BinanceOrderBookL2Snapshot},
+};
+use super::BinanceServerFuturesUsd;
+use crate::{
+    subscription::{Subscription, book::OrderBook},
+    transformer::book::{InstrumentOrderBook, OrderBookUpdater},
+};
+use barter_integration::{
+    error::SocketError, protocol::websocket::WsMessage,
+};
 use async_trait::async_trait;
 use chrono::Utc;
 use tokio::sync::mpsc;
-use barter_integration::error::SocketError;
-use barter_integration::protocol::websocket::WsMessage;
-use crate::exchange::binance::BinanceServer;
-use crate::exchange::binance::book::l2::{BinanceOrderBookL2Delta, BinanceOrderBookL2Snapshot};
-use crate::exchange::binance::futures::BinanceServerFuturesUsd;
-use crate::subscription::book::OrderBook;
-use crate::subscription::Subscription;
-use crate::transformer::book::{InstrumentOrderBook, OrderBookUpdater};
+use serde::{Deserialize, Serialize};
 
-
-// Todo: Need a SocketError that causes the Stream to re-initialise at the `fn consume()` level
+// Todo:
+//  - Need a SocketError that causes the Stream to re-initialise at the `fn consume()` level
+//  - OrderBook sorting when building the snapshot
 
 
 /// Todo:
@@ -22,6 +28,7 @@ use crate::transformer::book::{InstrumentOrderBook, OrderBookUpdater};
 ///  - Lowercase u => last_update_id,
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BinanceFuturesBookUpdater {
     updates_processed: u64,
     last_update_id: u64,
@@ -142,7 +149,6 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
             // 5. The first processed event should have U <= lastUpdateId AND u >= lastUpdateId
             self.validate_first_update(&update)?;
         }
-
         else {
             // 6. Each new event's pu should be equal to the previous event's u
             self.validate_next_update(&update)?;
@@ -159,6 +165,6 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         self.updates_processed += 1;
         self.last_update_id = update.last_update_id;
 
-        Ok(Some(book.clone()))
+        Ok(Some(book.snapshot()))
     }
 }
