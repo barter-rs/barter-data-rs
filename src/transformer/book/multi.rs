@@ -16,10 +16,11 @@ use std::{
     marker::PhantomData,
 };
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 // Todo:
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct MultiBookTransformer<Exchange, Kind, Updater> {
     pub book_map: OrderBookMap<Updater>,
     phantom: PhantomData<(Exchange, Kind)>,

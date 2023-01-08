@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Todo:
+#[derive(Debug)]
 pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, DataError>>);
 
 impl<Event> FromIterator<Result<Market<Event>, DataError>> for MarketIter<Event> {

@@ -11,6 +11,7 @@ use std::{
 };
 use async_trait::async_trait;
 use tokio::sync::mpsc;
+use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod multi;
@@ -36,6 +37,7 @@ where
 }
 
 // Todo:
+#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct OrderBookMap<Updater>(pub HashMap<SubscriptionId, InstrumentOrderBook<Updater>>);
 
 impl<Updater> FromIterator<(SubscriptionId, InstrumentOrderBook<Updater>)> for OrderBookMap<Updater> {
@@ -57,6 +59,7 @@ impl<Updater> OrderBookMap<Updater> {
 }
 
 // Todo:
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct InstrumentOrderBook<Updater> {
     pub instrument: Instrument,
     pub updater: Updater,

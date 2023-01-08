@@ -15,6 +15,7 @@ use barter_integration::{
 use futures::SinkExt;
 use std::marker::PhantomData;
 use tracing::{debug, info};
+use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod mapper;
@@ -38,6 +39,7 @@ where
         Validator: 'async_trait;
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubscriber<Validator> {
     phantom: PhantomData<Validator>,
 }

@@ -62,6 +62,7 @@ where
 
 /// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
 /// require additional application-level pings.
+#[derive(Debug)]
 pub struct PingInterval {
     pub interval: tokio::time::Interval,
     pub ping: fn() -> WsMessage,
