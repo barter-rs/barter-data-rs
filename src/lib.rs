@@ -25,6 +25,7 @@ use tracing::{debug, error};
 
 /// Todo:
 pub mod event;
+pub mod error;
 pub mod exchange;
 pub mod subscriber;
 pub mod subscription;
@@ -52,7 +53,6 @@ pub mod transformer;
 //  - Rust docs
 //  - Check rust docs & fix
 //  - Add unit tests from develop branch, etc.
-//  - Add links & tags to release MR with reference to Shayan's contributions (link MR etc)
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;

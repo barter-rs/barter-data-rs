@@ -35,7 +35,7 @@ impl From<BinanceOrderBookL2Snapshot> for OrderBook {
 }
 
 /// Deserialize a [`BinanceOrderBookL2`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-/// (eg/ "@depth20@100ms|BTCUSDT").
+/// (eg/ "@depth@100ms|BTCUSDT").
 pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,
