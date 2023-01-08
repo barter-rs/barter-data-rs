@@ -13,6 +13,7 @@ use std::{
     collections::HashMap,
     pin::Pin,
 };
+use std::fmt::Debug;
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 use futures::StreamExt;
@@ -24,7 +25,8 @@ const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 
 /// Convenient type alias representing a [`Future`] which yields an exchange
 /// [`Market<Event>`](Market) receiver.
-pub type StreamFuture<Kind> = Pin<Box<dyn Future<Output = Result<(ExchangeId, mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>), DataError>>>>;
+// pub type StreamFuture<Kind> = Pin<Box<dyn Future<Output = Result<(ExchangeId, mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>), DataError>>>>;
+pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
 #[derive(Debug)]
 pub struct Streams<Kind>
@@ -38,6 +40,7 @@ impl<Kind> Streams<Kind>
 where
     Kind: SubKind,
 {
+    /// Construct a [`StreamBuilder`] for configuring new [`Market<Event>`](Market) [`Streams`].
     pub fn builder() -> StreamBuilder<Kind> {
         StreamBuilder::new()
     }
@@ -48,8 +51,21 @@ pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
 {
-    pub futures: Vec<StreamFuture<Kind>>,
+    pub channels: HashMap<ExchangeId, ExchangeChannel<Kind>>,
+    pub futures: Vec<SubscribeFuture>,
     phantom: PhantomData<Kind>,
+}
+
+impl<Kind> Debug for StreamBuilder<Kind>
+where
+    Kind: SubKind,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamBuilder<Kind>")
+            .field("channels", &self.channels)
+            .field("num_futures", &self.futures.len())
+            .finish()
+    }
 }
 
 impl<Kind> StreamBuilder<Kind>
@@ -59,33 +75,42 @@ where
     /// Construct a new [`Self`].
     pub fn new() -> Self {
         Self {
+            channels: HashMap::new(),
             futures: Vec::new(),
             phantom: PhantomData::<Kind>::default()
         }
     }
 
-    /// Todo: Rust Docs: Each call to subscribe will create a distinct WebSocket connection
+    /// Todo:
     ///
-    ///
-    pub fn subscribe<Exchange>(
+    /// "Each call to subscribe will create a distinct WebSocket connection"
+    pub fn subscribe<SubIter, Sub, Exchange>(
         mut self,
-        mut subscriptions: Vec<Subscription<Exchange, Kind>>
+        subscriptions: SubIter,
     ) -> Self
     where
+        SubIter: IntoIterator<Item = Sub>,
+        Sub: Into<Subscription<Exchange, Kind>>,
         Exchange: StreamSelector<Kind> + Ord + Send + Sync + 'static,
-        Kind: SubKind + Ord + Send + Sync + 'static,
+        Kind: Ord + Send + Sync + 'static,
         Kind::Event: Send,
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
-        // Todo:
-        //  exchange channel needs to be created before future and clone of tx passed
-        //  '--> allows several WebSockets for each SubKind
+        // Construct Vec<Subscriptions> from input SubIter
+        let mut subscriptions = subscriptions
+            .into_iter()
+            .map(Sub::into)
+            .collect::<Vec<_>>();
 
+        // Acquire channel Sender to send Market<Kind::Event> from consumer loop to user
+        // '--> Add ExchangeChannel Entry if this Exchange <--> SubKind combination is new
+        let exchange_tx = self.channels
+            .entry(Exchange::ID)
+            .or_default()
+            .tx
+            .clone();
 
-
-
-        // Add Future that once awaited will yield a:
-        // Result<(Exchange, mpsc::UnboundedReceiver<Market<Kind::Event>>), SocketError>
+        // Add Future that once awaited will yield the Result<(), SocketError> of subscribing
         self.futures
             .push(Box::pin(async move {
                 // Validate Subscriptions
@@ -95,16 +120,10 @@ where
                 subscriptions.sort();
                 subscriptions.dedup();
 
-                // Construct channel to send Market<Kind::Event> from consumer loop to user
-                let (
-                    exchange_tx,
-                    exchange_rx
-                ) = mpsc::unbounded_channel();
-
                 // Spawn a MarketStream consumer loop with these Subscriptions<Exchange, Kind>
                 tokio::spawn(consume(subscriptions, exchange_tx));
 
-                Ok((Exchange::ID, exchange_rx))
+                Ok(())
             }));
 
         self
@@ -112,15 +131,48 @@ where
 
     /// Todo:
     pub async fn init(self) -> Result<Streams<Kind>, DataError> {
-        // Await Stream initialisation futures
-        let streams = futures::future::try_join_all(self.futures)
-            .await?
-            .into_iter()
-            .collect::<HashMap<ExchangeId, mpsc::UnboundedReceiver<Market<Kind::Event>>>>();
+        // Await Stream initialisation futures and ensure success
+        futures::future::try_join_all(self.futures).await?;
 
-        Ok(Streams { streams })
+        // Construct Streams using each ExchangeChannel receiver
+        Ok(Streams {
+            streams: self
+                .channels
+                .into_iter()
+                .map(|(exchange, channel)| (exchange, channel.rx))
+                .collect()
+        })
     }
+}
 
+/// Todo:
+#[derive(Debug)]
+pub struct ExchangeChannel<Kind>
+where
+    Kind: SubKind,
+{
+    tx: mpsc::UnboundedSender<Market<<Kind as SubKind>::Event>>,
+    rx: mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>,
+}
+
+impl<Kind> ExchangeChannel<Kind>
+where
+    Kind: SubKind,
+{
+    /// Construct a new [`Self`].
+    pub fn new() -> Self {
+        let (tx, rx) = mpsc::unbounded_channel();
+        Self { tx, rx }
+    }
+}
+
+impl<Kind> Default for ExchangeChannel<Kind>
+where
+    Kind: SubKind,
+{
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Todo:

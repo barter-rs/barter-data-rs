@@ -91,7 +91,7 @@ impl OrderBookSide {
             side,
             levels: levels
                 .into_iter()
-                .map(|level| level.into())
+                .map(L::into)
                 .collect()
         }
 

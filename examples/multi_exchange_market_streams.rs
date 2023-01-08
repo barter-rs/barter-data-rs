@@ -7,12 +7,41 @@ use barter_data::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, MarketStream, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
-use barter_data::builder::consume;
+use barter_data::builder::{consume, Streams};
+use barter_data::exchange::coinbase::Coinbase;
+use barter_data::exchange::ExchangeId;
+use barter_data::exchange::okx::Okx;
 
 #[tokio::main]
 async fn main() {
     // Initialise Tracing log subscriber (uses INFO filter if RUST_LOG env var is not set)
     init_logging();
+
+    // Todo: If Streams is restricted by Kind what's the point in passing it via the Vec<Subs>?
+    let streams = Streams::builder()
+        .subscribe(
+            vec![
+                (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades).into(),
+                (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades).into(),
+            ]
+        )
+        .subscribe(
+            vec![
+                (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+                (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades).into(),
+            ]
+        )
+        .init()
+        .await
+        .unwrap();
+
+    let mut streams = streams.streams;
+
+    let mut stream = streams.remove(&ExchangeId::Okx).unwrap();
+
+    while let Some(x) = stream.recv().await {
+        println!("{x:?}");
+    }
 
     // Subscriptions
     let subscriptions = vec![
