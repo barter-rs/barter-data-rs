@@ -18,7 +18,10 @@ pub enum DataError {
 }
 
 impl DataError {
-    pub fn requires_reinitialisation() -> bool {
-        todo!()
+    pub fn is_terminal(&self) -> bool {
+        match self {
+            DataError::InvalidSequence { .. } => true,
+            _ => false
+        }
     }
 }
