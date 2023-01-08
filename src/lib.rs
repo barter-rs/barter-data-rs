@@ -77,7 +77,7 @@ where
 #[async_trait]
 pub trait MarketStream<Exchange, Kind>
 where
-    Self: Stream<Item = Result<Market<Kind::Event>, DataError>> + Sized + Unpin,
+    Self: Stream<Item = Result<Market<Kind::Event>, DataError>> + Send + Sized + Unpin,
     Exchange: Connector,
     Kind: SubKind,
 {
@@ -91,7 +91,8 @@ impl<Exchange, Kind, Transformer> MarketStream<Exchange, Kind> for ExchangeWsStr
 where
     Exchange: Connector + Send + Sync,
     Kind: SubKind + Send + Sync,
-    Transformer: ExchangeTransformer<Exchange, Kind>,
+    Transformer: ExchangeTransformer<Exchange, Kind> + Send,
+    Kind::Event: Send,
 {
     async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
     where

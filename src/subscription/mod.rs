@@ -1,8 +1,5 @@
-use barter_integration::{
-    error::SocketError,
-    model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
-    protocol::websocket::WsMessage,
-};
+use crate::StreamSelector;
+use barter_integration::{error::SocketError, model::{Instrument, InstrumentKind, SubscriptionId, Symbol}, protocol::websocket::WsMessage, Validator};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -74,6 +71,30 @@ impl<Exchange, Kind> Subscription<Exchange, Kind> {
             exchange,
             instrument: instrument.into(),
             kind,
+        }
+    }
+}
+
+impl<Exchange, Kind> Validator for &Subscription<Exchange, Kind>
+where
+    Exchange: StreamSelector<Kind>,
+    Kind: SubKind,
+{
+    fn validate(self) -> Result<Self, SocketError>
+        where
+            Self: Sized
+    {
+        // Determine ExchangeId associated with this Subscription
+        let exchange = Exchange::ID;
+
+        // Validate the Exchange supports the Subscription InstrumentKind
+        match self.instrument.kind {
+            InstrumentKind::Spot if exchange.supports_spot() => Ok(self),
+            InstrumentKind::FuturePerpetual if exchange.supports_futures() => Ok(self),
+            other => Err(SocketError::Unsupported {
+                entity: exchange.as_str(),
+                item: other.to_string(),
+            })
         }
     }
 }

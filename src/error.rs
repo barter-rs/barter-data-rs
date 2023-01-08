@@ -1,7 +1,7 @@
 use thiserror::Error;
 use barter_integration::error::SocketError;
 
-
+/// Todo:
 #[derive(Debug, Error)]
 pub enum DataError {
     #[error("SocketError: {0}")]
@@ -18,6 +18,8 @@ pub enum DataError {
 }
 
 impl DataError {
+    /// Todo:
+    #[allow(clippy::match_like_matches_macro)]
     pub fn is_terminal(&self) -> bool {
         match self {
             DataError::InvalidSequence { .. } => true,

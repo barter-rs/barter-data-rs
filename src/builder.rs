@@ -5,9 +5,7 @@ use crate::{
     subscription::{Subscription, SubKind},
     Identifier, MarketStream, StreamSelector,
 };
-use barter_integration::{
-    error::SocketError,
-};
+use barter_integration::{error::SocketError, Validator};
 use std::{
     future::Future,
     marker::PhantomData,
@@ -28,7 +26,7 @@ const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 /// [`Market<Event>`](Market) receiver.
 pub type StreamFuture<Kind> = Pin<Box<dyn Future<Output = Result<(ExchangeId, mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>), DataError>>>>;
 
-
+#[derive(Debug)]
 pub struct Streams<Kind>
 where
     Kind: SubKind,
@@ -45,6 +43,7 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
@@ -75,6 +74,7 @@ where
     where
         Exchange: StreamSelector<Kind> + Ord + Send + Sync + 'static,
         Kind: SubKind + Ord + Send + Sync + 'static,
+        Kind::Event: Send,
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Todo:
@@ -142,7 +142,7 @@ where
     subscriptions
         .iter()
         .map(|subscription| subscription.validate())
-        .collect::<Result<Vec<_>, DataError>>()?;
+        .collect::<Result<Vec<_>, SocketError>>()?;
 
     Ok(())
 }
