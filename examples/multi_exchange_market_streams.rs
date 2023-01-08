@@ -36,25 +36,25 @@ async fn main() {
         //     "btc",
         //     "usdt",
         //     InstrumentKind::FuturePerpetual,
-        //     OrderBooksL1,
-        // )
-        //     .into(),
-        // (
-        //     BinanceFuturesUsd::default(),
-        //     "btc",
-        //     "usdt",
-        //     InstrumentKind::FuturePerpetual,
         //     OrderBooksL2,
         // )
         //     .into(),
         // (
-        //     BinanceSpot::default(),
-        //     "xrp",
+        //     BinanceFuturesUsd::default(),
+        //     "eth",
         //     "usdt",
-        //     InstrumentKind::Spot,
-        //     PublicTrades,
+        //     InstrumentKind::FuturePerpetual,
+        //     OrderBooksL1,
         // )
         //     .into(),
+        (
+            BinanceSpot::default(),
+            "btc",
+            "usdt",
+            InstrumentKind::Spot,
+            OrderBooksL2,
+        )
+            .into(),
     ];
 
     tokio::spawn(consume(subscriptions)).await.unwrap();
@@ -82,6 +82,6 @@ where
     let mut stream = Exchange::Stream::init(&subscriptions).await.unwrap();
 
     while let Some(event) = stream.next().await {
-        println!("Consumed: {event:?}");
+        println!("\nConsumed: {event:?}");
     }
 }

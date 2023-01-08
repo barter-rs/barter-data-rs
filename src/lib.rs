@@ -42,6 +42,9 @@ pub mod transformer;
 //    - Bitfinex ust -> usdt
 //  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
 
+// Todo:
+//  - Need a SocketError that causes the Stream to re-initialise at the `fn consume()` level for OBs
+
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports

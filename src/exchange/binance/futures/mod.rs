@@ -1,9 +1,12 @@
-use self::liquidation::BinanceLiquidation;
+use self::{
+    l2::BinanceFuturesBookUpdater,
+    liquidation::BinanceLiquidation
+};
 use super::{Binance, BinanceServer};
-use crate::transformer::stateless::StatelessTransformer;
 use crate::{
     exchange::ExchangeId,
-    subscription::liquidation::Liquidations,
+    subscription::{book::OrderBooksL2, liquidation::Liquidations},
+    transformer::{book::multi::MultiBookTransformer, stateless::StatelessTransformer},
     ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
@@ -43,6 +46,10 @@ impl BinanceServer for BinanceServerFuturesUsd {
     fn http_book_snapshot_url() -> &'static str {
         HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT
     }
+}
+
+impl StreamSelector<OrderBooksL2> for BinanceFuturesUsd {
+    type Stream = ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceFuturesBookUpdater>>;
 }
 
 impl StreamSelector<Liquidations> for BinanceFuturesUsd {
