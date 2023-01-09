@@ -1,27 +1,30 @@
 use super::super::{
+    book::{l2::BinanceOrderBookL2Snapshot, BinanceLevel},
     BinanceServer,
-    book::{BinanceLevel, l2::BinanceOrderBookL2Snapshot},
 };
 use super::BinanceServerFuturesUsd;
 use crate::{
-    Identifier,
     error::DataError,
-    subscription::{book::OrderBook, Subscription}, transformer::book::{InstrumentOrderBook, OrderBookUpdater}};
-use barter_integration::{
-    model::SubscriptionId, protocol::websocket::WsMessage,
+    subscription::{book::OrderBook, Subscription},
+    transformer::book::{InstrumentOrderBook, OrderBookUpdater},
+    Identifier,
 };
 use async_trait::async_trait;
-use chrono::Utc;
-use tokio::sync::mpsc;
-use serde::{Deserialize, Serialize};
 use barter_integration::error::SocketError;
+use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage};
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc;
 
 /// [`BinanceFuturesUsd`] OrderBook Level2 deltas WebSocket message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceFuturesOrderBookL2Delta {
-    #[serde(alias = "s", deserialize_with = "super::super::book::l2::de_ob_l2_subscription_id")]
+    #[serde(
+        alias = "s",
+        deserialize_with = "super::super::book::l2::de_ob_l2_subscription_id"
+    )]
     pub subscription_id: SubscriptionId,
 
     #[serde(alias = "U")]
@@ -72,8 +75,8 @@ impl Identifier<Option<SubscriptionId>> for BinanceFuturesOrderBookL2Delta {
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BinanceFuturesBookUpdater {
-    updates_processed: u64,
-    last_update_id: u64,
+    pub updates_processed: u64,
+    pub last_update_id: u64,
 }
 
 impl BinanceFuturesBookUpdater {
@@ -82,7 +85,7 @@ impl BinanceFuturesBookUpdater {
     pub fn new(last_update_id: u64) -> Self {
         Self {
             updates_processed: 0,
-            last_update_id
+            last_update_id,
         }
     }
 
@@ -98,13 +101,18 @@ impl BinanceFuturesBookUpdater {
     /// "The first processed event should have U <= lastUpdateId AND u >= lastUpdateId"
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
-    pub fn validate_first_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
-        if update.first_update_id <= self.last_update_id && update.last_update_id >= self.last_update_id {
+    pub fn validate_first_update(
+        &self,
+        update: &BinanceFuturesOrderBookL2Delta,
+    ) -> Result<(), DataError> {
+        if update.first_update_id <= self.last_update_id
+            && update.last_update_id >= self.last_update_id
+        {
             Ok(())
         } else {
             Err(DataError::InvalidSequence {
                 prev_last_update_id: self.last_update_id,
-                first_update_id: update.first_update_id
+                first_update_id: update.first_update_id,
             })
         }
     }
@@ -114,13 +122,16 @@ impl BinanceFuturesBookUpdater {
     ///  event's u, otherwise initialize the process from step 3."
     ///
     /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
-    pub fn validate_next_update(&self, update: &BinanceFuturesOrderBookL2Delta) -> Result<(), DataError> {
+    pub fn validate_next_update(
+        &self,
+        update: &BinanceFuturesOrderBookL2Delta,
+    ) -> Result<(), DataError> {
         if update.prev_last_update_id == self.last_update_id {
             Ok(())
         } else {
             Err(DataError::InvalidSequence {
                 prev_last_update_id: self.last_update_id,
-                first_update_id: update.first_update_id
+                first_update_id: update.first_update_id,
             })
         }
     }
@@ -133,7 +144,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
 
     async fn init<Exchange, Kind>(
         _: mpsc::UnboundedSender<WsMessage>,
-        subscription: Subscription<Exchange, Kind>
+        subscription: Subscription<Exchange, Kind>,
     ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
@@ -162,21 +173,24 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         })
     }
 
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, DataError> {
+    fn update(
+        &mut self,
+        book: &mut Self::OrderBook,
+        update: Self::Update,
+    ) -> Result<Option<Self::OrderBook>, DataError> {
         // BinanceFuturesUsd: How To Manage A Local OrderBook Correctly
         // See Self's Rust Docs for more information on each numbered step
         // See docs: <https://binance-docs.github.io/apidocs/futures/en/#how-to-manage-a-local-order-book-correctly>
 
         // 4. Drop any event where u is < lastUpdateId in the snapshot:
         if update.last_update_id < self.last_update_id {
-            return Ok(None)
+            return Ok(None);
         }
 
         if self.is_first_update() {
             // 5. The first processed event should have U <= lastUpdateId AND u >= lastUpdateId:
             self.validate_first_update(&update)?;
-        }
-        else {
+        } else {
             // 6. Each new event's pu should be equal to the previous event's u:
             self.validate_next_update(&update)?;
         }
@@ -193,5 +207,260 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         self.last_update_id = update.last_update_id;
 
         Ok(Some(book.snapshot()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+
+        #[test]
+        fn binance_futures_order_book_l2_deltas() {
+            let input = r#"
+        {
+            "e": "depthUpdate",
+            "E": 123456789,
+            "T": 123456788,
+            "s": "BTCUSDT",
+            "U": 157,
+            "u": 160,
+            "pu": 149,
+            "b": [
+                [
+                    "0.0024",
+                    "10"
+                ]
+            ],
+            "a": [
+                [
+                    "0.0026",
+                    "100"
+                ]
+            ]
+        }
+        "#;
+
+            assert_eq!(
+                serde_json::from_str::<BinanceFuturesOrderBookL2Delta>(input).unwrap(),
+                BinanceFuturesOrderBookL2Delta {
+                    subscription_id: SubscriptionId::from("@depth@100ms|BTCUSDT"),
+                    first_update_id: 157,
+                    last_update_id: 160,
+                    prev_last_update_id: 149,
+                    bids: vec![BinanceLevel {
+                        price: 0.0024,
+                        amount: 10.0
+                    },],
+                    asks: vec![BinanceLevel {
+                        price: 0.0026,
+                        amount: 100.0
+                    },]
+                }
+            );
+        }
+    }
+
+    mod binance_futures_book_updater {
+        use super::*;
+
+        #[test]
+        fn is_first_update() {
+            struct TestCase {
+                updater: BinanceFuturesBookUpdater,
+                expected: bool,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: is first update
+                    updater: BinanceFuturesBookUpdater::new(10),
+                    expected: true,
+                },
+                TestCase {
+                    // TC1: is not first update
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 10,
+                        last_update_id: 100,
+                    },
+                    expected: false,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(
+                    test.updater.is_first_update(),
+                    test.expected,
+                    "TC{} failed",
+                    index
+                );
+            }
+        }
+
+        #[test]
+        fn validate_first_update() {
+            struct TestCase {
+                updater: BinanceFuturesBookUpdater,
+                input: BinanceFuturesOrderBookL2Delta,
+                expected: Result<(), DataError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid first update
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 0,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 100,
+                        last_update_id: 110,
+                        prev_last_update_id: 90,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Ok(()),
+                },
+                TestCase {
+                    // TC1: invalid first update w/ u < lastUpdateId
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 0,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 100,
+                        last_update_id: 90,
+                        prev_last_update_id: 90,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Err(DataError::InvalidSequence {
+                        prev_last_update_id: 100,
+                        first_update_id: 100,
+                    }),
+                },
+                TestCase {
+                    // TC2: invalid first update w/ U > lastUpdateId
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 0,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 110,
+                        last_update_id: 120,
+                        prev_last_update_id: 90,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Err(DataError::InvalidSequence {
+                        prev_last_update_id: 100,
+                        first_update_id: 110,
+                    }),
+                },
+                TestCase {
+                    // TC3: invalid first update w/  u < lastUpdateId & U > lastUpdateId
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 0,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 110,
+                        last_update_id: 90,
+                        prev_last_update_id: 90,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Err(DataError::InvalidSequence {
+                        prev_last_update_id: 100,
+                        first_update_id: 110,
+                    }),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.updater.validate_first_update(&test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn validate_next_update() {
+            struct TestCase {
+                updater: BinanceFuturesBookUpdater,
+                input: BinanceFuturesOrderBookL2Delta,
+                expected: Result<(), DataError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid next update
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 101,
+                        last_update_id: 110,
+                        prev_last_update_id: 100,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Ok(()),
+                },
+                TestCase {
+                    // TC1: invalid first update w/ pu != prev_last_update_id
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                    },
+                    input: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 100,
+                        last_update_id: 90,
+                        prev_last_update_id: 90,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Err(DataError::InvalidSequence {
+                        prev_last_update_id: 100,
+                        first_update_id: 100,
+                    }),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.updater.validate_next_update(&test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
     }
 }

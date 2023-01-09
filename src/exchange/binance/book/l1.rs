@@ -1,8 +1,8 @@
 use crate::{
     event::{Market, MarketIter},
-    exchange::{binance::channel::BinanceChannel, ExchangeId, subscription::ExchangeSub},
-    Identifier,
+    exchange::{binance::channel::BinanceChannel, subscription::ExchangeSub, ExchangeId},
     subscription::book::{Level, OrderBookL1},
+    Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, SubscriptionId};
 use chrono::Utc;
@@ -68,17 +68,20 @@ where
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_de_binance_order_book_l1() {
-        struct TestCase {
-            input: &'static str,
-            expected: BinanceOrderBookL1,
-        }
+    mod de {
+        use super::*;
 
-        let tests = vec![
-            TestCase {
-                // TC0: valid Spot BinanceOrderBookL1
-                input: r#"{
+        #[test]
+        fn binance_order_book_l1() {
+            struct TestCase {
+                input: &'static str,
+                expected: BinanceOrderBookL1,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid Spot BinanceOrderBookL1
+                    input: r#"{
                     "u":22606535573,
                     "s":"ETHUSDT",
                     "b":"1215.27000000",
@@ -87,18 +90,18 @@ mod tests {
                     "A":"13.93900000"
                 }
                 "#,
-                expected: BinanceOrderBookL1 {
-                    subscription_id: SubscriptionId::from("@bookTicker|ETHUSDT"),
-                    last_update_id: 22606535573,
-                    best_bid_price: 1215.27000000,
-                    best_bid_amount: 32.49110000,
-                    best_ask_price: 1215.28000000,
-                    best_ask_amount: 13.93900000,
+                    expected: BinanceOrderBookL1 {
+                        subscription_id: SubscriptionId::from("@bookTicker|ETHUSDT"),
+                        last_update_id: 22606535573,
+                        best_bid_price: 1215.27000000,
+                        best_bid_amount: 32.49110000,
+                        best_ask_price: 1215.28000000,
+                        best_ask_amount: 13.93900000,
+                    },
                 },
-            },
-            TestCase {
-                // TC1: valid FuturePerpetual BinanceOrderBookL1
-                input: r#"{
+                TestCase {
+                    // TC1: valid FuturePerpetual BinanceOrderBookL1
+                    input: r#"{
                     "e":"bookTicker",
                     "u":2286618712950,
                     "s":"BTCUSDT",
@@ -109,15 +112,25 @@ mod tests {
                     "T":1671621244670,
                     "E":1671621244673
                 }"#,
-                expected: BinanceOrderBookL1 {
-                    subscription_id: SubscriptionId::from("@bookTicker|BTCUSDT"),
-                    last_update_id: 2286618712950,
-                    best_bid_price: 16858.90,
-                    best_bid_amount: 13.692,
-                    best_ask_price: 16859.00,
-                    best_ask_amount: 30.219,
+                    expected: BinanceOrderBookL1 {
+                        subscription_id: SubscriptionId::from("@bookTicker|BTCUSDT"),
+                        last_update_id: 2286618712950,
+                        best_bid_price: 16858.90,
+                        best_bid_amount: 13.692,
+                        best_ask_price: 16859.00,
+                        best_ask_amount: 30.219,
+                    },
                 },
-            },
-        ];
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(
+                    serde_json::from_str::<BinanceOrderBookL1>(test.input).unwrap(),
+                    test.expected,
+                    "TC{} failed",
+                    index
+                );
+            }
+        }
     }
 }

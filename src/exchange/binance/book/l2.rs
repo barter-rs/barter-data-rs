@@ -6,8 +6,8 @@ use crate::{
     Identifier,
 };
 use barter_integration::model::{Side, SubscriptionId};
-use serde::{Deserialize, Serialize};
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 /// [`Binance`](super::Binance) OrderBook Level2 snapshot HTTP message.
 ///
@@ -46,57 +46,93 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::exchange::binance::futures::l2::BinanceFuturesOrderBookL2Delta;
     use super::*;
 
-    #[test]
-    fn test_de_binance_order_book_l2_deltas() {
-        struct TestCase {
-            input: &'static str,
-            expected: BinanceFuturesOrderBookL2Delta,
-        }
+    mod de {
+        use super::*;
 
-        let tests = vec![
-            TestCase {
-                // TC0: valid Spot BinanceOrderBookL2Delta
-                input: r#"
-                {
-                    "e":"depthUpdate",
-                    "E":1671656397761,
-                    "s":"ETHUSDT",
-                    "U":22611425143,
-                    "u":22611425151,
-                    "b":[
-                        ["1209.67000000","85.48210000"],
-                        ["1209.66000000","20.68790000"]
-                    ],
-                    "a":[]
-                }
-                "#,
-                expected: BinanceFuturesOrderBookL2Delta {
-                    subscription_id: SubscriptionId::from("@depth@100ms|ETHUSDT"),
-                    first_update_id: 22611425143,
-                    last_update_id: 22611425154,
-                    bids: vec![
-                        BinanceLevel { price: 1209.67000000, amount: 85.48210000 },
-                        BinanceLevel { price: 1209.66000000, amount: 20.68790000 },
-                    ],
-                    asks: vec![]
+        #[test]
+        fn binance_order_book_l2_snapshot() {
+            struct TestCase {
+                input: &'static str,
+                expected: BinanceOrderBookL2Snapshot,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid Spot BinanceOrderBookL2Snapshot
+                    input: r#"
+                    {
+                        "lastUpdateId": 1027024,
+                        "bids": [
+                            [
+                                "4.00000000",
+                                "431.00000000"
+                            ]
+                        ],
+                        "asks": [
+                            [
+                                "4.00000200",
+                                "12.00000000"
+                            ]
+                        ]
+                    }
+                    "#,
+                    expected: BinanceOrderBookL2Snapshot {
+                        last_update_id: 1027024,
+                        bids: vec![BinanceLevel {
+                            price: 4.0,
+                            amount: 431.0,
+                        }],
+                        asks: vec![BinanceLevel {
+                            price: 4.00000200,
+                            amount: 12.0,
+                        }],
+                    },
                 },
-            },
-            TestCase {
-                // TC1: valid FuturePerpetual BinanceOrderBookL2Delta
-                input: r#"
-                {
-                }"#,
-                expected: BinanceFuturesOrderBookL2Delta {
-                    subscription_id: SubscriptionId::from("@depth@100ms|BTCUSDT"),
-                    first_update_id: 0,
-                    last_update_id: 0,
-                    bids: vec![],
-                    asks: vec![]
+                TestCase {
+                    // TC1: valid FuturePerpetual BinanceOrderBookL2Snapshot
+                    input: r#"
+                    {
+                        "lastUpdateId": 1027024,
+                        "E": 1589436922972,
+                        "T": 1589436922959,
+                        "bids": [
+                            [
+                                "4.00000000",
+                                "431.00000000"
+                            ]
+                        ],
+                        "asks": [
+                            [
+                                "4.00000200",
+                                "12.00000000"
+                            ]
+                        ]
+                    }
+                    "#,
+                    expected: BinanceOrderBookL2Snapshot {
+                        last_update_id: 1027024,
+                        bids: vec![BinanceLevel {
+                            price: 4.0,
+                            amount: 431.0,
+                        }],
+                        asks: vec![BinanceLevel {
+                            price: 4.00000200,
+                            amount: 12.0,
+                        }],
+                    },
                 },
-            },
-        ];
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(
+                    serde_json::from_str::<BinanceOrderBookL2Snapshot>(test.input).unwrap(),
+                    test.expected,
+                    "TC{} failed",
+                    index
+                );
+            }
+        }
     }
 }

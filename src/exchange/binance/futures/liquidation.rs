@@ -77,3 +77,50 @@ where
         SubscriptionId::from(format!("{}|{}", BinanceChannel::LIQUIDATIONS.0, market))
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+        use std::time::Duration;
+
+        #[test]
+        fn binance_liquidation() {
+            let input = r#"{
+                "e": "forceOrder",
+                "E": 1665523974222,
+                "o": {
+                    "s": "BTCUSDT",
+                    "S": "SELL",
+                    "o": "LIMIT",
+                    "f": "IOC",
+                    "q": "0.009",
+                    "p": "18917.15",
+                    "ap": "18990.00",
+                    "X": "FILLED",
+                    "l": "0.009",
+                    "z": "0.009",
+                    "T": 1665523974217
+                }
+            }"#;
+
+            assert_eq!(
+                serde_json::from_str::<BinanceLiquidation>(input).unwrap(),
+                BinanceLiquidation {
+                    order: BinanceLiquidationOrder {
+                        subscription_id: SubscriptionId::from("@forceOrder|BTCUSDT"),
+                        side: Side::Sell,
+                        price: 18917.15,
+                        quantity: 0.009,
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1665523974217,
+                        )),
+                    },
+                }
+            );
+        }
+    }
+}

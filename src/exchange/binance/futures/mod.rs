@@ -1,7 +1,4 @@
-use self::{
-    l2::BinanceFuturesBookUpdater,
-    liquidation::BinanceLiquidation
-};
+use self::{l2::BinanceFuturesBookUpdater, liquidation::BinanceLiquidation};
 use super::{Binance, BinanceServer};
 use crate::{
     exchange::ExchangeId,
@@ -11,9 +8,9 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+pub mod l2;
 /// Todo:
 pub mod liquidation;
-pub mod l2;
 
 /// [`BinanceFuturesUsd`] WebSocket server base url.
 ///
@@ -49,7 +46,8 @@ impl BinanceServer for BinanceServerFuturesUsd {
 }
 
 impl StreamSelector<OrderBooksL2> for BinanceFuturesUsd {
-    type Stream = ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceFuturesBookUpdater>>;
+    type Stream =
+        ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceFuturesBookUpdater>>;
 }
 
 impl StreamSelector<Liquidations> for BinanceFuturesUsd {

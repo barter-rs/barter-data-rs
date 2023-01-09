@@ -1,12 +1,8 @@
 use self::l2::BinanceSpotBookUpdater;
-use super::{
-    Binance, BinanceServer
-};
+use super::{Binance, BinanceServer};
 use crate::{
-    exchange::ExchangeId,
-    subscription::book::OrderBooksL2,
-    transformer::book::multi::MultiBookTransformer,
-    StreamSelector, ExchangeWsStream,
+    exchange::ExchangeId, subscription::book::OrderBooksL2,
+    transformer::book::multi::MultiBookTransformer, ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,7 +23,9 @@ pub const HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.com/a
 pub type BinanceSpot = Binance<BinanceServerSpot>;
 
 /// Todo:
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+)]
 pub struct BinanceServerSpot;
 
 impl BinanceServer for BinanceServerSpot {
@@ -43,5 +41,6 @@ impl BinanceServer for BinanceServerSpot {
 }
 
 impl StreamSelector<OrderBooksL2> for BinanceSpot {
-    type Stream = ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceSpotBookUpdater>>;
+    type Stream =
+        ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceSpotBookUpdater>>;
 }

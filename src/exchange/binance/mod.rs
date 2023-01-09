@@ -1,16 +1,13 @@
 use self::{
-    channel::BinanceChannel,
-    market::BinanceMarket,
-    subscription::BinanceSubResponse,
-    trade::BinanceTrade,
-    book::l1::BinanceOrderBookL1,
+    book::l1::BinanceOrderBookL1, channel::BinanceChannel, market::BinanceMarket,
+    subscription::BinanceSubResponse, trade::BinanceTrade,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
-    ExchangeWsStream,
-    StreamSelector,
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::OrderBooksL1, SubscriptionMap, trade::PublicTrades}, transformer::stateless::StatelessTransformer,
+    subscription::{book::OrderBooksL1, trade::PublicTrades, SubscriptionMap},
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::{Deserialize, Serialize};
