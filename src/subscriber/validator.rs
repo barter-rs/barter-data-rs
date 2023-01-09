@@ -1,6 +1,6 @@
 use crate::{
     exchange::Connector,
-    subscription::{SubKind, InstrumentMap},
+    subscription::{InstrumentMap, SubKind},
 };
 use async_trait::async_trait;
 use barter_integration::{
@@ -21,9 +21,9 @@ pub trait SubscriptionValidator {
     type Parser: StreamParser;
 
     async fn validate<Exchange, Kind>(
-        map: InstrumentMap<Exchange, Kind>,
+        map: InstrumentMap,
         websocket: &mut WebSocket,
-    ) -> Result<InstrumentMap<Exchange, Kind>, SocketError>
+    ) -> Result<InstrumentMap, SocketError>
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send;
@@ -38,9 +38,9 @@ impl SubscriptionValidator for WebSocketSubValidator {
     type Parser = WebSocketParser;
 
     async fn validate<Exchange, Kind>(
-        map: InstrumentMap<Exchange, Kind>,
+        map: InstrumentMap,
         websocket: &mut WebSocket,
-    ) -> Result<InstrumentMap<Exchange, Kind>, SocketError>
+    ) -> Result<InstrumentMap, SocketError>
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send,

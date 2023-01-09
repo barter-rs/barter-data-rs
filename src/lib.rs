@@ -46,7 +46,6 @@ pub mod transformer;
 //  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 //  - Bitfinex ust -> usdt
 
-
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports

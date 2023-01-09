@@ -5,13 +5,15 @@ use super::super::{
 use super::BinanceServerSpot;
 use crate::{
     error::DataError,
-    subscription::{book::OrderBook, Subscription},
+    subscription::book::OrderBook,
     transformer::book::{InstrumentOrderBook, OrderBookUpdater},
     Identifier,
 };
 use async_trait::async_trait;
 use barter_integration::{
-    error::SocketError, model::SubscriptionId, protocol::websocket::WsMessage,
+    error::SocketError,
+    model::{Instrument, SubscriptionId},
+    protocol::websocket::WsMessage,
 };
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -143,7 +145,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
 
     async fn init<Exchange, Kind>(
         _: mpsc::UnboundedSender<WsMessage>,
-        subscription: Subscription<Exchange, Kind>,
+        instrument: Instrument,
     ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
@@ -153,8 +155,8 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
         let snapshot_url = format!(
             "{}?symbol={}{}&limit=100",
             BinanceServerSpot::http_book_snapshot_url(),
-            subscription.instrument.base.as_ref().to_uppercase(),
-            subscription.instrument.quote.as_ref().to_uppercase()
+            instrument.base.as_ref().to_uppercase(),
+            instrument.quote.as_ref().to_uppercase()
         );
 
         // Fetch initial OrderBook snapshot via HTTP
@@ -166,7 +168,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
             .map_err(SocketError::Http)?;
 
         Ok(InstrumentOrderBook {
-            instrument: subscription.instrument,
+            instrument,
             updater: Self::new(snapshot.last_update_id),
             book: OrderBook::from(snapshot),
         })

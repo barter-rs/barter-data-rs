@@ -78,7 +78,7 @@ where
         )]
     }
 
-    fn expected_responses<Kind>(_: &InstrumentMap<Self, Kind>) -> usize {
+    fn expected_responses(_: &InstrumentMap) -> usize {
         1
     }
 }

@@ -116,14 +116,12 @@ pub struct SubscriptionMeta {
 }
 
 /// Convenient type alias for a `HashMap` containing the mapping between a [`SubscriptionId`] and
-/// it's Barter [`Instrument`].
+/// the associated Barter [`Instrument`].
 ///
 /// Used by [`ExchangeTransformers`](crate::transformer::ExchangeTransformer) to identify the
-/// Barter [`Instrument`] associated with received messages.
+/// Barter [`Instrument`] associated with incoming exchange messages.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct InstrumentMap(
-    pub HashMap<SubscriptionId, Instrument>,
-);
+pub struct InstrumentMap(pub HashMap<SubscriptionId, Instrument>);
 
 impl InstrumentMap {
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
@@ -147,11 +145,7 @@ mod tests {
             // Initialise SubscriptionId-InstrumentId HashMap
             let ids = InstrumentMap(HashMap::from_iter([(
                 SubscriptionId::from("present"),
-                Instrument::from((
-                    "base",
-                    "quote",
-                    InstrumentKind::Spot,
-                )),
+                Instrument::from(("base", "quote", InstrumentKind::Spot)),
             )]));
 
             struct TestCase {

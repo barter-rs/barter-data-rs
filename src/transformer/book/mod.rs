@@ -1,7 +1,4 @@
-use crate::{
-    error::DataError,
-    subscription::{book::OrderBook, Subscription},
-};
+use crate::{error::DataError, subscription::book::OrderBook};
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
@@ -26,7 +23,7 @@ where
 
     async fn init<Exchange, Kind>(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        subscription: Subscription<Exchange, Kind>,
+        instrument: Instrument,
     ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
@@ -39,7 +36,11 @@ where
     ) -> Result<Option<Self::OrderBook>, DataError>;
 }
 
-// Todo:
+/// Convenient type alias for a `HashMap` containing the mapping between a [`SubscriptionId`] and
+/// the associated Barter [`InstrumentOrderBook`].
+///
+/// Used by [`OrderBook`] related [`ExchangeTransformers`](crate::transformer::ExchangeTransformer)
+/// to identify the Barter [`InstrumentOrderBook`] associated with incoming exchange messages.
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct OrderBookMap<Updater>(pub HashMap<SubscriptionId, InstrumentOrderBook<Updater>>);
 
@@ -58,7 +59,7 @@ impl<Updater> FromIterator<(SubscriptionId, InstrumentOrderBook<Updater>)>
 }
 
 impl<Updater> OrderBookMap<Updater> {
-    // Todo:
+    /// Find the [`InstrumentOrderBook`] associated with the provided [`SubscriptionId`] reference.
     pub fn find_book_mut(
         &mut self,
         id: &SubscriptionId,

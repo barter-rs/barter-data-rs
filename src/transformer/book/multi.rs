@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::Connector,
-    subscription::{book::OrderBook, SubKind, InstrumentMap},
+    subscription::{book::OrderBook, InstrumentMap, SubKind},
     transformer::ExchangeTransformer,
     Identifier,
 };
@@ -31,13 +31,18 @@ where
 {
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: InstrumentMap<Exchange, Kind>,
+        map: InstrumentMap,
     ) -> Result<Self, DataError> {
         // Initialise InstrumentOrderBooks for all Subscriptions
         let (sub_ids, init_book_requests): (Vec<_>, Vec<_>) = map
             .0
             .into_iter()
-            .map(|(sub_id, subscription)| (sub_id, Updater::init(ws_sink_tx.clone(), subscription)))
+            .map(|(sub_id, instrument)| {
+                (
+                    sub_id,
+                    Updater::init::<Exchange, Kind>(ws_sink_tx.clone(), instrument),
+                )
+            })
             .unzip();
 
         // Await all initial OrderBook snapshot requests

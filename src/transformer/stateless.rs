@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
-    subscription::{SubKind, InstrumentMap},
+    subscription::{InstrumentMap, SubKind},
     Identifier,
 };
 use async_trait::async_trait;
@@ -19,8 +19,8 @@ use tokio::sync::mpsc;
 /// Todo:
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct StatelessTransformer<Exchange, Kind, Input> {
-    pub map: InstrumentMap<Exchange, Kind>,
-    phantom: PhantomData<Input>,
+    map: InstrumentMap,
+    phantom: PhantomData<(Exchange, Kind, Input)>,
 }
 
 #[async_trait]
@@ -34,11 +34,11 @@ where
 {
     async fn new(
         _: mpsc::UnboundedSender<WsMessage>,
-        map: InstrumentMap<Exchange, Kind>,
+        map: InstrumentMap,
     ) -> Result<Self, DataError> {
         Ok(Self {
             map,
-            phantom: Default::default(),
+            phantom: PhantomData::default(),
         })
     }
 }

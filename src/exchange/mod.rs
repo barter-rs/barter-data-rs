@@ -49,7 +49,7 @@ where
 
     /// Number of [`Subscription`] responses expected from the exchange in responses to the
     /// requests send. Used to validate all [`Subscription`]s were accepted.
-    fn expected_responses<Kind>(map: &InstrumentMap<Self, Kind>) -> usize {
+    fn expected_responses(map: &InstrumentMap) -> usize {
         map.0.len()
     }
 

@@ -1,6 +1,6 @@
 use crate::{
     exchange::{subscription::ExchangeSub, Connector},
-    subscription::{SubKind, Subscription, InstrumentMap, SubscriptionMeta},
+    subscription::{InstrumentMap, SubKind, Subscription, SubscriptionMeta},
     Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -9,9 +9,7 @@ use std::collections::HashMap;
 
 /// Todo:
 pub trait SubscriptionMapper {
-    fn map<Exchange, Kind>(
-        subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> SubscriptionMeta<Exchange, Kind>
+    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta
     where
         Exchange: Connector,
         Kind: SubKind,
@@ -23,9 +21,7 @@ pub trait SubscriptionMapper {
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Exchange, Kind>(
-        subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> SubscriptionMeta<Exchange, Kind>
+    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta
     where
         Exchange: Connector,
         Kind: SubKind,
@@ -33,7 +29,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
-        let mut subscription_map = InstrumentMap(HashMap::with_capacity(subscriptions.len()));
+        let mut instrument_map = InstrumentMap(HashMap::with_capacity(subscriptions.len()));
 
         // Map Barter Subscriptions to exchange specific subscriptions
         let exchange_subs = subscriptions
@@ -46,9 +42,9 @@ impl SubscriptionMapper for WebSocketSubMapper {
                 let subscription_id = exchange_sub.id();
 
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
-                subscription_map
+                instrument_map
                     .0
-                    .insert(subscription_id, subscription.clone());
+                    .insert(subscription_id, subscription.instrument.clone());
 
                 exchange_sub
             })
@@ -58,7 +54,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
         let subscriptions = Exchange::requests(exchange_subs);
 
         SubscriptionMeta {
-            map: subscription_map,
+            map: instrument_map,
             subscriptions,
         }
     }
