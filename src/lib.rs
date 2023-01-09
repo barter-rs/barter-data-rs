@@ -45,9 +45,6 @@ pub mod transformer;
 //  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
 //  - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
 
-// Todo:
-//  - Need a SocketError that causes the Stream to re-initialise at the `fn consume()` level for OBs
-
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports
