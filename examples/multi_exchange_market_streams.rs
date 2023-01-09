@@ -1,4 +1,3 @@
-use barter_data::builder::{consume, Streams};
 use barter_data::exchange::binance::futures::BinanceFuturesUsd;
 use barter_data::exchange::binance::spot::BinanceSpot;
 use barter_data::exchange::bitfinex::Bitfinex;
@@ -11,6 +10,7 @@ use barter_data::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
+use barter_data::streams::Streams;
 
 #[tokio::main]
 async fn main() {
