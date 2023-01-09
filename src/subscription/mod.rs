@@ -104,33 +104,33 @@ where
     }
 }
 
-/// Todo: Check rust docs, etc.
 /// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
 /// specific subscription payloads that are sent to the exchange.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct SubscriptionMeta<Exchange, Kind> {
-    /// `HashMap` containing the mapping between an incoming exchange message's [`SubscriptionId`],
-    /// and a Barter [`Subscription`]. Used to identify the original [`Subscription`] associated
-    /// with a received message.
-    pub map: SubscriptionMap<Exchange, Kind>,
+pub struct SubscriptionMeta {
+    /// `HashMap` containing containing the mapping between a [`SubscriptionId`] and
+    /// it's Barter [`Instrument`].
+    pub map: InstrumentMap,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
 }
 
-/// Convenient type alias for a `HashMap` containing the mapping between an incoming exchange
-/// message's [`SubscriptionId`], and a Barter [`Subscription`]. Used to identify the original
-/// [`Subscription`] associated with a received message.
+/// Convenient type alias for a `HashMap` containing the mapping between a [`SubscriptionId`] and
+/// it's Barter [`Instrument`].
+///
+/// Used by [`ExchangeTransformers`](crate::transformer::ExchangeTransformer) to identify the
+/// Barter [`Instrument`] associated with received messages.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct SubscriptionMap<Exchange, Kind>(
-    pub HashMap<SubscriptionId, Subscription<Exchange, Kind>>,
+pub struct InstrumentMap(
+    pub HashMap<SubscriptionId, Instrument>,
 );
 
-impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
+impl InstrumentMap {
     /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
     pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
         self.0
             .get(id)
-            .map(|subscription| subscription.instrument.clone())
+            .cloned()
             .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
     }
 }
@@ -138,55 +138,55 @@ impl<Exchange, Kind> SubscriptionMap<Exchange, Kind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::ExchangeId;
-    use crate::subscription::trade::PublicTrades;
 
-    #[test]
-    fn subscription_map_find_instrument() {
-        // Initialise SubscriptionIds HashMap
-        let ids = SubscriptionMap(HashMap::from_iter([(
-            SubscriptionId::from("present"),
-            Subscription::from((
-                ExchangeId::BinanceSpot,
-                "base",
-                "quote",
-                InstrumentKind::Spot,
-                PublicTrades,
-            )),
-        )]));
+    mod instrument_map {
+        use super::*;
 
-        struct TestCase {
-            input: SubscriptionId,
-            expected: Result<Instrument, SocketError>,
-        }
+        #[test]
+        fn find_instrument() {
+            // Initialise SubscriptionId-InstrumentId HashMap
+            let ids = InstrumentMap(HashMap::from_iter([(
+                SubscriptionId::from("present"),
+                Instrument::from((
+                    "base",
+                    "quote",
+                    InstrumentKind::Spot,
+                )),
+            )]));
 
-        let cases = vec![
-            TestCase {
-                // TC0: SubscriptionId (channel) is present in the HashMap
-                input: SubscriptionId::from("present"),
-                expected: Ok(Instrument::from(("base", "quote", InstrumentKind::Spot))),
-            },
-            TestCase {
-                // TC1: SubscriptionId (channel) is not present in the HashMap
-                input: SubscriptionId::from("not present"),
-                expected: Err(SocketError::Unidentifiable(SubscriptionId::from(
-                    "not present",
-                ))),
-            },
-        ];
+            struct TestCase {
+                input: SubscriptionId,
+                expected: Result<Instrument, SocketError>,
+            }
 
-        for (index, test) in cases.into_iter().enumerate() {
-            let actual = ids.find_instrument(&test.input);
-            match (actual, test.expected) {
-                (Ok(actual), Ok(expected)) => {
-                    assert_eq!(actual, expected, "TC{} failed", index)
-                }
-                (Err(_), Err(_)) => {
-                    // Test passed
-                }
-                (actual, expected) => {
-                    // Test failed
-                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+            let cases = vec![
+                TestCase {
+                    // TC0: SubscriptionId (channel) is present in the HashMap
+                    input: SubscriptionId::from("present"),
+                    expected: Ok(Instrument::from(("base", "quote", InstrumentKind::Spot))),
+                },
+                TestCase {
+                    // TC1: SubscriptionId (channel) is not present in the HashMap
+                    input: SubscriptionId::from("not present"),
+                    expected: Err(SocketError::Unidentifiable(SubscriptionId::from(
+                        "not present",
+                    ))),
+                },
+            ];
+
+            for (index, test) in cases.into_iter().enumerate() {
+                let actual = ids.find_instrument(&test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
                 }
             }
         }

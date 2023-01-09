@@ -1,6 +1,6 @@
 use crate::{
     exchange::{subscription::ExchangeSub, Connector},
-    subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
+    subscription::{SubKind, Subscription, InstrumentMap, SubscriptionMeta},
     Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -33,7 +33,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
-        let mut subscription_map = SubscriptionMap(HashMap::with_capacity(subscriptions.len()));
+        let mut subscription_map = InstrumentMap(HashMap::with_capacity(subscriptions.len()));
 
         // Map Barter Subscriptions to exchange specific subscriptions
         let exchange_subs = subscriptions

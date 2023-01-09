@@ -1,7 +1,7 @@
 use crate::{
     error::DataError,
     event::Market,
-    subscription::{SubKind, SubscriptionMap},
+    subscription::{SubKind, InstrumentMap},
 };
 use async_trait::async_trait;
 use barter_integration::{protocol::websocket::WsMessage, Transformer};
@@ -25,6 +25,6 @@ where
     /// Todo:
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: SubscriptionMap<Exchange, Kind>,
+        map: InstrumentMap<Exchange, Kind>,
     ) -> Result<Self, DataError>;
 }

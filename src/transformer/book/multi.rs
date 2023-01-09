@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::Connector,
-    subscription::{book::OrderBook, SubKind, SubscriptionMap},
+    subscription::{book::OrderBook, SubKind, InstrumentMap},
     transformer::ExchangeTransformer,
     Identifier,
 };
@@ -31,7 +31,7 @@ where
 {
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: SubscriptionMap<Exchange, Kind>,
+        map: InstrumentMap<Exchange, Kind>,
     ) -> Result<Self, DataError> {
         // Initialise InstrumentOrderBooks for all Subscriptions
         let (sub_ids, init_book_requests): (Vec<_>, Vec<_>) = map

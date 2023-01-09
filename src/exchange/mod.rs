@@ -1,7 +1,7 @@
 use self::subscription::ExchangeSub;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
-    subscription::SubscriptionMap,
+    subscription::InstrumentMap,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage, Validator};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -49,7 +49,7 @@ where
 
     /// Number of [`Subscription`] responses expected from the exchange in responses to the
     /// requests send. Used to validate all [`Subscription`]s were accepted.
-    fn expected_responses<Kind>(map: &SubscriptionMap<Self, Kind>) -> usize {
+    fn expected_responses<Kind>(map: &InstrumentMap<Self, Kind>) -> usize {
         map.0.len()
     }
 

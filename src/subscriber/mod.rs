@@ -4,7 +4,7 @@ use self::{
 };
 use crate::{
     exchange::Connector,
-    subscription::{SubKind, Subscription, SubscriptionMap, SubscriptionMeta},
+    subscription::{SubKind, Subscription, InstrumentMap, SubscriptionMeta},
     Identifier,
 };
 use async_trait::async_trait;
@@ -31,7 +31,7 @@ where
 
     async fn subscribe<Exchange, Kind>(
         subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> Result<(WebSocket, SubscriptionMap<Exchange, Kind>), SocketError>
+    ) -> Result<(WebSocket, InstrumentMap<Exchange, Kind>), SocketError>
     where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,
@@ -53,7 +53,7 @@ where
 
     async fn subscribe<Exchange, Kind>(
         subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> Result<(WebSocket, SubscriptionMap<Exchange, Kind>), SocketError>
+    ) -> Result<(WebSocket, InstrumentMap<Exchange, Kind>), SocketError>
     where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,

@@ -5,7 +5,7 @@ use self::{
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::OrderBooksL1, trade::PublicTrades, SubscriptionMap},
+    subscription::{book::OrderBooksL1, trade::PublicTrades, InstrumentMap},
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };
@@ -78,7 +78,7 @@ where
         )]
     }
 
-    fn expected_responses<Kind>(_: &SubscriptionMap<Self, Kind>) -> usize {
+    fn expected_responses<Kind>(_: &InstrumentMap<Self, Kind>) -> usize {
         1
     }
 }

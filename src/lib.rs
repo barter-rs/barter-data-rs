@@ -33,17 +33,19 @@ pub mod subscription;
 pub mod transformer;
 
 // Todo:
-//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
-//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
-//  - Build front end api for new Subscription<Exchange, SubKind> paradigm.
 //  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
 //   '--> feels like impl Identifier<GateioChannel> for Subscription is a missed opportunity
 //   '--> This Sub compiles: (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-//  - Add aliases:
-//    - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
-//    - Bitfinex ust -> usdt
 //  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
-//  - Remove un-required fields from OrderBookL1 & OrderBook (ie/ update fields)
+
+// Todo: SubscriptionId:
+//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
+//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
+
+// Todo: Symbol Aliases:
+//  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
+//  - Bitfinex ust -> usdt
+
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
