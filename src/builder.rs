@@ -5,10 +5,12 @@ use crate::{
     subscription::{SubKind, Subscription},
     Identifier, MarketStream, StreamSelector,
 };
+use barter_integration::model::{InstrumentKind, Symbol};
 use barter_integration::{error::SocketError, Validator};
 use futures::StreamExt;
-use std::fmt::Debug;
-use std::{collections::HashMap, future::Future, marker::PhantomData, pin::Pin, time::Duration};
+use std::{
+    collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin, time::Duration,
+};
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 
@@ -19,9 +21,9 @@ const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 
 /// Convenient type alias representing a [`Future`] which yields an exchange
 /// [`Market<Event>`](Market) receiver.
-// pub type StreamFuture<Kind> = Pin<Box<dyn Future<Output = Result<(ExchangeId, mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>), DataError>>>>;
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
+/// Todo:
 #[derive(Debug)]
 pub struct Streams<Kind>
 where
@@ -40,6 +42,7 @@ where
     }
 }
 
+/// Todo:
 #[derive(Default)]
 pub struct StreamBuilder<Kind>
 where
@@ -75,9 +78,11 @@ where
         }
     }
 
-    /// Todo:
+    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be initialised on
+    /// a distinct [`WebSocket`] connection.
     ///
-    /// "Each call to subscribe will create a distinct WebSocket connection"
+    /// Note that the are [`Subscription`]s are not actioned until the
+    /// [`init()`](StreamBuilder::init()) method is invoked.
     pub fn subscribe<SubIter, Sub, Exchange>(mut self, subscriptions: SubIter) -> Self
     where
         SubIter: IntoIterator<Item = Sub>,
@@ -112,7 +117,11 @@ where
         self
     }
 
-    /// Todo:
+    /// Spawn a [`Market<Event>`](Market) consumer loop for each collection of [`Subscription`]s
+    /// added to [`StreamBuilder`] via the [`subscribe()`](StreamBuilder::subscribe()) method.
+    ///
+    /// Each consumer loop distributes consumed [`Market<Event>s`](Market) to the [`Streams`]
+    /// `HashMap` returned by this method.
     pub async fn init(self) -> Result<Streams<Kind>, DataError> {
         // Await Stream initialisation futures and ensure success
         futures::future::try_join_all(self.futures).await?;
@@ -158,7 +167,8 @@ where
     }
 }
 
-/// Todo:
+/// Validate the provided collection of [`Subscription`]s, ensuring that the associated exchange
+/// supports every [`Subscription`] [`InstrumentKind`].
 pub fn validate<Exchange, Kind>(
     subscriptions: &[Subscription<Exchange, Kind>],
 ) -> Result<(), DataError>
@@ -182,7 +192,7 @@ where
     Ok(())
 }
 
-/// Central [`MarketEvent`] consumer loop.
+/// Central [`Market<Event>`](Market) consumer loop.
 ///
 /// Initialises an exchange [`MarketStream`] using a collection of [`Subscription`]s. Consumed
 /// events are distributed downstream via the `exchange_tx mpsc::UnboundedSender`. A re-connection
