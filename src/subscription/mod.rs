@@ -142,7 +142,7 @@ mod tests {
     use crate::subscription::trade::PublicTrades;
 
     #[test]
-    fn test_subscription_map_find_instrument() {
+    fn subscription_map_find_instrument() {
         // Initialise SubscriptionIds HashMap
         let ids = SubscriptionMap(HashMap::from_iter([(
             SubscriptionId::from("present"),
