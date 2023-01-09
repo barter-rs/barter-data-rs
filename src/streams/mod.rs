@@ -1,9 +1,5 @@
 use self::builder::StreamBuilder;
-use crate::{
-    event::Market,
-    exchange::ExchangeId,
-    subscription::SubKind,
-};
+use crate::{event::Market, exchange::ExchangeId, subscription::SubKind};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 

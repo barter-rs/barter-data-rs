@@ -27,10 +27,10 @@ use tracing::{debug, error};
 pub mod error;
 pub mod event;
 pub mod exchange;
+pub mod streams;
 pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
-pub mod streams;
 
 // Todo:
 //  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.

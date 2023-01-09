@@ -1,25 +1,13 @@
-use super::{
-    consumer::consume,
-    Streams,
-};
+use super::{consumer::consume, Streams};
 use crate::{
     error::DataError,
     event::Market,
     exchange::ExchangeId,
     subscription::{SubKind, Subscription},
-    Identifier, StreamSelector
+    Identifier, StreamSelector,
 };
-use barter_integration::{
-    error::SocketError,
-    Validator,
-};
-use std::{
-    collections::HashMap,
-    fmt::Debug,
-    future::Future,
-    pin::Pin,
-    marker::PhantomData,
-};
+use barter_integration::{error::SocketError, Validator};
+use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin};
 use tokio::sync::mpsc;
 
 /// Convenient type alias representing a [`Future`] which yields an exchange
