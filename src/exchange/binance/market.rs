@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 /// Todo:
 ///
-/// See docs: <>
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BinanceMarket(pub String);
 

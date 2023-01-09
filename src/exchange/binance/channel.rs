@@ -12,7 +12,8 @@ use serde::Serialize;
 
 /// Todo:
 ///
-/// See docs: <>
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct BinanceChannel(pub &'static str);
 
