@@ -23,20 +23,8 @@ async fn main() {
             (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
         ])
         .subscribe(vec![
-            (
-                Okx,
-                "btc",
-                "usdt",
-                InstrumentKind::FuturePerpetual,
-                PublicTrades,
-            ),
-            (
-                Okx,
-                "eth",
-                "usdt",
-                InstrumentKind::FuturePerpetual,
-                PublicTrades,
-            ),
+            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
         ])
         .init()
         .await

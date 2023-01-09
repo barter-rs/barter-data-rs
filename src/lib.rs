@@ -23,9 +23,9 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
 
+/// Todo:
 pub mod builder;
 pub mod error;
-/// Todo:
 pub mod event;
 pub mod exchange;
 pub mod subscriber;
@@ -52,7 +52,11 @@ pub mod transformer;
 //  - Add derives eagerly
 //  - Rust docs
 //  - Check rust docs & fix
+//  - Readme.md, examples, etc.
 //  - Add unit tests from develop branch, etc.
+
+// Todo: After Release:
+//  - Code Style section in contribution readme.md
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
