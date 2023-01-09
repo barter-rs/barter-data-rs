@@ -16,8 +16,6 @@ use serde::{Deserialize, Serialize};
 pub struct BinanceOrderBookL1 {
     #[serde(alias = "s", deserialize_with = "de_ob_l1_subscription_id")]
     subscription_id: SubscriptionId,
-    #[serde(alias = "u")]
-    last_update_id: u64,
     #[serde(alias = "b", deserialize_with = "barter_integration::de::de_str")]
     best_bid_price: f64,
     #[serde(alias = "B", deserialize_with = "barter_integration::de::de_str")]
@@ -46,7 +44,6 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL1)> for MarketIter<OrderBook
             instrument,
             event: OrderBookL1 {
                 last_update_time: time_now,
-                last_update_id: book.last_update_id,
                 best_bid: Level::new(book.best_bid_price, book.best_bid_amount),
                 best_ask: Level::new(book.best_ask_price, book.best_ask_amount),
             },
@@ -92,7 +89,6 @@ mod tests {
                 "#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|ETHUSDT"),
-                        last_update_id: 22606535573,
                         best_bid_price: 1215.27000000,
                         best_bid_amount: 32.49110000,
                         best_ask_price: 1215.28000000,
@@ -114,7 +110,6 @@ mod tests {
                 }"#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|BTCUSDT"),
-                        last_update_id: 2286618712950,
                         best_bid_price: 16858.90,
                         best_bid_amount: 13.692,
                         best_ask_price: 16859.00,

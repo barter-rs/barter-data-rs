@@ -25,7 +25,6 @@ impl SubKind for OrderBooksL1 {
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct OrderBookL1 {
     pub last_update_time: DateTime<Utc>,
-    pub last_update_id: u64,
     pub best_bid: Level,
     pub best_ask: Level,
 }
