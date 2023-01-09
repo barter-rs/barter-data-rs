@@ -2,21 +2,15 @@ use crate::{
     error::DataError,
     event::Market,
     exchange::ExchangeId,
-    subscription::{Subscription, SubKind},
+    subscription::{SubKind, Subscription},
     Identifier, MarketStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, Validator};
-use std::{
-    future::Future,
-    marker::PhantomData,
-    time::Duration,
-    collections::HashMap,
-    pin::Pin,
-};
+use futures::StreamExt;
 use std::fmt::Debug;
+use std::{collections::HashMap, future::Future, marker::PhantomData, pin::Pin, time::Duration};
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
-use futures::StreamExt;
 
 /// Initial duration that the [`consume`] function should wait after disconnecting before attempting
 /// to re-initialise a [`MarketStream`]. This duration will increase exponentially as a result
@@ -77,17 +71,14 @@ where
         Self {
             channels: HashMap::new(),
             futures: Vec::new(),
-            phantom: PhantomData::<Kind>::default()
+            phantom: PhantomData::<Kind>::default(),
         }
     }
 
     /// Todo:
     ///
     /// "Each call to subscribe will create a distinct WebSocket connection"
-    pub fn subscribe<SubIter, Sub, Exchange>(
-        mut self,
-        subscriptions: SubIter,
-    ) -> Self
+    pub fn subscribe<SubIter, Sub, Exchange>(mut self, subscriptions: SubIter) -> Self
     where
         SubIter: IntoIterator<Item = Sub>,
         Sub: Into<Subscription<Exchange, Kind>>,
@@ -97,34 +88,26 @@ where
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Construct Vec<Subscriptions> from input SubIter
-        let mut subscriptions = subscriptions
-            .into_iter()
-            .map(Sub::into)
-            .collect::<Vec<_>>();
+        let mut subscriptions = subscriptions.into_iter().map(Sub::into).collect::<Vec<_>>();
 
         // Acquire channel Sender to send Market<Kind::Event> from consumer loop to user
         // '--> Add ExchangeChannel Entry if this Exchange <--> SubKind combination is new
-        let exchange_tx = self.channels
-            .entry(Exchange::ID)
-            .or_default()
-            .tx
-            .clone();
+        let exchange_tx = self.channels.entry(Exchange::ID).or_default().tx.clone();
 
         // Add Future that once awaited will yield the Result<(), SocketError> of subscribing
-        self.futures
-            .push(Box::pin(async move {
-                // Validate Subscriptions
-                validate(&subscriptions)?;
+        self.futures.push(Box::pin(async move {
+            // Validate Subscriptions
+            validate(&subscriptions)?;
 
-                // Remove duplicate Subscriptions
-                subscriptions.sort();
-                subscriptions.dedup();
+            // Remove duplicate Subscriptions
+            subscriptions.sort();
+            subscriptions.dedup();
 
-                // Spawn a MarketStream consumer loop with these Subscriptions<Exchange, Kind>
-                tokio::spawn(consume(subscriptions, exchange_tx));
+            // Spawn a MarketStream consumer loop with these Subscriptions<Exchange, Kind>
+            tokio::spawn(consume(subscriptions, exchange_tx));
 
-                Ok(())
-            }));
+            Ok(())
+        }));
 
         self
     }
@@ -140,7 +123,7 @@ where
                 .channels
                 .into_iter()
                 .map(|(exchange, channel)| (exchange, channel.rx))
-                .collect()
+                .collect(),
         })
     }
 }
@@ -177,7 +160,7 @@ where
 
 /// Todo:
 pub fn validate<Exchange, Kind>(
-    subscriptions: &[Subscription<Exchange, Kind>]
+    subscriptions: &[Subscription<Exchange, Kind>],
 ) -> Result<(), DataError>
 where
     Exchange: StreamSelector<Kind>,
@@ -187,7 +170,7 @@ where
     if subscriptions.is_empty() {
         return Err(DataError::Socket(SocketError::Subscribe(
             "StreamBuilder contains no Subscription to action".to_owned(),
-        )))
+        )));
     }
 
     // Validate the Exchange supports each Subscription InstrumentKind

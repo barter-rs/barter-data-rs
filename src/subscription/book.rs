@@ -1,14 +1,12 @@
-use std::cmp::Ordering;
 use super::SubKind;
 use crate::{
-    event::{MarketIter, Market},
+    event::{Market, MarketIter},
     exchange::ExchangeId,
 };
-use barter_integration::{
-    model::{Exchange, Instrument, Side},
-};
+use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use tracing::debug;
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
@@ -89,12 +87,8 @@ impl OrderBookSide {
     {
         Self {
             side,
-            levels: levels
-                .into_iter()
-                .map(L::into)
-                .collect()
+            levels: levels.into_iter().map(L::into).collect(),
         }
-
     }
 
     /// Upsert a collection of [`Level`]s into this [`OrderBookSide`].
@@ -141,9 +135,7 @@ impl OrderBookSide {
             }
 
             // Scenario 2a: Level does not exist & new value > 0 => insert new Level
-            None if new_level.price > 0.0 => {
-                self.levels.push(new_level)
-            }
+            None if new_level.price > 0.0 => self.levels.push(new_level),
 
             // Scenario 2b: Level does not exist & new value is 0 => log error & continue
             _ => {
@@ -195,7 +187,7 @@ impl PartialOrd for Level {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match self.price.partial_cmp(&other.price)? {
             Ordering::Equal => self.amount.partial_cmp(&other.amount),
-            non_equal => Some(non_equal)
+            non_equal => Some(non_equal),
         }
     }
 }

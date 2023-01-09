@@ -23,14 +23,14 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
 
+pub mod builder;
+pub mod error;
 /// Todo:
 pub mod event;
-pub mod error;
 pub mod exchange;
 pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
-pub mod builder;
 
 // Todo:
 //  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id

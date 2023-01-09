@@ -6,6 +6,7 @@ use crate::{
     subscription::{SubKind, SubscriptionMap},
     Identifier,
 };
+use async_trait::async_trait;
 use barter_integration::{
     model::{Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
@@ -14,7 +15,6 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
-use async_trait::async_trait;
 
 /// Todo:
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
@@ -32,7 +32,10 @@ where
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
 {
-    async fn new(_: mpsc::UnboundedSender<WsMessage>, map: SubscriptionMap<Exchange, Kind>) -> Result<Self, DataError> {
+    async fn new(
+        _: mpsc::UnboundedSender<WsMessage>,
+        map: SubscriptionMap<Exchange, Kind>,
+    ) -> Result<Self, DataError> {
         Ok(Self {
             map,
             phantom: Default::default(),

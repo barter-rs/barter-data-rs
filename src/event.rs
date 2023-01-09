@@ -1,7 +1,5 @@
 use crate::error::DataError;
-use barter_integration::{
-    model::{Exchange, Instrument},
-};
+use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

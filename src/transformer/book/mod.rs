@@ -1,17 +1,16 @@
 use crate::{
-    subscription::{book::OrderBook, Subscription}, error::DataError,
+    error::DataError,
+    subscription::{book::OrderBook, Subscription},
 };
+use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
     model::{Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
 };
-use std::{
-    collections::HashMap,
-};
-use async_trait::async_trait;
-use tokio::sync::mpsc;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use tokio::sync::mpsc;
 
 /// Todo:
 pub mod multi;
@@ -27,31 +26,43 @@ where
 
     async fn init<Exchange, Kind>(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        subscription: Subscription<Exchange, Kind>
+        subscription: Subscription<Exchange, Kind>,
     ) -> Result<InstrumentOrderBook<Self>, DataError>
     where
         Exchange: Send,
         Kind: Send;
 
-    fn update(&mut self, book: &mut Self::OrderBook, update: Self::Update) -> Result<Option<Self::OrderBook>, DataError>;
+    fn update(
+        &mut self,
+        book: &mut Self::OrderBook,
+        update: Self::Update,
+    ) -> Result<Option<Self::OrderBook>, DataError>;
 }
 
 // Todo:
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct OrderBookMap<Updater>(pub HashMap<SubscriptionId, InstrumentOrderBook<Updater>>);
 
-impl<Updater> FromIterator<(SubscriptionId, InstrumentOrderBook<Updater>)> for OrderBookMap<Updater> {
+impl<Updater> FromIterator<(SubscriptionId, InstrumentOrderBook<Updater>)>
+    for OrderBookMap<Updater>
+{
     fn from_iter<Iter>(iter: Iter) -> Self
     where
         Iter: IntoIterator<Item = (SubscriptionId, InstrumentOrderBook<Updater>)>,
     {
-        Self(iter.into_iter().collect::<HashMap<SubscriptionId, InstrumentOrderBook<Updater>>>())
+        Self(
+            iter.into_iter()
+                .collect::<HashMap<SubscriptionId, InstrumentOrderBook<Updater>>>(),
+        )
     }
 }
 
 impl<Updater> OrderBookMap<Updater> {
     // Todo:
-    pub fn find_book_mut(&mut self, id: &SubscriptionId) -> Result<&mut InstrumentOrderBook<Updater>, SocketError> {
+    pub fn find_book_mut(
+        &mut self,
+        id: &SubscriptionId,
+    ) -> Result<&mut InstrumentOrderBook<Updater>, SocketError> {
         self.0
             .get_mut(id)
             .ok_or_else(|| SocketError::Unidentifiable(id.clone()))

@@ -3,9 +3,9 @@ use crate::{
     event::Market,
     subscription::{SubKind, SubscriptionMap},
 };
+use async_trait::async_trait;
 use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
-use async_trait::async_trait;
 
 /// Todo:
 /// Generic OrderBook [`ExchangeTransformer`] implementations.

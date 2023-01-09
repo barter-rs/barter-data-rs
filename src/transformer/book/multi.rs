@@ -1,22 +1,16 @@
-use super::{OrderBookUpdater, OrderBookMap, InstrumentOrderBook};
+use super::{InstrumentOrderBook, OrderBookMap, OrderBookUpdater};
 use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::Connector,
-    Identifier,
     subscription::{book::OrderBook, SubKind, SubscriptionMap},
     transformer::ExchangeTransformer,
-};
-use barter_integration::{
-    model::SubscriptionId,
-    protocol::websocket::WsMessage,
-    Transformer,
-};
-use std::{
-    marker::PhantomData,
+    Identifier,
 };
 use async_trait::async_trait;
+use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer};
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 use tokio::sync::mpsc;
 
 // Todo:
@@ -27,7 +21,8 @@ pub struct MultiBookTransformer<Exchange, Kind, Updater> {
 }
 
 #[async_trait]
-impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind> for MultiBookTransformer<Exchange, Kind, Updater>
+impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind>
+    for MultiBookTransformer<Exchange, Kind, Updater>
 where
     Exchange: Connector + Send,
     Kind: SubKind<Event = OrderBook> + Send,
@@ -36,16 +31,13 @@ where
 {
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: SubscriptionMap<Exchange, Kind>
-    ) -> Result<Self, DataError>
-    {
+        map: SubscriptionMap<Exchange, Kind>,
+    ) -> Result<Self, DataError> {
         // Initialise InstrumentOrderBooks for all Subscriptions
-        let (sub_ids, init_book_requests): (Vec<_>, Vec<_>)  = map
+        let (sub_ids, init_book_requests): (Vec<_>, Vec<_>) = map
             .0
             .into_iter()
-            .map(|(sub_id, subscription)| {
-                (sub_id, Updater::init(ws_sink_tx.clone(), subscription))
-            })
+            .map(|(sub_id, subscription)| (sub_id, Updater::init(ws_sink_tx.clone(), subscription)))
             .unzip();
 
         // Await all initial OrderBook snapshot requests
@@ -60,7 +52,10 @@ where
             .zip(init_order_books.into_iter())
             .collect::<OrderBookMap<Updater>>();
 
-        Ok(Self { book_map, phantom: PhantomData::default() })
+        Ok(Self {
+            book_map,
+            phantom: PhantomData::default(),
+        })
     }
 }
 
@@ -91,12 +86,16 @@ where
 
         // De-structure for ease
         let InstrumentOrderBook {
-            instrument, book, updater,
+            instrument,
+            book,
+            updater,
         } = book;
 
         // Apply update (snapshot or delta) to OrderBook & generate Market<OrderBook> snapshot
         match updater.update(book, update) {
-            Ok(Some(book)) => MarketIter::<OrderBook>::from((Exchange::ID, instrument.clone(), book)).0,
+            Ok(Some(book)) => {
+                MarketIter::<OrderBook>::from((Exchange::ID, instrument.clone(), book)).0
+            }
             Ok(None) => vec![],
             Err(error) => vec![Err(error)],
         }

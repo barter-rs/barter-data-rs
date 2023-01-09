@@ -1,10 +1,8 @@
 use self::trade::GateioSpotTrade;
 use super::{Gateio, GateioServer};
 use crate::{
-    exchange::ExchangeId,
-    subscription::trade::PublicTrades,
-    transformer::stateless::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
+    exchange::ExchangeId, subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
 

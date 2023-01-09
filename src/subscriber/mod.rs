@@ -13,9 +13,9 @@ use barter_integration::{
     protocol::websocket::{connect, WebSocket},
 };
 use futures::SinkExt;
+use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tracing::{debug, info};
-use serde::{Deserialize, Serialize};
 
 /// Todo:
 pub mod mapper;
