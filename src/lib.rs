@@ -52,7 +52,7 @@ pub mod transformer;
 //  - Add derives eagerly
 //  - Rust docs
 //  - Check rust docs & fix
-//  - Readme.md, examples, etc.
+//  - Readme.md, examples, etc. including table of available exchanges & SubKinds
 //  - Add unit tests from develop branch, etc.
 
 // Todo: After Release:

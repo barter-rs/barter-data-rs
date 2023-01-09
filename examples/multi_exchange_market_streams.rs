@@ -37,7 +37,7 @@ async fn main() {
     let mut joined_stream = streams.join_map().await;
 
     while let Some((exchange, event)) = joined_stream.next().await {
-        println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
+        println!("Exchange: {}, Market<PublicTrade>: {:?}", exchange, event);
     }
 
     // // Subscriptions
