@@ -17,6 +17,8 @@ async fn main() {
     // Initialise Tracing log subscriber (uses INFO filter if RUST_LOG env var is not set)
     init_logging();
 
+    // Initialise PublicTrades Streams for various exchanges
+    // '--> each call to subscribe() initialises a separate WebSocket connection
     let streams = Streams::builder()
         .subscribe(vec![
             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
@@ -30,15 +32,13 @@ async fn main() {
         .await
         .unwrap();
 
-    let mut streams = streams.streams;
+    // Join all exchange PublicTrades streams into a StreamMap
+    // Note: Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    let mut joined_stream = streams.join_map().await;
 
-    let mut stream = streams.remove(&ExchangeId::Okx).unwrap();
-
-    while let Some(x) = stream.recv().await {
-        println!("{x:?}");
+    while let Some((exchange, event)) = joined_stream.next().await {
+        println!("Exchange: {}, MarketEvent: {:?}", exchange, event);
     }
-
-    // Todo: Streams.join(), etc
 
     // // Subscriptions
     // let subscriptions = vec![
