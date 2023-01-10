@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
 
-// Todo:
+/// Todo:
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct MultiBookTransformer<Exchange, Kind, Updater> {
     pub book_map: OrderBookMap<Updater>,

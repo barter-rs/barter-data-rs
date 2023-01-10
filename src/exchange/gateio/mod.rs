@@ -18,6 +18,7 @@ pub mod message;
 pub mod spot;
 pub mod subscription;
 
+/// Todo:
 pub trait GateioServer: Clone + Send {
     const ID: ExchangeId;
     fn websocket_url() -> &'static str;

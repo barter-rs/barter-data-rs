@@ -8,8 +8,8 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-pub mod l2;
 /// Todo:
+pub mod l2;
 pub mod liquidation;
 
 /// [`BinanceFuturesUsd`] WebSocket server base url.

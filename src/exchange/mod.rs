@@ -111,7 +111,6 @@ impl ExchangeId {
         }
     }
 
-    /// Todo: Find a way to delete all of this support nonsense
     /// Determines whether this [`ExchangeId`] supports the ingestion of
     /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
     #[allow(clippy::match_like_matches_macro)]
@@ -129,26 +128,6 @@ impl ExchangeId {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
             ExchangeId::Okx => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`PublicTrade`](model::PublicTrade) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_trades(&self) -> bool {
-        match self {
-            _ => true,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// liquidation orders market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_liquidations(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
             _ => false,
         }
     }

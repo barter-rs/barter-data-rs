@@ -7,7 +7,6 @@ use async_trait::async_trait;
 use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 
-/// Todo:
 /// Generic OrderBook [`ExchangeTransformer`] implementations.
 pub mod book;
 
@@ -22,7 +21,9 @@ where
     Self: Transformer<Output = Market<Kind::Event>, Error = DataError> + Sized,
     Kind: SubKind,
 {
-    /// Todo:
+    /// Construct a new [`Self`].
+    ///
+    /// The [`mpsc::UnboundedSender`] can be used by [`Self`] to send messages back to the exchange.
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         map: InstrumentMap,

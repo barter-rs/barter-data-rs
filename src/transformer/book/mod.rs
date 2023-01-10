@@ -12,7 +12,7 @@ use tokio::sync::mpsc;
 /// Todo:
 pub mod multi;
 
-// Todo:
+/// Todo:
 #[async_trait]
 pub trait OrderBookUpdater
 where
@@ -70,7 +70,7 @@ impl<Updater> OrderBookMap<Updater> {
     }
 }
 
-// Todo:
+/// Todo:
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct InstrumentOrderBook<Updater> {
     pub instrument: Instrument,

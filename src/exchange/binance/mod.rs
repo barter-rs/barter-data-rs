@@ -96,11 +96,3 @@ where
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
 }
-
-// Todo:
-// impl<Server> StreamSelector<OrderBooksL2> for Binance<Server>
-// where
-//     Server: ServerSelector + Debug + Send + Sync,
-// {
-//     type Stream = ExchangeWsStream<BookTransformer<Self, OrderBooksL2, BinanceOrderBookL2Delta>>;
-// }

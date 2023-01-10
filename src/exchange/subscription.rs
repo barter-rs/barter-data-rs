@@ -27,7 +27,7 @@ where
     Channel: AsRef<str>,
     Market: AsRef<str>,
 {
-    /// Todo:
+    /// Construct a new exchange specific [`Self`] with the Barter [`Subscription`] provided.
     pub fn new<Exchange, Kind>(sub: &Subscription<Exchange, Kind>) -> Self
     where
         Subscription<Exchange, Kind>: Identifier<Channel> + Identifier<Market>,
