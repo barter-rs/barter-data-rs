@@ -32,9 +32,6 @@ pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
 
-// Todo: SubscriptionId:
-//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
-//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
 //  - Impl Deserialise for each Exchange unit struct?
 
 // Todo: Maybe In Futures:
@@ -44,6 +41,9 @@ pub mod transformer;
 //  ExchangeId:
 //  - ExchangeId contain exchange structs eg/ ExchangeId::Binance(Binance<Spot>)
 //  InstrumentKind becomes a type.
+//  SubscriptionId:
+//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
+//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
 
 // Todo: Before Release:
 //  - Add unit tests from develop branch, etc.

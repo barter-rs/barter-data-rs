@@ -10,7 +10,6 @@ use crate::{
     ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
-use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
@@ -31,9 +30,7 @@ pub trait BinanceServer: Clone + Send {
 }
 
 /// Todo:
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
-)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Binance<Server> {
     server: PhantomData<Server>,
 }

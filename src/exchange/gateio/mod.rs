@@ -1,11 +1,9 @@
 use self::{channel::GateioChannel, market::GateioMarket, subscription::GateioSubResponse};
-use crate::exchange::subscription::ExchangeSub;
 use crate::{
-    exchange::{Connector, ExchangeId},
+    exchange::{subscription::ExchangeSub, Connector, ExchangeId},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
@@ -25,9 +23,7 @@ pub trait GateioServer: Clone + Send {
 }
 
 /// Todo:
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
-)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Gateio<Server> {
     server: PhantomData<Server>,
 }

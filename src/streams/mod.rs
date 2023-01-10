@@ -2,9 +2,7 @@ use self::builder::StreamBuilder;
 use crate::{event::Market, exchange::ExchangeId, subscription::SubKind};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
-use tokio_stream::{
-    wrappers::UnboundedReceiverStream, StreamMap,
-};
+use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
 
 /// Todo:
 pub mod builder;

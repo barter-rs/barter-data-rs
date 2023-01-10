@@ -9,7 +9,6 @@ use crate::{
     ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use url::Url;
 
@@ -27,7 +26,7 @@ pub const BASE_URL_OKX: &str = "wss://wsaws.okx.com:8443/ws/v5/public";
 /// Todo:
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api>
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Okx;
 
 impl Connector for Okx {
@@ -55,4 +54,28 @@ impl Connector for Okx {
 
 impl StreamSelector<PublicTrades> for Okx {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, OkxTrades>>;
+}
+
+impl<'de> serde::Deserialize<'de> for Okx {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
+            "Okx" | "okx" => Ok(Self),
+            other => Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(other),
+                &"Okx | okx",
+            )),
+        }
+    }
+}
+
+impl serde::Serialize for Okx {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(Okx::ID.as_str())
+    }
 }

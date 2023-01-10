@@ -1,8 +1,10 @@
 use self::trade::GateioFuturesTrades;
 use super::{Gateio, GateioServer};
-use crate::transformer::stateless::StatelessTransformer;
 use crate::{
-    exchange::ExchangeId, subscription::trade::PublicTrades, ExchangeWsStream, StreamSelector,
+    exchange::{Connector, ExchangeId},
+    subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
 
@@ -59,4 +61,52 @@ impl GateioServer for GateioServerFuturesBtc {
 
 impl StreamSelector<PublicTrades> for GateioFuturesBtc {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioFuturesTrades>>;
+}
+
+impl<'de> serde::Deserialize<'de> for GateioFuturesUsd {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
+            "GateioFuturesUsd" | "gateio_futures_usd" => Ok(Self::default()),
+            other => Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(other),
+                &"GateioFuturesUsd | gateio_futures_usd",
+            )),
+        }
+    }
+}
+
+impl serde::Serialize for GateioFuturesUsd {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(GateioFuturesUsd::ID.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for GateioFuturesBtc {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
+            "GateioFuturesBtc" | "gateio_futures_btc" => Ok(Self::default()),
+            other => Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(other),
+                &"GateioFuturesBtc | gateio_futures_btc",
+            )),
+        }
+    }
+}
+
+impl serde::Serialize for GateioFuturesBtc {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(GateioFuturesBtc::ID.as_str())
+    }
 }

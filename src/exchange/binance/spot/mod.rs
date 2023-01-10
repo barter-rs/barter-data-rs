@@ -1,8 +1,10 @@
 use self::l2::BinanceSpotBookUpdater;
 use super::{Binance, BinanceServer};
 use crate::{
-    exchange::ExchangeId, subscription::book::OrderBooksL2,
-    transformer::book::multi::MultiBookTransformer, ExchangeWsStream, StreamSelector,
+    exchange::{Connector, ExchangeId},
+    subscription::book::OrderBooksL2,
+    transformer::book::multi::MultiBookTransformer,
+    ExchangeWsStream, StreamSelector,
 };
 use serde::{Deserialize, Serialize};
 
@@ -43,4 +45,28 @@ impl BinanceServer for BinanceServerSpot {
 impl StreamSelector<OrderBooksL2> for BinanceSpot {
     type Stream =
         ExchangeWsStream<MultiBookTransformer<Self, OrderBooksL2, BinanceSpotBookUpdater>>;
+}
+
+impl<'de> serde::Deserialize<'de> for BinanceSpot {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
+            "Binance" | "binance" | "BinanceSpot" | "binance_spot" => Ok(Self::default()),
+            other => Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(other),
+                &"Binance | binance | BinanceSpot | binance_spot",
+            )),
+        }
+    }
+}
+
+impl serde::Serialize for BinanceSpot {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        serializer.serialize_str(BinanceSpot::ID.as_str())
+    }
 }
