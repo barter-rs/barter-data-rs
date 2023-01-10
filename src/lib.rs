@@ -32,7 +32,9 @@ pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
 
-//  - Impl Deserialise for each Exchange unit struct?
+// Todo:
+//  - Impl Deserialise for each Exchange unit struct & SubKind unit struct
+//  - Make InstrumentMap generic
 
 // Todo: Maybe In Futures:
 //  Symbol Aliases:
