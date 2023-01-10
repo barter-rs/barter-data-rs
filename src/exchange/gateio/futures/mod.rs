@@ -6,6 +6,7 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };
+use barter_macro::{DeExchange, SerExchange};
 use serde::{Deserialize, Serialize};
 
 /// Todo:
@@ -21,7 +22,7 @@ pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 
 /// Todo:
 #[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
 )]
 pub struct GateioServerFuturesUsd;
 

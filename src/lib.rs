@@ -35,6 +35,8 @@ pub mod transformer;
 // Todo:
 //  - Impl Deserialise for each Exchange unit struct & SubKind unit struct
 //  - Make InstrumentMap generic
+//  - Look into just one ExchangeServer trait, also remove http_url from trait since I now have
+//    OrderBookUpdater for each distinct server :)
 
 // Todo: Maybe In Futures:
 //  Symbol Aliases:

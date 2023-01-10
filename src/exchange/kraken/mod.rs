@@ -10,6 +10,7 @@ use crate::{
     ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
+use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
 
@@ -28,7 +29,9 @@ pub const BASE_URL_KRAKEN: &str = "wss://ws.kraken.com/";
 /// [`Kraken`] exchange.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#overview>
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
+)]
 pub struct Kraken;
 
 impl Connector for Kraken {
@@ -64,28 +67,4 @@ impl Connector for Kraken {
 
 impl StreamSelector<PublicTrades> for Kraken {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, KrakenMessage>>;
-}
-
-impl<'de> serde::Deserialize<'de> for Kraken {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
-            "Kraken" | "kraken" => Ok(Self),
-            other => Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"Kraken | kraken",
-            )),
-        }
-    }
-}
-
-impl serde::Serialize for Kraken {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(Kraken::ID.as_str())
-    }
 }

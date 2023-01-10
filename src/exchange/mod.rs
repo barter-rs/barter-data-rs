@@ -27,7 +27,7 @@ pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 /// Todo:
 pub trait Connector
 where
-    Self: Clone + Debug + Sized,
+    Self: Clone + Default + Debug + Sized,
 {
     /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;

@@ -23,7 +23,7 @@ pub mod subscription;
 pub mod trade;
 
 /// Todo:
-pub trait BinanceServer: Clone + Send {
+pub trait BinanceServer: Default + Debug + Clone + Send {
     const ID: ExchangeId;
     fn websocket_url() -> &'static str;
     fn http_book_snapshot_url() -> &'static str;
@@ -37,7 +37,7 @@ pub struct Binance<Server> {
 
 impl<Server> Connector for Binance<Server>
 where
-    Server: BinanceServer + Debug,
+    Server: BinanceServer,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = BinanceChannel;

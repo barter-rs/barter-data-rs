@@ -1,12 +1,12 @@
 use self::{l2::BinanceFuturesBookUpdater, liquidation::BinanceLiquidation};
 use super::{Binance, BinanceServer};
 use crate::{
-    exchange::{Connector, ExchangeId},
+    exchange::ExchangeId,
     subscription::{book::OrderBooksL2, liquidation::Liquidations},
     transformer::{book::multi::MultiBookTransformer, stateless::StatelessTransformer},
     ExchangeWsStream, StreamSelector,
 };
-use serde::{Deserialize, Serialize};
+use barter_macro::{DeExchange, SerExchange};
 
 /// Todo:
 pub mod l2;
@@ -29,7 +29,7 @@ pub type BinanceFuturesUsd = Binance<BinanceServerFuturesUsd>;
 /// Todo:
 ///
 #[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
 )]
 pub struct BinanceServerFuturesUsd;
 
@@ -52,28 +52,4 @@ impl StreamSelector<OrderBooksL2> for BinanceFuturesUsd {
 
 impl StreamSelector<Liquidations> for BinanceFuturesUsd {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, Liquidations, BinanceLiquidation>>;
-}
-
-impl<'de> serde::Deserialize<'de> for BinanceFuturesUsd {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
-            "BinanceFuturesUsd" | "binance_futures_usd" => Ok(Self::default()),
-            other => Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"BinanceFuturesUsd | binance_futures_usd",
-            )),
-        }
-    }
-}
-
-impl serde::Serialize for BinanceFuturesUsd {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(BinanceFuturesUsd::ID.as_str())
-    }
 }

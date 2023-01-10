@@ -4,13 +4,13 @@ use barter_data::exchange::bitfinex::Bitfinex;
 use barter_data::exchange::coinbase::Coinbase;
 use barter_data::exchange::okx::Okx;
 use barter_data::exchange::ExchangeId;
+use barter_data::streams::Streams;
 use barter_data::subscription::book::{OrderBookL1, OrderBooksL1, OrderBooksL2};
 use barter_data::subscription::trade::PublicTrades;
 use barter_data::subscription::{SubKind, Subscription};
 use barter_data::{Identifier, StreamSelector};
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
-use barter_data::streams::Streams;
 
 #[tokio::main]
 async fn main() {
@@ -25,8 +25,20 @@ async fn main() {
             (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
         ])
         .subscribe(vec![
-            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (
+                Okx,
+                "btc",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                PublicTrades,
+            ),
+            (
+                Okx,
+                "eth",
+                "usdt",
+                InstrumentKind::FuturePerpetual,
+                PublicTrades,
+            ),
         ])
         .init()
         .await

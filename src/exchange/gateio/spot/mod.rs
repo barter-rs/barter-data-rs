@@ -4,7 +4,7 @@ use crate::{
     exchange::ExchangeId, subscription::trade::PublicTrades,
     transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
 };
-use serde::{Deserialize, Serialize};
+use barter_macro::{DeExchange, SerExchange};
 
 /// Todo:
 pub mod trade;
@@ -19,7 +19,7 @@ pub type GateioSpot = Gateio<GateioServerSpot>;
 
 /// Todo:
 #[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
 )]
 pub struct GateioServerSpot;
 

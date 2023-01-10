@@ -10,6 +10,7 @@ use crate::{
     ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
+use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
 
@@ -29,7 +30,9 @@ pub const BASE_URL_BITFINEX: &str = "wss://api-pub.bitfinex.com/ws/2";
 /// [`Bitfinex`] exchange.
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
+)]
 pub struct Bitfinex;
 
 impl Connector for Bitfinex {
@@ -63,28 +66,4 @@ impl Connector for Bitfinex {
 
 impl StreamSelector<PublicTrades> for Bitfinex {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitfinexMessage>>;
-}
-
-impl<'de> serde::Deserialize<'de> for Bitfinex {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        match <String as serde::Deserialize>::deserialize(deserializer)?.as_str() {
-            "Bitfinex" | "bitfinex" => Ok(Self),
-            other => Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(other),
-                &"Bitfinex | bitfinex",
-            )),
-        }
-    }
-}
-
-impl serde::Serialize for Bitfinex {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::ser::Serializer,
-    {
-        serializer.serialize_str(Bitfinex::ID.as_str())
-    }
 }
