@@ -32,28 +32,27 @@ pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
 
-// Todo:
-//  - Add validation for Subscriptions at Connector and StreamBuilder level. Ideally at compile time.
-//   '--> feels like impl Identifier<GateioChannel> for Subscription is a missed opportunity
-//   '--> This Sub compiles: (GateioFuturesUsd::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades).into(),
-//  - Can SubscriptionMap become InstrumentMap? like InstrumentOrderBook OrderBookMap
-
 // Todo: SubscriptionId:
 //  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
 //  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
+//  - Impl Deserialise for each Exchange unit struct?
 
-// Todo: Symbol Aliases:
+// Todo: Maybe In Futures:
+//  Symbol Aliases:
 //  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 //  - Bitfinex ust -> usdt
+//  ExchangeId:
+//  - ExchangeId contain exchange structs eg/ ExchangeId::Binance(Binance<Spot>)
+//  InstrumentKind becomes a type.
 
 // Todo: Before Release:
+//  - Add unit tests from develop branch, etc.
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports
 //  - Add derives eagerly
 //  - Rust docs
 //  - Check rust docs & fix
 //  - Readme.md, examples, etc. including table of available exchanges & SubKinds
-//  - Add unit tests from develop branch, etc.
 
 // Todo: After Release:
 //  - Code Style section in contribution readme.md
