@@ -24,3 +24,24 @@ impl From<BinanceLevel> for Level {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+
+        #[test]
+        fn test_binance_level() {
+            let input = r#"["4.00000200", "12.00000000"]"#;
+            assert_eq!(
+                serde_json::from_str::<BinanceLevel>(input).unwrap(),
+                BinanceLevel {
+                    price: 4.00000200,
+                    amount: 12.0
+                },
+            )
+        }
+    }
+}

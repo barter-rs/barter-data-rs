@@ -185,7 +185,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
         // See docs: <https://binance-docs.github.io/apidocs/spot/en/#how-to-manage-a-local-order-book-correctly>
 
         // 4. Drop any event where u is <= lastUpdateId in the snapshot:
-        if update.last_update_id < self.last_update_id {
+        if update.last_update_id <= self.last_update_id {
             return Ok(None);
         }
 
@@ -261,6 +261,8 @@ mod tests {
 
     mod binance_spot_book_updater {
         use super::*;
+        use crate::subscription::book::{Level, OrderBookSide};
+        use barter_integration::model::Side;
 
         #[test]
         fn test_is_first_update() {
@@ -448,6 +450,131 @@ mod tests {
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn update() {
+            struct TestCase {
+                updater: BinanceSpotBookUpdater,
+                book: OrderBook,
+                input_update: BinanceSpotOrderBookL2Delta,
+                expected: Result<Option<OrderBook>, DataError>,
+            }
+
+            let time = Utc::now();
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Drop any event where u is <= lastUpdateId in the snapshot
+                    updater: BinanceSpotBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                        prev_last_update_id: 0,
+                    },
+                    book: OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(Side::Buy, vec![Level::new(50, 1)]),
+                        asks: OrderBookSide::new(Side::Sell, vec![Level::new(100, 1)]),
+                    },
+                    input_update: BinanceSpotOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 0,
+                        last_update_id: 100, // u == updater.lastUpdateId
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Ok(None),
+                },
+                TestCase {
+                    // TC1: valid update with sorted snapshot generated
+                    updater: BinanceSpotBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                        prev_last_update_id: 100,
+                    },
+                    book: OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(
+                            Side::Buy,
+                            vec![Level::new(80, 1), Level::new(100, 1), Level::new(90, 1)],
+                        ),
+                        asks: OrderBookSide::new(
+                            Side::Sell,
+                            vec![Level::new(150, 1), Level::new(110, 1), Level::new(120, 1)],
+                        ),
+                    },
+                    input_update: BinanceSpotOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 101,
+                        last_update_id: 110,
+                        bids: vec![
+                            // Level exists & new value is 0 => remove Level
+                            BinanceLevel {
+                                price: 80.0,
+                                amount: 0.0,
+                            },
+                            // Level exists & new value is > 0 => replace Level
+                            BinanceLevel {
+                                price: 90.0,
+                                amount: 10.0,
+                            },
+                        ],
+                        asks: vec![
+                            // Level does not exist & new value > 0 => insert new Level
+                            BinanceLevel {
+                                price: 200.0,
+                                amount: 1.0,
+                            },
+                            // Level does not exist & new value is 0 => no change
+                            BinanceLevel {
+                                price: 500.0,
+                                amount: 0.0,
+                            },
+                        ],
+                    },
+                    expected: Ok(Some(OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(
+                            Side::Buy,
+                            vec![Level::new(100, 1), Level::new(90, 10)],
+                        ),
+                        asks: OrderBookSide::new(
+                            Side::Sell,
+                            vec![
+                                Level::new(110, 1),
+                                Level::new(120, 1),
+                                Level::new(150, 1),
+                                Level::new(200, 1),
+                            ],
+                        ),
+                    })),
+                },
+            ];
+
+            for (index, mut test) in tests.into_iter().enumerate() {
+                let actual = test.updater.update(&mut test.book, test.input_update);
+
+                match (actual, test.expected) {
+                    (Ok(Some(actual)), Ok(Some(expected))) => {
+                        // Replace time with deterministic timestamp
+                        let actual = OrderBook {
+                            last_update_time: time,
+                            ..actual
+                        };
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Ok(None), Ok(None)) => {
+                        // Test passed
                     }
                     (Err(_), Err(_)) => {
                         // Test passed

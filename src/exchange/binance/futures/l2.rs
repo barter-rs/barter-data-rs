@@ -224,27 +224,27 @@ mod tests {
         #[test]
         fn test_binance_futures_order_book_l2_deltas() {
             let input = r#"
-        {
-            "e": "depthUpdate",
-            "E": 123456789,
-            "T": 123456788,
-            "s": "BTCUSDT",
-            "U": 157,
-            "u": 160,
-            "pu": 149,
-            "b": [
-                [
-                    "0.0024",
-                    "10"
+            {
+                "e": "depthUpdate",
+                "E": 123456789,
+                "T": 123456788,
+                "s": "BTCUSDT",
+                "U": 157,
+                "u": 160,
+                "pu": 149,
+                "b": [
+                    [
+                        "0.0024",
+                        "10"
+                    ]
+                ],
+                "a": [
+                    [
+                        "0.0026",
+                        "100"
+                    ]
                 ]
-            ],
-            "a": [
-                [
-                    "0.0026",
-                    "100"
-                ]
-            ]
-        }
+            }
         "#;
 
             assert_eq!(
@@ -269,6 +269,8 @@ mod tests {
 
     mod binance_futures_book_updater {
         use super::*;
+        use crate::subscription::book::{Level, OrderBookSide};
+        use barter_integration::model::Side;
 
         #[test]
         fn test_is_first_update() {
@@ -455,6 +457,131 @@ mod tests {
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn update() {
+            struct TestCase {
+                updater: BinanceFuturesBookUpdater,
+                book: OrderBook,
+                input_update: BinanceFuturesOrderBookL2Delta,
+                expected: Result<Option<OrderBook>, DataError>,
+            }
+
+            let time = Utc::now();
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Drop any event where u is < lastUpdateId in the snapshot
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                    },
+                    book: OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(Side::Buy, vec![Level::new(50, 1)]),
+                        asks: OrderBookSide::new(Side::Sell, vec![Level::new(100, 1)]),
+                    },
+                    input_update: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 0,
+                        last_update_id: 0,
+                        prev_last_update_id: 0,
+                        bids: vec![],
+                        asks: vec![],
+                    },
+                    expected: Ok(None),
+                },
+                TestCase {
+                    // TC1: valid update with sorted snapshot generated
+                    updater: BinanceFuturesBookUpdater {
+                        updates_processed: 100,
+                        last_update_id: 100,
+                    },
+                    book: OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(
+                            Side::Buy,
+                            vec![Level::new(80, 1), Level::new(100, 1), Level::new(90, 1)],
+                        ),
+                        asks: OrderBookSide::new(
+                            Side::Sell,
+                            vec![Level::new(150, 1), Level::new(110, 1), Level::new(120, 1)],
+                        ),
+                    },
+                    input_update: BinanceFuturesOrderBookL2Delta {
+                        subscription_id: SubscriptionId::from("subscription_id"),
+                        first_update_id: 101,
+                        last_update_id: 110,
+                        prev_last_update_id: 100,
+                        bids: vec![
+                            // Level exists & new value is 0 => remove Level
+                            BinanceLevel {
+                                price: 80.0,
+                                amount: 0.0,
+                            },
+                            // Level exists & new value is > 0 => replace Level
+                            BinanceLevel {
+                                price: 90.0,
+                                amount: 10.0,
+                            },
+                        ],
+                        asks: vec![
+                            // Level does not exist & new value > 0 => insert new Level
+                            BinanceLevel {
+                                price: 200.0,
+                                amount: 1.0,
+                            },
+                            // Level does not exist & new value is 0 => no change
+                            BinanceLevel {
+                                price: 500.0,
+                                amount: 0.0,
+                            },
+                        ],
+                    },
+                    expected: Ok(Some(OrderBook {
+                        last_update_time: time,
+                        bids: OrderBookSide::new(
+                            Side::Buy,
+                            vec![Level::new(100, 1), Level::new(90, 10)],
+                        ),
+                        asks: OrderBookSide::new(
+                            Side::Sell,
+                            vec![
+                                Level::new(110, 1),
+                                Level::new(120, 1),
+                                Level::new(150, 1),
+                                Level::new(200, 1),
+                            ],
+                        ),
+                    })),
+                },
+            ];
+
+            for (index, mut test) in tests.into_iter().enumerate() {
+                let actual = test.updater.update(&mut test.book, test.input_update);
+
+                match (actual, test.expected) {
+                    (Ok(Some(actual)), Ok(Some(expected))) => {
+                        // Replace time with deterministic timestamp
+                        let actual = OrderBook {
+                            last_update_time: time,
+                            ..actual
+                        };
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Ok(None), Ok(None)) => {
+                        // Test passed
                     }
                     (Err(_), Err(_)) => {
                         // Test passed
