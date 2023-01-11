@@ -18,7 +18,7 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 # Barter Ecosystem
 #barter-integration = "0.4.0"
 barter-integration = { path = "../barter-integration-rs" }
-barter-macro = { path = "../barter-macro-rs" }
+barter-macro =  "0.1.1"
 
 # Logging
 tracing = "0.1.36"
@@ -45,4 +45,3 @@ ta = "0.5.0"
 
 # Misc
 chrono = {version = "0.4.21", features = ["serde"]}
-#convert_case = "0.6.0"
