@@ -33,7 +33,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn binance_sub_response() {
+        fn test_binance_sub_response() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<BinanceSubResponse, SocketError>,
@@ -77,7 +77,7 @@ mod tests {
     }
 
     #[test]
-    fn validate_binance_sub_response() {
+    fn test_validate_binance_sub_response() {
         struct TestCase {
             input_response: BinanceSubResponse,
             is_valid: bool,

@@ -32,6 +32,10 @@ pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
 
+// Todo:
+//  - Tests
+//  - Rust Docs
+
 
 // Todo: Maybe In Futures:
 //  Symbol Aliases:
@@ -45,13 +49,13 @@ pub mod transformer;
 //  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
 
 // Todo: Before Release:
-//  - Add unit tests from develop branch, etc.
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
 //  - Fix imports
 //  - Add derives eagerly
 //  - Rust docs
 //  - Check rust docs & fix
 //  - Readme.md, examples, etc. including table of available exchanges & SubKinds
+//  - Release barter-integration & switch toml
 
 // Todo: After Release:
 //  - Code Style section in contribution readme.md

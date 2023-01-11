@@ -223,7 +223,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn binance_spot_order_book_l2_delta() {
+        fn test_binance_spot_order_book_l2_delta() {
             let input = r#"
             {
                 "e":"depthUpdate",
@@ -299,7 +299,7 @@ mod tests {
         }
 
         #[test]
-        fn validate_first_update() {
+        fn test_validate_first_update() {
             struct TestCase {
                 updater: BinanceSpotBookUpdater,
                 input: BinanceSpotOrderBookL2Delta,
@@ -400,7 +400,7 @@ mod tests {
         }
 
         #[test]
-        fn validate_next_update() {
+        fn test_validate_next_update() {
             struct TestCase {
                 updater: BinanceSpotBookUpdater,
                 input: BinanceSpotOrderBookL2Delta,

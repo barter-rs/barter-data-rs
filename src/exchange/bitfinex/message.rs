@@ -118,7 +118,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_deserialise_bitfinex_message() {
+    fn test_de_bitfinex_message() {
         struct TestCase {
             input: &'static str,
             expected: Result<BitfinexMessage, SocketError>,

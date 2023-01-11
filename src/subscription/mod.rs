@@ -163,7 +163,7 @@ mod tests {
         use crate::subscription::trade::PublicTrades;
 
         #[test]
-        fn validate_bitfinex_public_trades() {
+        fn test_validate_bitfinex_public_trades() {
             struct TestCase {
                 input: Subscription<Coinbase, PublicTrades>,
                 expected: Result<Subscription<Coinbase, PublicTrades>, SocketError>,
@@ -221,7 +221,7 @@ mod tests {
         }
 
         #[test]
-        fn validate_okx_public_trades() {
+        fn test_validate_okx_public_trades() {
             struct TestCase {
                 input: Subscription<Okx, PublicTrades>,
                 expected: Result<Subscription<Okx, PublicTrades>, SocketError>,
@@ -291,46 +291,46 @@ mod tests {
             use crate::subscription::trade::PublicTrades;
 
             #[test]
-            fn subscription_okx_spot_public_trades() {
+            fn test_subscription_okx_spot_public_trades() {
                 let input = r#"
-            {
-                "exchange": "okx",
-                "base": "btc",
-                "quote": "usdt",
-                "instrument_type": "spot",
-                "kind": "public_trades"
-            }
-            "#;
+                {
+                    "exchange": "okx",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "spot",
+                    "kind": "public_trades"
+                }
+                "#;
 
                 serde_json::from_str::<Subscription<Okx, PublicTrades>>(input).unwrap();
             }
 
             #[test]
-            fn subscription_binance_spot_public_trades() {
+            fn test_subscription_binance_spot_public_trades() {
                 let input = r#"
-            {
-                "exchange": "binance_spot",
-                "base": "btc",
-                "quote": "usdt",
-                "instrument_type": "spot",
-                "kind": "public_trades"
-            }
-            "#;
+                {
+                    "exchange": "binance_spot",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "spot",
+                    "kind": "public_trades"
+                }
+                "#;
 
                 serde_json::from_str::<Subscription<BinanceSpot, PublicTrades>>(input).unwrap();
             }
 
             #[test]
-            fn subscription_binance_futures_usd_order_books_l2() {
+            fn test_subscription_binance_futures_usd_order_books_l2() {
                 let input = r#"
-            {
-                "exchange": "binance_futures_usd",
-                "base": "btc",
-                "quote": "usdt",
-                "instrument_type": "future_perpetual",
-                "kind": "order_books_l2"
-            }
-            "#;
+                {
+                    "exchange": "binance_futures_usd",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "future_perpetual",
+                    "kind": "order_books_l2"
+                }
+                "#;
 
                 serde_json::from_str::<Subscription<BinanceFuturesUsd, OrderBooksL2>>(input)
                     .unwrap();
@@ -339,14 +339,14 @@ mod tests {
             #[test]
             fn subscription_gateio_futures_usd_public_trades() {
                 let input = r#"
-            {
-                "exchange": "gateio_futures_usd",
-                "base": "btc",
-                "quote": "usdt",
-                "instrument_type": "future_perpetual",
-                "kind": "public_trades"
-            }
-            "#;
+                {
+                    "exchange": "gateio_futures_usd",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "future_perpetual",
+                    "kind": "public_trades"
+                }
+                "#;
 
                 serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
                     .unwrap();
@@ -358,7 +358,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn find_instrument() {
+        fn test_find_instrument() {
             // Initialise SubscriptionId-InstrumentId HashMap
             let ids = Map(HashMap::from_iter([(
                 SubscriptionId::from("present"),

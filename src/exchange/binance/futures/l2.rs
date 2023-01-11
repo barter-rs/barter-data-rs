@@ -224,7 +224,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn binance_futures_order_book_l2_deltas() {
+        fn test_binance_futures_order_book_l2_deltas() {
             let input = r#"
         {
             "e": "depthUpdate",
@@ -273,7 +273,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn is_first_update() {
+        fn test_is_first_update() {
             struct TestCase {
                 updater: BinanceFuturesBookUpdater,
                 expected: bool,
@@ -306,7 +306,7 @@ mod tests {
         }
 
         #[test]
-        fn validate_first_update() {
+        fn test_validate_first_update() {
             struct TestCase {
                 updater: BinanceFuturesBookUpdater,
                 input: BinanceFuturesOrderBookL2Delta,
@@ -407,7 +407,7 @@ mod tests {
         }
 
         #[test]
-        fn validate_next_update() {
+        fn test_validate_next_update() {
             struct TestCase {
                 updater: BinanceFuturesBookUpdater,
                 input: BinanceFuturesOrderBookL2Delta,

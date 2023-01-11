@@ -52,7 +52,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn binance_order_book_l2_snapshot() {
+        fn test_binance_order_book_l2_snapshot() {
             struct TestCase {
                 input: &'static str,
                 expected: BinanceOrderBookL2Snapshot,

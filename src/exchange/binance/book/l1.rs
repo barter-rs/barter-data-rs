@@ -69,7 +69,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn binance_order_book_l1() {
+        fn test_binance_order_book_l1() {
             struct TestCase {
                 input: &'static str,
                 expected: BinanceOrderBookL1,

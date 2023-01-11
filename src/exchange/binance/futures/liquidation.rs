@@ -88,7 +88,7 @@ mod tests {
         use std::time::Duration;
 
         #[test]
-        fn binance_liquidation() {
+        fn test_binance_liquidation() {
             let input = r#"{
                 "e": "forceOrder",
                 "E": 1665523974222,

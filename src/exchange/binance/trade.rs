@@ -98,7 +98,7 @@ mod tests {
         use std::time::Duration;
 
         #[test]
-        fn binance_trade() {
+        fn test_binance_trade() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<BinanceTrade, SocketError>,
