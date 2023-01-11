@@ -110,25 +110,44 @@ where
 pub struct SubscriptionMeta {
     /// `HashMap` containing containing the mapping between a [`SubscriptionId`] and
     /// it's Barter [`Instrument`].
-    pub map: InstrumentMap,
+    pub instrument_map: Map<Instrument>,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
 }
 
 /// Convenient type alias for a `HashMap` containing the mapping between a [`SubscriptionId`] and
-/// the associated Barter [`Instrument`].
+/// an associated generic type.
 ///
 /// Used by [`ExchangeTransformers`](crate::transformer::ExchangeTransformer) to identify the
 /// Barter [`Instrument`] associated with incoming exchange messages.
-#[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct InstrumentMap(pub HashMap<SubscriptionId, Instrument>);
+#[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
+pub struct Map<T>(pub HashMap<SubscriptionId, T>);
 
-impl InstrumentMap {
-    /// Find the [`Instrument`] associated with the provided [`SubscriptionId`] reference.
-    pub fn find_instrument(&self, id: &SubscriptionId) -> Result<Instrument, SocketError> {
+impl<T> FromIterator<(SubscriptionId, T)> for Map<T> {
+    fn from_iter<Iter>(iter: Iter) -> Self
+    where
+        Iter: IntoIterator<Item = (SubscriptionId, T)>,
+    {
+        Self(iter.into_iter().collect::<HashMap<SubscriptionId, T>>())
+    }
+}
+
+impl<T> Map<T> {
+    /// Find the `T` associated with the provided [`SubscriptionId`].
+    pub fn find(&self, id: &SubscriptionId) -> Result<T, SocketError>
+    where
+        T: Clone,
+    {
         self.0
             .get(id)
             .cloned()
+            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
+    }
+
+    /// Find the mutable reference to `T` associated with the provided [`SubscriptionId`].
+    pub fn find_mut(&mut self, id: &SubscriptionId) -> Result<&mut T, SocketError> {
+        self.0
+            .get_mut(id)
             .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
     }
 }
@@ -137,10 +156,202 @@ impl InstrumentMap {
 mod tests {
     use super::*;
 
-    mod de {
+    mod subscription {
         use super::*;
+        use crate::exchange::coinbase::Coinbase;
+        use crate::exchange::okx::Okx;
+        use crate::subscription::trade::PublicTrades;
 
-        // Todo:
+        #[test]
+        fn validate_bitfinex_public_trades() {
+            struct TestCase {
+                input: Subscription<Coinbase, PublicTrades>,
+                expected: Result<Subscription<Coinbase, PublicTrades>, SocketError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Valid Coinbase Spot PublicTrades subscription
+                    input: Subscription::from((
+                        Coinbase,
+                        "base",
+                        "quote",
+                        InstrumentKind::Spot,
+                        PublicTrades,
+                    )),
+                    expected: Ok(Subscription::from((
+                        Coinbase,
+                        "base",
+                        "quote",
+                        InstrumentKind::Spot,
+                        PublicTrades,
+                    ))),
+                },
+                TestCase {
+                    // TC1: Invalid Coinbase FuturePerpetual PublicTrades subscription
+                    input: Subscription::from((
+                        Coinbase,
+                        "base",
+                        "quote",
+                        InstrumentKind::FuturePerpetual,
+                        PublicTrades,
+                    )),
+                    expected: Err(SocketError::Unsupported {
+                        entity: "",
+                        item: "".to_string(),
+                    }),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.input.validate();
+                match (actual, &test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn validate_okx_public_trades() {
+            struct TestCase {
+                input: Subscription<Okx, PublicTrades>,
+                expected: Result<Subscription<Okx, PublicTrades>, SocketError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Valid Okx Spot PublicTrades subscription
+                    input: Subscription::from((
+                        Okx,
+                        "base",
+                        "quote",
+                        InstrumentKind::Spot,
+                        PublicTrades,
+                    )),
+                    expected: Ok(Subscription::from((
+                        Okx,
+                        "base",
+                        "quote",
+                        InstrumentKind::Spot,
+                        PublicTrades,
+                    ))),
+                },
+                TestCase {
+                    // TC1: Valid Okx FuturePerpetual PublicTrades subscription
+                    input: Subscription::from((
+                        Okx,
+                        "base",
+                        "quote",
+                        InstrumentKind::FuturePerpetual,
+                        PublicTrades,
+                    )),
+                    expected: Ok(Subscription::from((
+                        Okx,
+                        "base",
+                        "quote",
+                        InstrumentKind::FuturePerpetual,
+                        PublicTrades,
+                    ))),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.input.validate();
+                match (actual, &test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        mod de {
+            use super::*;
+            use crate::exchange::binance::futures::BinanceFuturesUsd;
+            use crate::exchange::binance::spot::BinanceSpot;
+            use crate::exchange::gateio::futures::GateioFuturesUsd;
+            use crate::exchange::okx::Okx;
+            use crate::subscription::book::OrderBooksL2;
+            use crate::subscription::trade::PublicTrades;
+
+            #[test]
+            fn subscription_okx_spot_public_trades() {
+                let input = r#"
+            {
+                "exchange": "okx",
+                "base": "btc",
+                "quote": "usdt",
+                "instrument_type": "spot",
+                "kind": "public_trades"
+            }
+            "#;
+
+                serde_json::from_str::<Subscription<Okx, PublicTrades>>(input).unwrap();
+            }
+
+            #[test]
+            fn subscription_binance_spot_public_trades() {
+                let input = r#"
+            {
+                "exchange": "binance_spot",
+                "base": "btc",
+                "quote": "usdt",
+                "instrument_type": "spot",
+                "kind": "public_trades"
+            }
+            "#;
+
+                serde_json::from_str::<Subscription<BinanceSpot, PublicTrades>>(input).unwrap();
+            }
+
+            #[test]
+            fn subscription_binance_futures_usd_order_books_l2() {
+                let input = r#"
+            {
+                "exchange": "binance_futures_usd",
+                "base": "btc",
+                "quote": "usdt",
+                "instrument_type": "future_perpetual",
+                "kind": "order_books_l2"
+            }
+            "#;
+
+                serde_json::from_str::<Subscription<BinanceFuturesUsd, OrderBooksL2>>(input)
+                    .unwrap();
+            }
+
+            #[test]
+            fn subscription_gateio_futures_usd_public_trades() {
+                let input = r#"
+            {
+                "exchange": "gateio_futures_usd",
+                "base": "btc",
+                "quote": "usdt",
+                "instrument_type": "future_perpetual",
+                "kind": "public_trades"
+            }
+            "#;
+
+                serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
+                    .unwrap();
+            }
+        }
     }
 
     mod instrument_map {
@@ -149,7 +360,7 @@ mod tests {
         #[test]
         fn find_instrument() {
             // Initialise SubscriptionId-InstrumentId HashMap
-            let ids = InstrumentMap(HashMap::from_iter([(
+            let ids = Map(HashMap::from_iter([(
                 SubscriptionId::from("present"),
                 Instrument::from(("base", "quote", InstrumentKind::Spot)),
             )]));
@@ -175,7 +386,7 @@ mod tests {
             ];
 
             for (index, test) in cases.into_iter().enumerate() {
-                let actual = ids.find_instrument(&test.input);
+                let actual = ids.find(&test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
