@@ -239,57 +239,58 @@ mod tests {
             }
 
             let tests = vec![
-                TestCase { // TC0: Level exists & new value is 0 => remove Level
-                    book_side: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                    ]),
+                TestCase {
+                    // TC0: Level exists & new value is 0 => remove Level
+                    book_side: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 1)],
+                    ),
                     new_level: Level::new(100, 0),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                    ])
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1)],
+                    ),
                 },
-                TestCase { // TC1: Level exists & new value is > 0 => replace Level
-                    book_side: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                    ]),
+                TestCase {
+                    // TC1: Level exists & new value is > 0 => replace Level
+                    book_side: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 1)],
+                    ),
                     new_level: Level::new(100, 10),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 10),
-                    ])
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 10)],
+                    ),
                 },
-                TestCase { // TC2: Level does not exist & new value > 0 => insert new Level
-                    book_side: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                    ]),
+                TestCase {
+                    // TC2: Level does not exist & new value > 0 => insert new Level
+                    book_side: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 1)],
+                    ),
                     new_level: Level::new(110, 1),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                    ])
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                        ],
+                    ),
                 },
-                TestCase { // TC3: Level does not exist & new value is 0 => no change
-                    book_side: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                    ]),
+                TestCase {
+                    // TC3: Level does not exist & new value is 0 => no change
+                    book_side: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 1)],
+                    ),
                     new_level: Level::new(110, 0),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                    ])
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![Level::new(80, 1), Level::new(90, 1), Level::new(100, 1)],
+                    ),
                 },
             ];
 
@@ -307,53 +308,74 @@ mod tests {
             }
 
             let tests = vec![
-                TestCase { // TC0: sorted correctly from reverse sorted
-                    input: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                        Level::new(120, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(120, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                    ])
+                TestCase {
+                    // TC0: sorted correctly from reverse sorted
+                    input: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                            Level::new(120, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                        ],
+                    ),
                 },
-                TestCase { // TC1: sorted correctly from partially sorted
-                    input: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(120, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(120, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                    ])
+                TestCase {
+                    // TC1: sorted correctly from partially sorted
+                    input: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                        ],
+                    ),
                 },
-                TestCase { // TC1: sorted correctly from already sorted
-                    input: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(120, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Buy, vec![
-                        Level::new(120, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                    ])
+                TestCase {
+                    // TC1: sorted correctly from already sorted
+                    input: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Buy,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                        ],
+                    ),
                 },
             ];
 
@@ -371,59 +393,201 @@ mod tests {
             }
 
             let tests = vec![
-                TestCase { // TC0: sorted correctly from already sorted
-                    input: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                        Level::new(120, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                        Level::new(120, 1),
-                    ])
+                TestCase {
+                    // TC0: sorted correctly from already sorted
+                    input: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                            Level::new(120, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                            Level::new(120, 1),
+                        ],
+                    ),
                 },
-                TestCase { // TC1: sorted correctly from partially sorted
-                    input: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(120, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                        Level::new(120, 1),
-                    ])
+                TestCase {
+                    // TC1: sorted correctly from partially sorted
+                    input: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                            Level::new(120, 1),
+                        ],
+                    ),
                 },
-                TestCase { // TC1: sorted correctly from reverse sorted
-                    input: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(120, 1),
-                        Level::new(110, 1),
-                        Level::new(100, 1),
-                        Level::new(90, 1),
-                        Level::new(80, 1),
-                    ]),
-                    expected: OrderBookSide::new(Side::Sell, vec![
-                        Level::new(80, 1),
-                        Level::new(90, 1),
-                        Level::new(100, 1),
-                        Level::new(110, 1),
-                        Level::new(120, 1),
-                    ])
+                TestCase {
+                    // TC1: sorted correctly from reverse sorted
+                    input: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(120, 1),
+                            Level::new(110, 1),
+                            Level::new(100, 1),
+                            Level::new(90, 1),
+                            Level::new(80, 1),
+                        ],
+                    ),
+                    expected: OrderBookSide::new(
+                        Side::Sell,
+                        vec![
+                            Level::new(80, 1),
+                            Level::new(90, 1),
+                            Level::new(100, 1),
+                            Level::new(110, 1),
+                            Level::new(120, 1),
+                        ],
+                    ),
                 },
             ];
 
             for (index, mut test) in tests.into_iter().enumerate() {
                 test.input.sort();
                 assert_eq!(test.input, test.expected, "TC{} failed", index);
+            }
+        }
+    }
+
+    mod level {
+        use super::*;
+
+        #[test]
+        fn test_partial_ord() {
+            struct TestCase {
+                input_one: Level,
+                input_two: Level,
+                expected: Option<Ordering>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Input One has higher price and higher quantity -> Greater
+                    input_one: Level::new(100, 100),
+                    input_two: Level::new(10, 10),
+                    expected: Some(Ordering::Greater),
+                },
+                TestCase {
+                    // TC1: Input One has higher price but same quantity -> Greater
+                    input_one: Level::new(100, 100),
+                    input_two: Level::new(10, 100),
+                    expected: Some(Ordering::Greater),
+                },
+                TestCase {
+                    // TC2: Input One has higher price but lower quantity -> Greater
+                    input_one: Level::new(100, 10),
+                    input_two: Level::new(10, 100),
+                    expected: Some(Ordering::Greater),
+                },
+                TestCase {
+                    // TC3: Input One has same price and higher quantity -> Greater
+                    input_one: Level::new(10, 200),
+                    input_two: Level::new(10, 100),
+                    expected: Some(Ordering::Greater),
+                },
+                TestCase {
+                    // TC4: Input One has same price and same quantity -> Equal
+                    input_one: Level::new(100, 100),
+                    input_two: Level::new(100, 100),
+                    expected: Some(Ordering::Equal),
+                },
+                TestCase {
+                    // TC5: Input One has same price but lower quantity -> Less
+                    input_one: Level::new(10, 50),
+                    input_two: Level::new(10, 100),
+                    expected: Some(Ordering::Less),
+                },
+                TestCase {
+                    // TC6: Input One has lower price but higher quantity -> Less
+                    input_one: Level::new(10, 100),
+                    input_two: Level::new(100, 50),
+                    expected: Some(Ordering::Less),
+                },
+                TestCase {
+                    // TC7: Input One has lower price and same quantity -> Less
+                    input_one: Level::new(50, 100),
+                    input_two: Level::new(100, 100),
+                    expected: Some(Ordering::Less),
+                },
+                TestCase {
+                    // TC8: Input One has lower price and lower quantity -> Less
+                    input_one: Level::new(50, 50),
+                    input_two: Level::new(100, 100),
+                    expected: Some(Ordering::Less),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.input_one.partial_cmp(&test.input_two);
+                match (actual, test.expected) {
+                    (None, None) => {
+                        // Test passed
+                    }
+                    (Some(actual), Some(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn test_eq_price() {
+            struct TestCase {
+                level: Level,
+                input_level: Level,
+                expected: bool,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: Input Level has higher price
+                    level: Level::new(50, 100),
+                    input_level: Level::new(100, 100),
+                    expected: false,
+                },
+                TestCase {
+                    // TC1: Input Level an equal price
+                    level: Level::new(50, 100),
+                    input_level: Level::new(50, 100),
+                    expected: true,
+                },
+                TestCase {
+                    // TC2: Input Level has lower price
+                    level: Level::new(50, 100),
+                    input_level: Level::new(10, 100),
+                    expected: false,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.level.eq_price(test.input_level.price);
+                assert_eq!(actual, test.expected, "TC{} failed", index);
             }
         }
     }
