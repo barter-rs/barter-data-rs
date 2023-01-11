@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::{Connector, ExchangeId},
-    subscription::{InstrumentMap, SubKind},
+    subscription::{Map, SubKind},
     Identifier,
 };
 use async_trait::async_trait;
@@ -19,7 +19,7 @@ use tokio::sync::mpsc;
 /// Todo:
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct StatelessTransformer<Exchange, Kind, Input> {
-    map: InstrumentMap,
+    instrument_map: Map<Instrument>,
     phantom: PhantomData<(Exchange, Kind, Input)>,
 }
 
@@ -34,10 +34,10 @@ where
 {
     async fn new(
         _: mpsc::UnboundedSender<WsMessage>,
-        map: InstrumentMap,
+        instrument_map: Map<Instrument>,
     ) -> Result<Self, DataError> {
         Ok(Self {
-            map,
+            instrument_map,
             phantom: PhantomData::default(),
         })
     }
@@ -63,7 +63,7 @@ where
         };
 
         // Find Instrument associated with Input and transform
-        match self.map.find_instrument(&subscription_id) {
+        match self.instrument_map.find(&subscription_id) {
             Ok(instrument) => MarketIter::<Kind::Event>::from((Exchange::ID, instrument, input)).0,
             Err(unidentifiable) => vec![Err(DataError::Socket(unidentifiable))],
         }

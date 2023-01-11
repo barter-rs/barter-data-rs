@@ -4,12 +4,13 @@ use self::{
 };
 use crate::{
     exchange::Connector,
-    subscription::{InstrumentMap, SubKind, Subscription, SubscriptionMeta},
+    subscription::{Map, SubKind, Subscription, SubscriptionMeta},
     Identifier,
 };
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
+    model::Instrument,
     protocol::websocket::{connect, WebSocket},
 };
 use futures::SinkExt;
@@ -31,7 +32,7 @@ where
 
     async fn subscribe<Exchange, Kind>(
         subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> Result<(WebSocket, InstrumentMap), SocketError>
+    ) -> Result<(WebSocket, Map<Instrument>), SocketError>
     where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,
@@ -53,7 +54,7 @@ where
 
     async fn subscribe<Exchange, Kind>(
         subscriptions: &[Subscription<Exchange, Kind>],
-    ) -> Result<(WebSocket, InstrumentMap), SocketError>
+    ) -> Result<(WebSocket, Map<Instrument>), SocketError>
     where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,
@@ -70,8 +71,10 @@ where
         debug!(%exchange, ?subscriptions, "connected to WebSocket");
 
         // Map &[Subscription<Exchange, Kind>] to SubscriptionMeta
-        let SubscriptionMeta { map, subscriptions } =
-            Self::SubMapper::map::<Exchange, Kind>(subscriptions);
+        let SubscriptionMeta {
+            instrument_map,
+            subscriptions,
+        } = Self::SubMapper::map::<Exchange, Kind>(subscriptions);
 
         // Send Subscriptions over WebSocket
         for subscription in subscriptions {
@@ -80,7 +83,7 @@ where
         }
 
         // Validate Subscription responses
-        let map = Validator::validate::<Exchange, Kind>(map, &mut websocket).await?;
+        let map = Validator::validate::<Exchange, Kind>(instrument_map, &mut websocket).await?;
 
         info!(%exchange, "subscribed to WebSocket");
         Ok((websocket, map))

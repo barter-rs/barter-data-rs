@@ -20,26 +20,3 @@ pub struct PublicTrade {
     pub amount: f64,
     pub side: Side,
 }
-
-#[test]
-fn it_works() {
-    #[derive(serde::Deserialize, PartialEq, Debug)]
-    struct Dummy<T> {
-        kind: T,
-    }
-
-    let input = r#"
-        {
-            "kind": "public_trades"
-        }
-    "#;
-
-    let actual = serde_json::from_str::<Dummy<PublicTrades>>(input).unwrap();
-
-    println!("{actual:?}");
-
-    assert_eq!(actual, Dummy { kind: PublicTrades });
-
-    let actual = serde_json::to_string(&PublicTrades).unwrap();
-    println!("{actual}");
-}

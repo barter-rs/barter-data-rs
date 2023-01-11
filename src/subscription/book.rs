@@ -4,6 +4,7 @@ use crate::{
     exchange::ExchangeId,
 };
 use barter_integration::model::{Exchange, Instrument, Side};
+use barter_macro::{DeSubKind, SerSubKind};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -14,7 +15,7 @@ use tracing::debug;
 ///
 /// Level 1 refers to the best non-aggregated bid and ask [`Level`] on each side of the
 /// [`OrderBook`].
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL1;
 
 impl SubKind for OrderBooksL1 {
@@ -33,7 +34,7 @@ pub struct OrderBookL1 {
 /// [`Market`](crate::model::Market) events.
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL2;
 
 impl SubKind for OrderBooksL2 {
@@ -45,7 +46,7 @@ impl SubKind for OrderBooksL2 {
 ///
 /// Level 3 refers to the non-aggregated [`OrderBook`]. This is a direct replication of the exchange
 /// [`OrderBook`].
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL3;
 
 impl SubKind for OrderBooksL3 {

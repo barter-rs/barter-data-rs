@@ -1,9 +1,11 @@
 use self::subscription::ExchangeSub;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
-    subscription::InstrumentMap,
+    subscription::Map,
 };
-use barter_integration::{error::SocketError, protocol::websocket::WsMessage, Validator};
+use barter_integration::{
+    error::SocketError, model::Instrument, protocol::websocket::WsMessage, Validator,
+};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     fmt::{Debug, Display},
@@ -27,7 +29,7 @@ pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 /// Todo:
 pub trait Connector
 where
-    Self: Clone + Default + Debug + Sized,
+    Self: Clone + Default + Debug + for<'de> Deserialize<'de> + Serialize + Sized,
 {
     /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;
@@ -49,7 +51,7 @@ where
 
     /// Number of [`Subscription`] responses expected from the exchange in responses to the
     /// requests send. Used to validate all [`Subscription`]s were accepted.
-    fn expected_responses(map: &InstrumentMap) -> usize {
+    fn expected_responses(map: &Map<Instrument>) -> usize {
         map.0.len()
     }
 

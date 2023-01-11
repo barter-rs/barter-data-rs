@@ -1,10 +1,10 @@
 use crate::{
     error::DataError,
     event::Market,
-    subscription::{InstrumentMap, SubKind},
+    subscription::{Map, SubKind},
 };
 use async_trait::async_trait;
-use barter_integration::{protocol::websocket::WsMessage, Transformer};
+use barter_integration::{model::Instrument, protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 
 /// Generic OrderBook [`ExchangeTransformer`] implementations.
@@ -26,6 +26,6 @@ where
     /// The [`mpsc::UnboundedSender`] can be used by [`Self`] to send messages back to the exchange.
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: InstrumentMap,
+        instrument_map: Map<Instrument>,
     ) -> Result<Self, DataError>;
 }

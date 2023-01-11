@@ -1,14 +1,18 @@
-use super::{InstrumentOrderBook, OrderBookMap, OrderBookUpdater};
+use super::{InstrumentOrderBook, OrderBookUpdater};
 use crate::{
     error::DataError,
     event::{Market, MarketIter},
     exchange::Connector,
-    subscription::{book::OrderBook, InstrumentMap, SubKind},
+    subscription::{book::OrderBook, Map, SubKind},
     transformer::ExchangeTransformer,
     Identifier,
 };
 use async_trait::async_trait;
-use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer};
+use barter_integration::{
+    model::{Instrument, SubscriptionId},
+    protocol::websocket::WsMessage,
+    Transformer,
+};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
@@ -16,7 +20,7 @@ use tokio::sync::mpsc;
 /// Todo:
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct MultiBookTransformer<Exchange, Kind, Updater> {
-    pub book_map: OrderBookMap<Updater>,
+    pub book_map: Map<InstrumentOrderBook<Updater>>,
     phantom: PhantomData<(Exchange, Kind)>,
 }
 
@@ -31,7 +35,7 @@ where
 {
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        map: InstrumentMap,
+        map: Map<Instrument>,
     ) -> Result<Self, DataError> {
         // Initialise InstrumentOrderBooks for all Subscriptions
         let (sub_ids, init_book_requests): (Vec<_>, Vec<_>) = map
@@ -55,7 +59,7 @@ where
         let book_map = sub_ids
             .into_iter()
             .zip(init_order_books.into_iter())
-            .collect::<OrderBookMap<Updater>>();
+            .collect::<Map<InstrumentOrderBook<Updater>>>();
 
         Ok(Self {
             book_map,
@@ -84,7 +88,7 @@ where
         };
 
         // Retrieve the InstrumentOrderBook associated with this update (snapshot or delta)
-        let book = match self.book_map.find_book_mut(&subscription_id) {
+        let book = match self.book_map.find_mut(&subscription_id) {
             Ok(book) => book,
             Err(unidentifiable) => return vec![Err(DataError::Socket(unidentifiable))],
         };

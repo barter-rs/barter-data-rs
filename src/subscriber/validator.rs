@@ -1,10 +1,11 @@
 use crate::{
     exchange::Connector,
-    subscription::{InstrumentMap, SubKind},
+    subscription::{Map, SubKind},
 };
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
+    model::Instrument,
     protocol::{
         websocket::{WebSocket, WebSocketParser},
         StreamParser,
@@ -21,9 +22,9 @@ pub trait SubscriptionValidator {
     type Parser: StreamParser;
 
     async fn validate<Exchange, Kind>(
-        map: InstrumentMap,
+        instrument_map: Map<Instrument>,
         websocket: &mut WebSocket,
-    ) -> Result<InstrumentMap, SocketError>
+    ) -> Result<Map<Instrument>, SocketError>
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send;
@@ -38,16 +39,16 @@ impl SubscriptionValidator for WebSocketSubValidator {
     type Parser = WebSocketParser;
 
     async fn validate<Exchange, Kind>(
-        map: InstrumentMap,
+        instrument_map: Map<Instrument>,
         websocket: &mut WebSocket,
-    ) -> Result<InstrumentMap, SocketError>
+    ) -> Result<Map<Instrument>, SocketError>
     where
         Exchange: Connector + Send,
         Kind: SubKind + Send,
     {
         // Establish exchange specific subscription validation parameters
         let timeout = Exchange::subscription_timeout();
-        let expected_responses = Exchange::expected_responses(&map);
+        let expected_responses = Exchange::expected_responses(&instrument_map);
 
         // Parameter to keep track of successful Subscription outcomes
         let mut success_responses = 0usize;
@@ -56,7 +57,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
             // Break if all Subscriptions were a success
             if success_responses == expected_responses {
                 debug!(exchange = %Exchange::ID, "validated exchange WebSocket subscriptions");
-                break Ok(map);
+                break Ok(instrument_map);
             }
 
             tokio::select! {
