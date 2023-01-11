@@ -5,11 +5,11 @@ use self::{
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::OrderBooksL1, trade::PublicTrades, InstrumentMap},
+    subscription::{book::OrderBooksL1, trade::PublicTrades, Map},
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream, StreamSelector,
 };
-use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
+use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
@@ -75,7 +75,7 @@ where
         )]
     }
 
-    fn expected_responses(_: &InstrumentMap) -> usize {
+    fn expected_responses(_: &Map<Instrument>) -> usize {
         1
     }
 }
@@ -92,4 +92,39 @@ where
     Server: BinanceServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
+}
+
+impl<'de, Server> serde::Deserialize<'de> for Binance<Server>
+where
+    Server: BinanceServer,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let input = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let expected = Self::ID.as_str();
+
+        if input.as_str() == Self::ID.as_str() {
+            Ok(Self::default())
+        } else {
+            Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(input.as_str()),
+                &expected,
+            ))
+        }
+    }
+}
+
+impl<Server> serde::Serialize for Binance<Server>
+where
+    Server: BinanceServer,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        let exchange_id = Self::ID.as_str();
+        serializer.serialize_str(exchange_id)
+    }
 }

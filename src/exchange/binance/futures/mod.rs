@@ -6,7 +6,6 @@ use crate::{
     transformer::{book::multi::MultiBookTransformer, stateless::StatelessTransformer},
     ExchangeWsStream, StreamSelector,
 };
-use barter_macro::{DeExchange, SerExchange};
 
 /// Todo:
 pub mod l2;
@@ -28,9 +27,7 @@ pub type BinanceFuturesUsd = Binance<BinanceServerFuturesUsd>;
 
 /// Todo:
 ///
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
-)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct BinanceServerFuturesUsd;
 
 impl BinanceServer for BinanceServerFuturesUsd {

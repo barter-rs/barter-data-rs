@@ -30,7 +30,7 @@ pub struct Gateio<Server> {
 
 impl<Server> Connector for Gateio<Server>
 where
-    Server: GateioServer + Debug,
+    Server: GateioServer,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = GateioChannel;
@@ -58,5 +58,40 @@ where
                 )
             })
             .collect()
+    }
+}
+
+impl<'de, Server> serde::Deserialize<'de> for Gateio<Server>
+where
+    Server: GateioServer,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let input = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let expected = Self::ID.as_str();
+
+        if input.as_str() == Self::ID.as_str() {
+            Ok(Self::default())
+        } else {
+            Err(serde::de::Error::invalid_value(
+                serde::de::Unexpected::Str(input.as_str()),
+                &expected,
+            ))
+        }
+    }
+}
+
+impl<Server> serde::Serialize for Gateio<Server>
+where
+    Server: GateioServer,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        let exchange_id = Self::ID.as_str();
+        serializer.serialize_str(exchange_id)
     }
 }

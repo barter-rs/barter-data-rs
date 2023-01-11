@@ -4,7 +4,6 @@ use crate::{
     exchange::ExchangeId, subscription::book::OrderBooksL2,
     transformer::book::multi::MultiBookTransformer, ExchangeWsStream, StreamSelector,
 };
-use barter_macro::{DeExchange, SerExchange};
 
 /// Todo:
 pub mod l2;
@@ -23,9 +22,7 @@ pub const HTTP_BOOK_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.com/a
 pub type BinanceSpot = Binance<BinanceServerSpot>;
 
 /// Todo:
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
-)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct BinanceServerSpot;
 
 impl BinanceServer for BinanceServerSpot {
