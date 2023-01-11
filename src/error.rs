@@ -44,14 +44,17 @@ mod tests {
         let tests = vec![
             TestCase {
                 // TC0: is terminal w/ DataError::InvalidSequence
-                input: DataError::InvalidSequence { prev_last_update_id: 0, first_update_id: 0 },
+                input: DataError::InvalidSequence {
+                    prev_last_update_id: 0,
+                    first_update_id: 0,
+                },
                 expected: true,
             },
             TestCase {
                 // TC1: is not terminal w/ DataError::Socket
                 input: DataError::Socket(SocketError::Sink),
                 expected: false,
-            }
+            },
         ];
 
         for (index, test) in tests.into_iter().enumerate() {
