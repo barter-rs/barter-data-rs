@@ -1,8 +1,6 @@
 use super::super::{
     book::{l2::BinanceOrderBookL2Snapshot, BinanceLevel},
-    BinanceServer,
 };
-use super::BinanceServerSpot;
 use crate::{
     error::DataError,
     subscription::book::OrderBook,
@@ -18,6 +16,11 @@ use barter_integration::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
+
+/// [`BinanceSpot`] HTTP OrderBook L2 snapshot url.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#order-book>
+pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.com/api/v3/depth";
 
 /// [`BinanceSpot`] OrderBook Level2 deltas WebSocket message.
 ///
@@ -154,7 +157,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
         // Construct initial OrderBook snapshot GET url
         let snapshot_url = format!(
             "{}?symbol={}{}&limit=100",
-            BinanceServerSpot::http_book_snapshot_url(),
+            HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT,
             instrument.base.as_ref().to_uppercase(),
             instrument.quote.as_ref().to_uppercase()
         );

@@ -1,6 +1,6 @@
 use self::subscription::ExchangeSub;
 use crate::{
-    subscriber::{validator::SubscriptionValidator, Subscriber},
+    subscriber::{Subscriber, validator::SubscriptionValidator},
     subscription::Map,
 };
 use barter_integration::{
@@ -133,4 +133,10 @@ impl ExchangeId {
             _ => false,
         }
     }
+}
+
+/// Todo:
+pub trait ExchangeServer: Default + Debug + Clone + Send {
+    const ID: ExchangeId;
+    fn websocket_url() -> &'static str;
 }

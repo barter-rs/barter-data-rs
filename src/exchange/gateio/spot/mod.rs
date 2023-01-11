@@ -1,10 +1,11 @@
 use self::trade::GateioSpotTrade;
-use super::{Gateio, GateioServer};
+use super::Gateio;
 use crate::{
-    exchange::ExchangeId, subscription::trade::PublicTrades,
-    transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
+    exchange::ExchangeId, ExchangeWsStream,
+    StreamSelector, subscription::trade::PublicTrades, transformer::stateless::StatelessTransformer,
 };
 use barter_macro::{DeExchange, SerExchange};
+use crate::exchange::ExchangeServer;
 
 /// Todo:
 pub mod trade;
@@ -23,7 +24,7 @@ pub type GateioSpot = Gateio<GateioServerSpot>;
 )]
 pub struct GateioServerSpot;
 
-impl GateioServer for GateioServerSpot {
+impl ExchangeServer for GateioServerSpot {
     const ID: ExchangeId = ExchangeId::GateioSpot;
 
     fn websocket_url() -> &'static str {

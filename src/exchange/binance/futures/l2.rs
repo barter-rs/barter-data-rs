@@ -1,8 +1,6 @@
 use super::super::{
     book::{l2::BinanceOrderBookL2Snapshot, BinanceLevel},
-    BinanceServer,
 };
-use super::BinanceServerFuturesUsd;
 use crate::{
     error::DataError,
     subscription::book::OrderBook,
@@ -18,6 +16,11 @@ use barter_integration::{
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
+
+/// [`BinanceFuturesUsd`] HTTP OrderBook L2 snapshot url.
+///
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#order-book>
+pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://fapi.binance.com/fapi/v1/depth";
 
 /// [`BinanceFuturesUsd`] OrderBook Level2 deltas WebSocket message.
 ///
@@ -156,7 +159,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
         // Construct initial OrderBook snapshot GET url
         let snapshot_url = format!(
             "{}?symbol={}{}&limit=100",
-            BinanceServerFuturesUsd::http_book_snapshot_url(),
+            HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT,
             instrument.base.as_ref().to_uppercase(),
             instrument.quote.as_ref().to_uppercase()
         );

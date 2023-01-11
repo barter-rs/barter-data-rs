@@ -3,7 +3,7 @@ use self::{
     subscription::BinanceSubResponse, trade::BinanceTrade,
 };
 use crate::{
-    exchange::{Connector, ExchangeId, ExchangeSub},
+    exchange::{Connector, ExchangeServer, ExchangeId, ExchangeSub},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::{book::OrderBooksL1, trade::PublicTrades, Map},
     transformer::stateless::StatelessTransformer,
@@ -23,13 +23,6 @@ pub mod subscription;
 pub mod trade;
 
 /// Todo:
-pub trait BinanceServer: Default + Debug + Clone + Send {
-    const ID: ExchangeId;
-    fn websocket_url() -> &'static str;
-    fn http_book_snapshot_url() -> &'static str;
-}
-
-/// Todo:
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Binance<Server> {
     server: PhantomData<Server>,
@@ -37,7 +30,7 @@ pub struct Binance<Server> {
 
 impl<Server> Connector for Binance<Server>
 where
-    Server: BinanceServer,
+    Server: ExchangeServer,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = BinanceChannel;
@@ -82,21 +75,21 @@ where
 
 impl<Server> StreamSelector<PublicTrades> for Binance<Server>
 where
-    Server: BinanceServer + Debug + Send + Sync,
+    Server: ExchangeServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BinanceTrade>>;
 }
 
 impl<Server> StreamSelector<OrderBooksL1> for Binance<Server>
 where
-    Server: BinanceServer + Debug + Send + Sync,
+    Server: ExchangeServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Binance<Server>
 where
-    Server: BinanceServer,
+    Server: ExchangeServer,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -118,7 +111,7 @@ where
 
 impl<Server> serde::Serialize for Binance<Server>
 where
-    Server: BinanceServer,
+    Server: ExchangeServer,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

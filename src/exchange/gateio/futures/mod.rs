@@ -1,10 +1,11 @@
 use self::trade::GateioFuturesTrades;
-use super::{Gateio, GateioServer};
+use super::Gateio;
 use crate::{
-    exchange::ExchangeId, subscription::trade::PublicTrades,
-    transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
+    exchange::ExchangeId, ExchangeWsStream,
+    StreamSelector, subscription::trade::PublicTrades, transformer::stateless::StatelessTransformer,
 };
 use serde::{Deserialize, Serialize};
+use crate::exchange::ExchangeServer;
 
 /// Todo:
 pub mod trade;
@@ -21,7 +22,7 @@ pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct GateioServerFuturesUsd;
 
-impl GateioServer for GateioServerFuturesUsd {
+impl ExchangeServer for GateioServerFuturesUsd {
     const ID: ExchangeId = ExchangeId::GateioFuturesUsd;
 
     fn websocket_url() -> &'static str {
@@ -47,7 +48,7 @@ pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
 )]
 pub struct GateioServerFuturesBtc;
 
-impl GateioServer for GateioServerFuturesBtc {
+impl ExchangeServer for GateioServerFuturesBtc {
     const ID: ExchangeId = ExchangeId::GateioFuturesBtc;
 
     fn websocket_url() -> &'static str {

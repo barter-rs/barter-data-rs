@@ -1,12 +1,13 @@
 use self::{channel::GateioChannel, market::GateioMarket, subscription::GateioSubResponse};
 use crate::{
-    exchange::{subscription::ExchangeSub, Connector, ExchangeId},
+    exchange::{Connector, ExchangeId, subscription::ExchangeSub},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde_json::json;
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
+use crate::exchange::ExchangeServer;
 
 /// Todo:
 pub mod channel;
@@ -17,12 +18,6 @@ pub mod spot;
 pub mod subscription;
 
 /// Todo:
-pub trait GateioServer: Default + Debug + Clone + Send {
-    const ID: ExchangeId;
-    fn websocket_url() -> &'static str;
-}
-
-/// Todo:
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Gateio<Server> {
     server: PhantomData<Server>,
@@ -30,7 +25,7 @@ pub struct Gateio<Server> {
 
 impl<Server> Connector for Gateio<Server>
 where
-    Server: GateioServer,
+    Server: ExchangeServer,
 {
     const ID: ExchangeId = Server::ID;
     type Channel = GateioChannel;
@@ -63,7 +58,7 @@ where
 
 impl<'de, Server> serde::Deserialize<'de> for Gateio<Server>
 where
-    Server: GateioServer,
+    Server: ExchangeServer,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -85,7 +80,7 @@ where
 
 impl<Server> serde::Serialize for Gateio<Server>
 where
-    Server: GateioServer,
+    Server: ExchangeServer,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
