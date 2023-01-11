@@ -162,6 +162,78 @@ mod tests {
         use crate::exchange::okx::Okx;
         use crate::subscription::trade::PublicTrades;
 
+        mod de {
+            use super::*;
+            use crate::exchange::binance::futures::BinanceFuturesUsd;
+            use crate::exchange::binance::spot::BinanceSpot;
+            use crate::exchange::gateio::futures::GateioFuturesUsd;
+            use crate::exchange::okx::Okx;
+            use crate::subscription::book::OrderBooksL2;
+            use crate::subscription::trade::PublicTrades;
+
+            #[test]
+            fn test_subscription_okx_spot_public_trades() {
+                let input = r#"
+                {
+                    "exchange": "okx",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "spot",
+                    "kind": "public_trades"
+                }
+                "#;
+
+                serde_json::from_str::<Subscription<Okx, PublicTrades>>(input).unwrap();
+            }
+
+            #[test]
+            fn test_subscription_binance_spot_public_trades() {
+                let input = r#"
+                {
+                    "exchange": "binance_spot",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "spot",
+                    "kind": "public_trades"
+                }
+                "#;
+
+                serde_json::from_str::<Subscription<BinanceSpot, PublicTrades>>(input).unwrap();
+            }
+
+            #[test]
+            fn test_subscription_binance_futures_usd_order_books_l2() {
+                let input = r#"
+                {
+                    "exchange": "binance_futures_usd",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "future_perpetual",
+                    "kind": "order_books_l2"
+                }
+                "#;
+
+                serde_json::from_str::<Subscription<BinanceFuturesUsd, OrderBooksL2>>(input)
+                    .unwrap();
+            }
+
+            #[test]
+            fn subscription_gateio_futures_usd_public_trades() {
+                let input = r#"
+                {
+                    "exchange": "gateio_futures_usd",
+                    "base": "btc",
+                    "quote": "usdt",
+                    "instrument_type": "future_perpetual",
+                    "kind": "public_trades"
+                }
+                "#;
+
+                serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
+                    .unwrap();
+            }
+        }
+
         #[test]
         fn test_validate_bitfinex_public_trades() {
             struct TestCase {
@@ -278,78 +350,6 @@ mod tests {
                         panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
                     }
                 }
-            }
-        }
-
-        mod de {
-            use super::*;
-            use crate::exchange::binance::futures::BinanceFuturesUsd;
-            use crate::exchange::binance::spot::BinanceSpot;
-            use crate::exchange::gateio::futures::GateioFuturesUsd;
-            use crate::exchange::okx::Okx;
-            use crate::subscription::book::OrderBooksL2;
-            use crate::subscription::trade::PublicTrades;
-
-            #[test]
-            fn test_subscription_okx_spot_public_trades() {
-                let input = r#"
-                {
-                    "exchange": "okx",
-                    "base": "btc",
-                    "quote": "usdt",
-                    "instrument_type": "spot",
-                    "kind": "public_trades"
-                }
-                "#;
-
-                serde_json::from_str::<Subscription<Okx, PublicTrades>>(input).unwrap();
-            }
-
-            #[test]
-            fn test_subscription_binance_spot_public_trades() {
-                let input = r#"
-                {
-                    "exchange": "binance_spot",
-                    "base": "btc",
-                    "quote": "usdt",
-                    "instrument_type": "spot",
-                    "kind": "public_trades"
-                }
-                "#;
-
-                serde_json::from_str::<Subscription<BinanceSpot, PublicTrades>>(input).unwrap();
-            }
-
-            #[test]
-            fn test_subscription_binance_futures_usd_order_books_l2() {
-                let input = r#"
-                {
-                    "exchange": "binance_futures_usd",
-                    "base": "btc",
-                    "quote": "usdt",
-                    "instrument_type": "future_perpetual",
-                    "kind": "order_books_l2"
-                }
-                "#;
-
-                serde_json::from_str::<Subscription<BinanceFuturesUsd, OrderBooksL2>>(input)
-                    .unwrap();
-            }
-
-            #[test]
-            fn subscription_gateio_futures_usd_public_trades() {
-                let input = r#"
-                {
-                    "exchange": "gateio_futures_usd",
-                    "base": "btc",
-                    "quote": "usdt",
-                    "instrument_type": "future_perpetual",
-                    "kind": "public_trades"
-                }
-                "#;
-
-                serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
-                    .unwrap();
             }
         }
     }

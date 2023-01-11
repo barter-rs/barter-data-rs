@@ -1,6 +1,6 @@
 use self::subscription::ExchangeSub;
 use crate::{
-    subscriber::{Subscriber, validator::SubscriptionValidator},
+    subscriber::{validator::SubscriptionValidator, Subscriber},
     subscription::Map,
 };
 use barter_integration::{

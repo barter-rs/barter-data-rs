@@ -3,7 +3,7 @@ use self::{
     subscription::BinanceSubResponse, trade::BinanceTrade,
 };
 use crate::{
-    exchange::{Connector, ExchangeServer, ExchangeId, ExchangeSub},
+    exchange::{Connector, ExchangeId, ExchangeServer, ExchangeSub},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::{book::OrderBooksL1, trade::PublicTrades, Map},
     transformer::stateless::StatelessTransformer,

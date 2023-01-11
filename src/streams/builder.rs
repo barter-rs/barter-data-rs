@@ -200,7 +200,7 @@ mod tests {
                     "quote",
                     InstrumentKind::Spot,
                     PublicTrades,
-                ))])
+                ))]),
             },
             TestCase {
                 // TC2: Invalid StreamBuilder w/ invalid Coinbase FuturePerpetual sub

@@ -1,11 +1,11 @@
 use self::trade::GateioSpotTrade;
 use super::Gateio;
+use crate::exchange::ExchangeServer;
 use crate::{
-    exchange::ExchangeId, ExchangeWsStream,
-    StreamSelector, subscription::trade::PublicTrades, transformer::stateless::StatelessTransformer,
+    exchange::ExchangeId, subscription::trade::PublicTrades,
+    transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
 };
 use barter_macro::{DeExchange, SerExchange};
-use crate::exchange::ExchangeServer;
 
 /// Todo:
 pub mod trade;

@@ -36,7 +36,6 @@ pub mod transformer;
 //  - Tests
 //  - Rust Docs
 
-
 // Todo: Maybe In Futures:
 //  Symbol Aliases:
 //  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)

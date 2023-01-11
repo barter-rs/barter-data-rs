@@ -1,6 +1,4 @@
-use super::super::{
-    book::{l2::BinanceOrderBookL2Snapshot, BinanceLevel},
-};
+use super::super::book::{l2::BinanceOrderBookL2Snapshot, BinanceLevel};
 use crate::{
     error::DataError,
     subscription::book::OrderBook,
