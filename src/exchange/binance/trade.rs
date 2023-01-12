@@ -11,13 +11,45 @@ use serde::{Deserialize, Serialize};
 
 /// Binance real-time trade message.
 ///
-/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
-///
 /// Note:
 /// For [`BinanceFuturesUsd`](super::futures::BinanceFuturesUsd) this real-time stream is
 /// undocumented.
 ///
 /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
+///
+/// ### Raw Payload Examples
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
+/// #### Spot Side::Buy Trade
+/// ```json
+/// {
+///     "e":"trade",
+///     "E":1649324825173,
+///     "s":"ETHUSDT",
+///     "t":1000000000,
+///     "p":"10000.19",
+///     "q":"0.239000",
+///     "b":10108767791,
+///     "a":10108764858,
+///     "T":1749354825200,
+///     "m":false,
+///     "M":true
+/// }
+/// ```
+///
+/// #### FuturePerpetual Side::Sell Trade
+/// ```json
+/// {
+///     "e": "trade",
+///     "E": 1649839266194,
+///     "T": 1749354825200,
+///     "s": "ETHUSDT",
+///     "t": 1000000000,
+///     "p":"10000.19",
+///     "q":"0.239000",
+///     "X": "MARKET",
+///     "m": true
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {
     #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
@@ -109,11 +141,13 @@ mod tests {
             let tests = vec![
                 TestCase {
                     // TC0: Spot trade valid
-                    input: r#"{
+                    input: r#"
+                    {
                         "e":"trade","E":1649324825173,"s":"ETHUSDT","t":1000000000,
                         "p":"10000.19","q":"0.239000","b":10108767791,"a":10108764858,
                         "T":1749354825200,"m":false,"M":true
-                    }"#,
+                    }
+                    "#,
                     expected: Ok(BinanceTrade {
                         subscription_id: SubscriptionId::from("@trade|ETHUSDT"),
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
@@ -139,10 +173,12 @@ mod tests {
                 },
                 TestCase {
                     // TC2: FuturePerpetual trade w/ type MARKET
-                    input: r#"{
+                    input: r#"
+                    {
                         "e": "trade","E": 1649839266194,"T": 1749354825200,"s": "ETHUSDT",
                         "t": 1000000000,"p":"10000.19","q":"0.239000","X": "MARKET","m": true
-                    }"#,
+                    }
+                    "#,
                     expected: Ok(BinanceTrade {
                         subscription_id: SubscriptionId::from("@trade|ETHUSDT"),
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
@@ -156,10 +192,12 @@ mod tests {
                 },
                 TestCase {
                     // TC3: FuturePerpetual trade w/ type LIQUIDATION
-                    input: r#"{
+                    input: r#"
+                    {
                         "e": "trade","E": 1649839266194,"T": 1749354825200,"s": "ETHUSDT",
                         "t": 1000000000,"p":"10000.19","q":"0.239000","X": "LIQUIDATION","m": false
-                    }"#,
+                    }
+                    "#,
                     expected: Ok(BinanceTrade {
                         subscription_id: SubscriptionId::from("@trade|ETHUSDT"),
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
