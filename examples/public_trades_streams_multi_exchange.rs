@@ -11,6 +11,7 @@ use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 use tracing::info;
 
+#[rustfmt::skip]
 #[tokio::main]
 async fn main() {
     // Initialise INFO Tracing log subscriber

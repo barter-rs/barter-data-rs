@@ -6,6 +6,7 @@ use barter_data::{
 use barter_integration::model::InstrumentKind;
 use tracing::info;
 
+#[rustfmt::skip]
 #[tokio::main]
 async fn main() {
     // Initialise INFO Tracing log subscriber
