@@ -3,10 +3,26 @@ use serde::{Deserialize, Serialize};
 
 /// [`Coinbase`](super::Coinbase) WebSocket subscription response.
 ///
-/// eg/ CoinbaseResponse::Subscribed {"type": "subscriptions", "channels": [{"name": "matches", "product_ids": ["BTC-USD"]}]}
-/// eg/ CoinbaseResponse::Error {"type": "error", "message": "error message", "reason": "reason"}
-///
+/// ### Raw Payload Examples
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
+/// #### Subscripion Success
+/// ```json
+/// {
+///     "type":"subscriptions",
+///     "channels":[
+///         {"name":"matches","product_ids":["BTC-USD", "ETH-USD"]}
+///     ]
+/// }
+/// ```
+///
+/// #### Subscription Failure
+/// ```json
+/// {
+///     "type":"error",
+///     "message":"Failed to subscribe",
+///     "reason":"GIBBERISH-USD is not a valid product"
+/// }
+/// ```
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum CoinbaseSubResponse {
@@ -21,6 +37,8 @@ pub enum CoinbaseSubResponse {
 
 /// Communicates the [`Coinbase`](super::Coinbase) product_ids (eg/ "ETH-USD") associated with
 /// a successful channel (eg/ "matches") subscription.
+///
+/// See [`CoinbaseSubResponse`] for full raw paylaod examples.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
