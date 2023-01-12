@@ -1,5 +1,5 @@
 use barter_data::{
-    exchange::{ExchangeId, binance::futures::BinanceFuturesUsd},
+    exchange::{binance::futures::BinanceFuturesUsd, ExchangeId},
     streams::Streams,
     subscription::trade::PublicTrades,
 };
@@ -51,9 +51,10 @@ async fn main() {
 fn init_logging() {
     tracing_subscriber::fmt()
         // Filter messages based on the INFO
-        .with_env_filter(tracing_subscriber::filter::EnvFilter::builder()
-            .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
-            .from_env_lossy()
+        .with_env_filter(
+            tracing_subscriber::filter::EnvFilter::builder()
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .from_env_lossy(),
         )
         // Disable colours on release builds
         .with_ansi(cfg!(debug_assertions))

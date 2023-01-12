@@ -1,6 +1,7 @@
+use barter_data::exchange::gateio::spot::GateioSpot;
 use barter_data::{
     exchange::{
-        binance::{spot::BinanceSpot, futures::BinanceFuturesUsd},
+        binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         coinbase::Coinbase,
         okx::Okx,
     },
@@ -20,24 +21,30 @@ async fn main() {
     // Initialise PublicTrades Streams for various exchanges
     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
     let streams = Streams::builder()
+        // .subscribe([
+        //     (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        //     (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
+        //     (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        //     (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        // ])
+
         .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+            (GateioSpot::default(), "dfdf", "usdt", InstrumentKind::Spot, PublicTrades),
+            (GateioSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
         ])
-        .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-        ])
-        .subscribe([
-            (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
-            (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
-        ])
-        .subscribe([
-            (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-        ])
+
         .init()
         .await
         .unwrap();
@@ -57,9 +64,10 @@ async fn main() {
 fn init_logging() {
     tracing_subscriber::fmt()
         // Filter messages based on the INFO
-        .with_env_filter(tracing_subscriber::filter::EnvFilter::builder()
-            .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
-            .from_env_lossy()
+        .with_env_filter(
+            tracing_subscriber::filter::EnvFilter::builder()
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .from_env_lossy(),
         )
         // Disable colours on release builds
         .with_ansi(cfg!(debug_assertions))
