@@ -71,8 +71,8 @@ impl Validator for BitfinexPlatformEvent {
 /// [`Bitfinex`](super::Bitfinex) platform status message containing the server we are connecting
 /// to, the version of the API, and if it is in maintenance mode.
 ///
-/// ## Examples
-/// ### Platform Status Online
+///
+/// #### Platform Status Online
 /// ``` json
 /// {
 ///   "event": "info",
@@ -106,8 +106,8 @@ pub enum Status {
 
 /// [`Bitfinex`](super::Bitfinex) subscription success response variants for each channel.
 ///
-/// ## Examples
-/// ### Subscription Trades Ok Response
+/// ### Raw Payload Examples
+/// #### Subscription Trades Ok Response
 /// ``` json
 /// {
 ///   event: "subscribed",

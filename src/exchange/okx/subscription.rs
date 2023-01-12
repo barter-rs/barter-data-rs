@@ -18,8 +18,8 @@ impl Serialize for ExchangeSub<OkxChannel, OkxMarket> {
 
 /// [`Okx`](super::Okx) WebSocket subscription response.
 ///
-/// ## Examples
-/// ### Subscription Trades Ok Response
+/// ### Raw Payload Examples
+/// #### Subscription Trades Ok Response
 /// ```json
 /// {
 ///   "event": "subscribe",
@@ -30,7 +30,7 @@ impl Serialize for ExchangeSub<OkxChannel, OkxMarket> {
 /// }
 /// ```
 ///
-/// ### Subscription Trades Error Response
+/// #### Subscription Trades Error Response
 /// ```json
 /// {
 ///   "event": "error",

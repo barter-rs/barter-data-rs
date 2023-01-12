@@ -34,9 +34,6 @@ impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     }
 }
 
-use super::super::spot::l2::BinanceSpotOrderBookL2Delta;
-use super::super::futures::l2::BinanceFuturesOrderBookL2Delta;
-
 /// Deserialize a
 /// [`BinanceSpotOrderBookL2Delta`](super::super::spot::l2::BinanceSpotOrderBookL2Delta) or
 /// [`BinanceFuturesOrderBookL2Delta`](super::super::futures::l2::BinanceFuturesOrderBookL2Delta)

@@ -60,7 +60,6 @@ pub mod transformer;
 // Todo: After Release:
 //  - Code Style section in contribution readme.md
 
-
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;

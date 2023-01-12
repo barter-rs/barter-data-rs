@@ -14,8 +14,8 @@ pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;
 
 /// [`GateioSpot`](super::GateioSpot) real-time trade WebSocket message.
 ///
-/// ## Examples
-/// ### Spot Sell Trade
+/// ### Raw Payload Examples
+/// #### Spot Sell Trade
 /// ```json
 /// {
 ///   "id": 309143071,

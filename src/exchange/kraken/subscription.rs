@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 /// [`Kraken`](super::Kraken) message received in response to WebSocket subscription requests.
 ///
-/// ## Examples
-/// ### Subscription Trade Ok Response
+/// ### Raw Payload Examples
+/// #### Subscription Trade Ok Response
 /// ```json
 /// {
 ///   "channelID": 10001,
@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// }
 /// ```
 ///
-/// ### Subscription Trade Error Response
+/// #### Subscription Trade Error Response
 /// ```json
 /// {
 ///   "errorMessage": "Subscription name invalid",

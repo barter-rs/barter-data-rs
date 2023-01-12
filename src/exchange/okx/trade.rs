@@ -13,8 +13,8 @@ pub type OkxTrades = OkxMessage<OkxTrade>;
 
 /// [`Okx`](super::Okx) market data WebSocket message.
 ///
-/// ## Examples
-/// ### Spot Buy Trade
+/// ### Raw Payload Examples
+/// #### Spot Buy Trade
 /// ```json
 /// {
 ///   "arg": {

@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 /// [`Gateio`](super::Gateio) WebSocket message.
 ///
-/// ## Examples
-/// ### Subscription Trades Ok Response
+/// ### Raw Payload Examples
+/// #### Subscription Trades Ok Response
 /// ```json
 /// {
 ///   "time": 1606292218,
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 ///     }
 /// }
 /// ```
-/// ### Spot Sell Trade
+/// #### Spot Sell Trade
 /// ```json
 /// {
 ///   "time": 1606292218,
