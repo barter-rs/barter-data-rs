@@ -20,10 +20,8 @@ impl<Event> FromIterator<Result<Market<Event>, DataError>> for MarketIter<Event>
 ///
 /// Note: `Event` can be an enum if required.
 ///
-/// See [`crate::subscription`] for the existing `Event` variant data models.
-///
-/// eg/ [`Market<PublicTrade>`](crate::subscription::trade::PublicTrade)
-/// eg/ [`Market<OrderBook>`](crate::subscription::book::OrderBook)
+/// See [`crate::subscription`] for all existing Barter Market event variants
+/// (eg/ [`Market<PublicTrade>`](crate::subscription::trade::PublicTrade)).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,

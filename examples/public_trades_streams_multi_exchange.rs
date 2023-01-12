@@ -41,8 +41,10 @@ async fn main() {
         .await
         .unwrap();
 
-    // Join all exchange PublicTrades streams into a StreamMap
-    // Note: Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    // Join all exchange PublicTrades streams into a single tokio_stream::StreamMap
+    // Notes:
+    //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
     let mut joined_stream = streams.join_map().await;
 
     while let Some((exchange, trade)) = joined_stream.next().await {

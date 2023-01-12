@@ -41,12 +41,11 @@ pub mod transformer;
 //  Symbol Aliases:
 //  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
 //  - Bitfinex ust -> usdt
-//  ExchangeId:
-//  - ExchangeId contain exchange structs eg/ ExchangeId::Binance(Binance<Spot>)
 //  InstrumentKind becomes a type.
 //  SubscriptionId:
 //  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
 //  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
+//   '--> DataError would always be SubscriptionId<String> though (at util from SubId<T> -> SubId<String>)
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
