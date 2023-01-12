@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// ### Raw Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#live-subscribing-unsubscribing-to-streams>
-/// #### SubResponse Success
+/// #### Subscription Success
 /// ```json
 /// {
 ///     "id":1,
@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// }
 /// ```
 ///
-/// #### SubResponse Failure
+/// #### Subscription Failure
 /// ```json
 /// {
 ///     "id":1,

@@ -15,7 +15,24 @@ use serde::Serialize;
 /// The message is associated with the original [`Subscription`](crate::Subscription) using the
 /// `channel_id` field as the [`SubscriptionId`](barter_integration::model::SubscriptionId).
 ///
-/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+/// ### Raw Payload Examples
+/// #### Heartbeat
+/// See docs: <https://docs.bitfinex.com/docs/ws-general#heartbeating>
+/// ```json
+/// [420191,"hb"]
+/// ```
+///
+/// #### Side::Buy Trade
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+/// ```json
+/// [420191,"te",[1225484398,1665452200022,0.08980641,19027.02807752]]
+/// ```
+///
+/// #### Side::Sell Trade
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+/// ```json
+/// [420191,"te",[1225484398,1665452200022,-0.08980641,19027.02807752]]
+/// ```
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct BitfinexMessage {
     pub channel_id: u32,
@@ -24,6 +41,8 @@ pub struct BitfinexMessage {
 
 /// [`Bitfinex`](super::Bitfinex) market data variants associated with an
 /// active [`Subscription`](crate::Subscription).
+///
+/// See [`BitfinexMessage`] for full raw payload examples.
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]

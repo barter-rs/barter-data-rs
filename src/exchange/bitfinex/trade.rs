@@ -12,9 +12,22 @@ use serde::Serialize;
 
 /// [`Bitfinex`](super::Bitfinex) real-time trade message.
 ///
-/// Format: \[ID, TIME, AMOUNT, PRICE\], where +/- of amount indicates Side
+/// ### Raw Payload Examples
+/// Format: \[ID, TIME, AMOUNT, PRICE\], <br> where +/- of amount indicates Side
 ///
-/// eg/ \[401597395,1574694478808,0.005,7245.3\]
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+///
+/// #### Side::Buy Trade
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+/// ```json
+/// [420191,"te",[1225484398,1665452200022,0.08980641,19027.02807752]]
+/// ```
+///
+/// #### Side::Sell Trade
+/// See docs: <https://docs.bitfinex.com/reference/ws-public-trades>
+/// ```json
+/// [420191,"te",[1225484398,1665452200022,-0.08980641,19027.02807752]]
+/// ```
 ///
 /// ## Notes:
 /// - [`Bitfinex`](super::Bitfinex) trades subscriptions results in receiving tag="te" & tag="tu"

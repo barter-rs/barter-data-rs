@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 
 /// Todo:
 ///
-/// ### Platform Status Online
+/// ### Raw Payload Examples
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+/// #### Platform Status Online
 /// ``` json
 /// {
 ///   "event": "info",
@@ -14,7 +16,7 @@ use serde::{Deserialize, Serialize};
 /// }
 /// ```
 ///
-/// ### Subscription Trades Ok Response
+/// #### Subscription Trades Success
 /// ``` json
 /// {
 ///   event: "subscribed",
@@ -25,24 +27,19 @@ use serde::{Deserialize, Serialize};
 /// }
 /// ```
 ///
-/// ### Subscription Error Response
+/// #### Subscription Failure
 /// ``` json
 /// {
 ///    "event": "error",
 ///    "msg": ERROR_MSG,
 ///    "code": ERROR_CODE
 /// }
-///
-/// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "event", rename_all = "lowercase")]
 pub enum BitfinexPlatformEvent {
-    /// [`Bitfinex`](super::Bitfinex) platform status containing metadata about the server API.
     #[serde(rename = "info")]
     PlatformStatus(BitfinexPlatformStatus),
-    /// Success response to a subscription request.
     Subscribed(BitfinexSubResponse),
-    /// Error response to a subscription request.
     Error(BitfinexError),
 }
 
@@ -71,8 +68,9 @@ impl Validator for BitfinexPlatformEvent {
 /// [`Bitfinex`](super::Bitfinex) platform status message containing the server we are connecting
 /// to, the version of the API, and if it is in maintenance mode.
 ///
-///
-/// #### Platform Status Online
+/// ### Raw Payload Examples
+/// See docs: <https://docs.bitfinex.com/docs/ws-general#info-messages>
+/// #### Platform Status Operative
 /// ``` json
 /// {
 ///   "event": "info",
@@ -84,7 +82,17 @@ impl Validator for BitfinexPlatformEvent {
 /// }
 /// ```
 ///
-/// See docs: <https://docs.bitfinex.com/docs/ws-general#info-messages>
+/// #### Platform Status In Maintenance
+/// ``` json
+/// {
+///   "event": "info",
+///   "version": 2,
+///   "serverId": ""
+///   "platform": {
+///     "status": 0
+///   }
+/// }
+/// ```
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexPlatformStatus {
     #[serde(rename = "version")]
@@ -97,6 +105,8 @@ pub struct BitfinexPlatformStatus {
 
 /// [`Bitfinex`](super::Bitfinex) platform [`Status`] indicating if the API is in maintenance mode.
 ///
+/// See [`BitfinexPlatformStatus`] for full raw payload examples.
+///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general#info-messages>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub enum Status {
@@ -107,7 +117,8 @@ pub enum Status {
 /// [`Bitfinex`](super::Bitfinex) subscription success response variants for each channel.
 ///
 /// ### Raw Payload Examples
-/// #### Subscription Trades Ok Response
+/// See docs: <https://docs.bitfinex.com/docs/ws-general>
+/// #### Subscription Trades Success
 /// ``` json
 /// {
 ///   event: "subscribed",
@@ -118,7 +129,13 @@ pub enum Status {
 /// }
 /// ```
 ///
-/// See docs: <https://docs.bitfinex.com/docs/ws-general#subscribe-to-channels>
+/// #### Subscription Failure
+/// ``` json
+/// {
+///    "event": "error",
+///    "msg": ERROR_MSG,
+///    "code": ERROR_CODE
+/// }
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexSubResponse {
     pub channel: String,
@@ -137,10 +154,12 @@ pub struct BitfinexChannelId(pub u32);
 /// [`Bitfinex`](super::Bitfinex) error message that is received if a [`BitfinexSubResponse`]
 /// indicates a WebSocket subscription failure.
 ///
-/// ## Subscription Error Codes:
+/// ### Subscription Error Codes:
 /// 10300: Generic failure
 /// 10301: Already subscribed
 /// 10302: Unknown channel
+///
+/// See [`BitfinexPlatformStatus`] for full raw payload examples.
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
@@ -169,8 +188,8 @@ impl<'de> Deserialize<'de> for Status {
 
 /// Deserialize a `u8` as a `Bitfinex` platform [`Status`].
 ///
-/// 0u8 => [`Status::Maintenance`](Status),
-/// 1u8 => [`Status::Operative`](Status),
+/// 0u8 => [`Status::Maintenance`](Status), <br>
+/// 1u8 => [`Status::Operative`](Status), <br>
 /// other => [`de::Error`]
 fn de_status_from_u8<'de, D>(deserializer: D) -> Result<Status, D::Error>
 where
