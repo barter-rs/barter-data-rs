@@ -1,0 +1,67 @@
+use barter_data::{
+    exchange::{
+        binance::{spot::BinanceSpot, futures::BinanceFuturesUsd},
+        coinbase::Coinbase,
+        okx::Okx,
+    },
+    streams::Streams,
+    subscription::trade::PublicTrades,
+};
+use barter_integration::model::InstrumentKind;
+use futures::StreamExt;
+use tracing::info;
+
+#[tokio::main]
+async fn main() {
+    // Initialise INFO Tracing log subscriber
+    init_logging();
+
+    // Initialise PublicTrades Streams for various exchanges
+    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
+    let streams = Streams::builder()
+        .subscribe([
+            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .subscribe([
+            (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
+            (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe(vec![
+            (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .init()
+        .await
+        .unwrap();
+
+    // Join all exchange PublicTrades streams into a StreamMap
+    // Note: Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    let mut joined_stream = streams.join_map().await;
+
+    while let Some((exchange, trade)) = joined_stream.next().await {
+        info!("Exchange: {exchange}, Market<PublicTrade>: {trade:?}");
+    }
+}
+
+// Initialise an INFO `Subscriber` for `Tracing` Json logs and install it as the global default.
+fn init_logging() {
+    tracing_subscriber::fmt()
+        // Filter messages based on the INFO
+        .with_env_filter(tracing_subscriber::filter::EnvFilter::builder()
+            .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+            .from_env_lossy()
+        )
+        // Disable colours on release builds
+        .with_ansi(cfg!(debug_assertions))
+        // Enable Json formatting
+        .json()
+        // Install this Tracing subscriber as global default
+        .init()
+}
