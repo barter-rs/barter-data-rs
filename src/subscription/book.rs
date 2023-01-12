@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use tracing::debug;
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
-/// [`Market`](crate::model::Market) events.
+/// [`Market`](crate::event::Market) events.
 ///
 /// Level 1 refers to the best non-aggregated bid and ask [`Level`] on each side of the
 /// [`OrderBook`].
@@ -31,7 +31,7 @@ pub struct OrderBookL1 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
-/// [`Market`](crate::model::Market) events.
+/// [`Market`](crate::event::Market) events.
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
@@ -42,7 +42,7 @@ impl SubKind for OrderBooksL2 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]
-/// [`Market`](crate::model::Market) events.
+/// [`Market`](crate::event::Market) events.
 ///
 /// Level 3 refers to the non-aggregated [`OrderBook`]. This is a direct replication of the exchange
 /// [`OrderBook`].

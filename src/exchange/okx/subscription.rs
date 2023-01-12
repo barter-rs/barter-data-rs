@@ -16,7 +16,7 @@ impl Serialize for ExchangeSub<OkxChannel, OkxMarket> {
     }
 }
 
-/// [`Okx`] WebSocket subscription response.
+/// [`Okx`](super::Okx) WebSocket subscription response.
 ///
 /// ## Examples
 /// ### Subscription Trades Ok Response

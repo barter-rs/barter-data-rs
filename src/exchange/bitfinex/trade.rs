@@ -13,6 +13,7 @@ use serde::Serialize;
 /// [`Bitfinex`](super::Bitfinex) real-time trade message.
 ///
 /// Format: \[ID, TIME, AMOUNT, PRICE\], where +/- of amount indicates Side
+///
 /// eg/ \[401597395,1574694478808,0.005,7245.3\]
 ///
 /// ## Notes:

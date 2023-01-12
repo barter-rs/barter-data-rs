@@ -27,3 +27,10 @@ impl Validator for GateioSubResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Todo:
+}

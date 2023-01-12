@@ -8,8 +8,9 @@ use barter_integration::{
 };
 use serde::Serialize;
 
-/// [`Bitfinex`](super::Bitfinex) message received over [`WebSocket`](crate::WebSocket) relating
-/// to an active [`Subscription`](crate::Subscription).
+/// [`Bitfinex`](super::Bitfinex) message received over
+/// [`WebSocket`](barter_integration::protocol::websocket::WebSocket) relating to an active
+/// [`Subscription`](crate::Subscription).
 ///
 /// The message is associated with the original [`Subscription`](crate::Subscription) using the
 /// `channel_id` field as the [`SubscriptionId`](barter_integration::model::SubscriptionId).

@@ -70,3 +70,10 @@ impl From<(ExchangeId, Instrument, GateioSpotTrade)> for MarketIter<PublicTrade>
         })])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Todo:
+}

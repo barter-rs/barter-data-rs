@@ -9,7 +9,7 @@ use barter_integration::model::{Side, SubscriptionId};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-/// [`Binance`](super::Binance) OrderBook Level2 snapshot HTTP message.
+/// [`Binance`](super::super::Binance) OrderBook Level2 snapshot HTTP message.
 ///
 /// Used as the starting [`OrderBook`] before OrderBook Level2 delta WebSocket updates are
 /// applied.
@@ -34,8 +34,15 @@ impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     }
 }
 
-/// Deserialize a [`BinanceOrderBookL2`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-/// (eg/ "@depth@100ms|BTCUSDT").
+use super::super::spot::l2::BinanceSpotOrderBookL2Delta;
+use super::super::futures::l2::BinanceFuturesOrderBookL2Delta;
+
+/// Deserialize a
+/// [`BinanceSpotOrderBookL2Delta`](super::super::spot::l2::BinanceSpotOrderBookL2Delta) or
+/// [`BinanceFuturesOrderBookL2Delta`](super::super::futures::l2::BinanceFuturesOrderBookL2Delta)
+/// "s" field (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
+///
+/// eg/ "@depth@100ms|BTCUSDT"
 pub fn de_ob_l2_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,

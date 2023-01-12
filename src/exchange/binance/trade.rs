@@ -14,7 +14,9 @@ use serde::{Deserialize, Serialize};
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#trade-streams>
 ///
 /// Note:
-/// For [`BinanceFuturesUsd`] this real-time stream is undocumented.
+/// For [`BinanceFuturesUsd`](super::futures::BinanceFuturesUsd) this real-time stream is
+/// undocumented.
+///
 /// See discord: <https://discord.com/channels/910237311332151317/923160222711812126/975712874582388757>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceTrade {

@@ -23,7 +23,7 @@ pub mod okx;
 pub mod subscription;
 
 /// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
-/// to actioned [`Subscription`] requests.
+/// to actioned [`Subscription`](crate::subscription::Subscription) requests.
 pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Todo:
@@ -49,21 +49,23 @@ where
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
-    /// Number of [`Subscription`] responses expected from the exchange in responses to the
-    /// requests send. Used to validate all [`Subscription`]s were accepted.
+    /// Number of [`Subscription`](crate::subscription::Subscription) responses expected from the
+    /// exchange in responses to the requests send. Used to validate all
+    /// [`Subscription`](crate::subscription::Subscription)s were accepted.
     fn expected_responses(map: &Map<Instrument>) -> usize {
         map.0.len()
     }
 
     /// Expected [`Duration`] the [`SubscriptionValidator`] will wait to receive all success
-    /// responses to actioned [`Subscription`] requests.
+    /// responses to actioned [`Subscription`](crate::subscription::Subscription) requests.
     fn subscription_timeout() -> Duration {
         DEFAULT_SUBSCRIPTION_TIMEOUT
     }
 }
 
-/// Defines the frequency and recipe for custom [`WebSocket`] pings - used for exchanges that
-/// require additional application-level pings.
+/// Defines the frequency and recipe for custom
+/// [`WebSocket`](barter_integration::protocol::websocket::WebSocket) pings - used for exchanges
+/// that require additional application-level pings.
 #[derive(Debug)]
 pub struct PingInterval {
     pub interval: tokio::time::Interval,

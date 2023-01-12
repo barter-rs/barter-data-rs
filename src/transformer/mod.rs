@@ -7,11 +7,11 @@ use async_trait::async_trait;
 use barter_integration::{model::Instrument, protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 
-/// Generic OrderBook [`ExchangeTransformer`] implementations.
+/// Generic OrderBook [`ExchangeTransformer`]s.
 pub mod book;
 
-/// Generic stateless [`ExchangeTransformer`] implementation - often used for transforming
-/// [`PublicTrade`](crate::subscription::trade::PublicTrade) streams.
+/// Generic stateless [`ExchangeTransformer`] - often used for transforming
+/// [`PublicTrades`](crate::subscription::trade::PublicTrades) streams.
 pub mod stateless;
 
 /// Todo:

@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(tag = "event", rename_all = "lowercase")]
 pub enum BitfinexPlatformEvent {
-    /// [`Bitfinex`] platform status containing metadata about the server API.
+    /// [`Bitfinex`](super::Bitfinex) platform status containing metadata about the server API.
     #[serde(rename = "info")]
     PlatformStatus(BitfinexPlatformStatus),
     /// Success response to a subscription request.
@@ -68,7 +68,7 @@ impl Validator for BitfinexPlatformEvent {
     }
 }
 
-/// [`Bitfinex`] platform status message containing the server we are connecting
+/// [`Bitfinex`](super::Bitfinex) platform status message containing the server we are connecting
 /// to, the version of the API, and if it is in maintenance mode.
 ///
 /// ## Examples

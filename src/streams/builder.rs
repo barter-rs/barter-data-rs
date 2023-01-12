@@ -51,7 +51,7 @@ where
     }
 
     /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be initialised on
-    /// a distinct [`WebSocket`] connection.
+    /// a distinct [`WebSocket`](barter_integration::protocol::websocket::WebSocket) connection.
     ///
     /// Note that the are [`Subscription`]s are not actioned until the
     /// [`init()`](StreamBuilder::init()) method is invoked.
@@ -141,7 +141,7 @@ where
 }
 
 /// Validate the provided collection of [`Subscription`]s, ensuring that the associated exchange
-/// supports every [`Subscription`] [`InstrumentKind`].
+/// supports every [`Subscription`] [`InstrumentKind`](barter_integration::model::InstrumentKind).
 pub fn validate<Exchange, Kind>(
     subscriptions: &[Subscription<Exchange, Kind>],
 ) -> Result<(), DataError>

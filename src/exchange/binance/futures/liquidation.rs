@@ -9,7 +9,7 @@ use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// [`BinanceFuturesUsd`] Liquidation order message.
+/// [`BinanceFuturesUsd`](super::BinanceFuturesUsd) Liquidation order message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -18,7 +18,7 @@ pub struct BinanceLiquidation {
     pub order: BinanceLiquidationOrder,
 }
 
-/// [`BinanceFuturesUsd`] Liquidation order.
+/// [`BinanceFuturesUsd`](super::BinanceFuturesUsd) Liquidation order.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -67,8 +67,10 @@ impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketIter<Liquidati
     }
 }
 
-/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-/// (eg/ "forceOrder|BTCUSDT").
+/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated
+/// [`SubscriptionId`].
+///
+/// eg/ "forceOrder|BTCUSDT"
 pub fn de_liquidation_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,

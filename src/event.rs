@@ -23,7 +23,7 @@ impl<Event> FromIterator<Result<Market<Event>, DataError>> for MarketIter<Event>
 /// See [`crate::subscription`] for the existing `Event` variant data models.
 ///
 /// eg/ [`Market<PublicTrade>`](crate::subscription::trade::PublicTrade)
-/// eg/ [`Market<OrderBookLevel3>`](crate::subscription::book::OrderBookLevel3)
+/// eg/ [`Market<OrderBook>`](crate::subscription::book::OrderBook)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct Market<Event> {
     pub exchange_time: DateTime<Utc>,

@@ -15,12 +15,12 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-/// [`BinanceSpot`] HTTP OrderBook L2 snapshot url.
+/// [`BinanceSpot`](super::BinanceSpot) HTTP OrderBook L2 snapshot url.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#order-book>
 pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.com/api/v3/depth";
 
-/// [`BinanceSpot`] OrderBook Level2 deltas WebSocket message.
+/// [`BinanceSpot`](super::BinanceSpot) OrderBook Level2 deltas WebSocket message.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -50,13 +50,14 @@ impl Identifier<Option<SubscriptionId>> for BinanceSpotOrderBookL2Delta {
     }
 }
 
-/// [`Binance`] [`BinanceServerSpot`] [`OrderBookUpdater`].
+/// [`Binance`](super::super::Binance) [`BinanceServerSpot`](super::BinanceServerSpot)
+/// [`OrderBookUpdater`].
 ///
 /// BinanceSpot: How To Manage A Local OrderBook Correctly
 ///
-/// 1. Open a stream to wss://stream.binance.com:9443/ws/<base><quote>@depth.
+/// 1. Open a stream to wss://stream.binance.com:9443/ws/BTCUSDT@depth.
 /// 2. Buffer the events you receive from the stream.
-/// 3. Get a depth snapshot from https://api.binance.com/api/v3/depth?symbol=BNBBTC&limit=1000.
+/// 3. Get a depth snapshot from <https://api.binance.com/api/v3/depth?symbol=BNBBTC&limit=1000>.
 /// 4. -- *DIFFERENT FROM FUTURES* --
 ///    Drop any event where u is <= lastUpdateId in the snapshot.
 /// 5. -- *DIFFERENT FROM FUTURES* --

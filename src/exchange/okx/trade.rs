@@ -8,10 +8,10 @@ use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for an [`Okx`] real-time trades WebSocket message.
+/// Terse type alias for an [`Okx`](super::Okx) real-time trades WebSocket message.
 pub type OkxTrades = OkxMessage<OkxTrade>;
 
-/// [`Okx`] market data WebSocket message.
+/// [`Okx`](super::Okx) market data WebSocket message.
 ///
 /// ## Examples
 /// ### Spot Buy Trade
@@ -51,10 +51,10 @@ impl<T> Identifier<Option<SubscriptionId>> for OkxMessage<T> {
     }
 }
 
-/// [`Okx`] real-time trade WebSocket message.
+/// [`Okx`](super::Okx) real-time trade WebSocket message.
 ///
-/// ## Examples
-/// ### Spot Buy Trade
+/// ### Raw Payload Examples
+/// #### Spot Buy Trade
 /// ```json
 /// {
 ///   "instId": "BTC-USDT",
@@ -122,4 +122,11 @@ where
 
     Deserialize::deserialize(deserializer)
         .map(|arg: Arg<'_>| ExchangeSub::from((arg.channel, arg.inst_id)).id())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Todo:
 }

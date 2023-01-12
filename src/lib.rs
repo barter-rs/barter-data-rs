@@ -23,7 +23,7 @@ use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
 use tracing::{debug, error};
 
-/// Todo:
+/// All [`Error`](std::error::Error)s generated in Barter-Data.
 pub mod error;
 pub mod event;
 pub mod exchange;
@@ -33,8 +33,9 @@ pub mod subscription;
 pub mod transformer;
 
 // Todo:
-//  - Tests
-//  - Rust Docs
+//  - Rust Docs:
+//     - Normalise styling of model docs, see Okx etc (check doc --open before I decide to go ahead)
+//  - Tests where I've added \todos (can use the examples I get for the model docs)
 
 // Todo: Maybe In Futures:
 //  Symbol Aliases:
@@ -59,7 +60,9 @@ pub mod transformer;
 // Todo: After Release:
 //  - Code Style section in contribution readme.md
 
-/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
+
+/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
+/// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
 pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
 
 /// Defines a generic identification type for the implementor.
@@ -132,8 +135,8 @@ where
     }
 }
 
-/// Receive [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and distribute them to the
-/// exchange via the [`WsSink`].
+/// Transmit [`WsMessage`]s sent from the [`ExchangeTransformer`] to the exchange via
+/// the [`WsSink`].
 ///
 /// **Note:**
 /// ExchangeTransformer is operating in a synchronous trait context so we use this separate task

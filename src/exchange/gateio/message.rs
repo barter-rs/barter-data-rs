@@ -51,3 +51,10 @@ pub struct GateioError {
     pub code: u8,
     pub message: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Todo:
+}

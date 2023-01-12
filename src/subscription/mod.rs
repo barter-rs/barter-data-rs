@@ -104,21 +104,20 @@ where
     }
 }
 
-/// Metadata generated from a collection of Barter [`Subscription`]s. This includes the exchange
+/// Metadata generated from a collection of Barter [`Subscription`]s, including the exchange
 /// specific subscription payloads that are sent to the exchange.
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SubscriptionMeta {
-    /// `HashMap` containing containing the mapping between a [`SubscriptionId`] and
-    /// it's Barter [`Instrument`].
+    /// `HashMap` containing the mapping between a [`SubscriptionId`] and
+    /// it's associated Barter [`Instrument`].
     pub instrument_map: Map<Instrument>,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
 }
 
-/// Convenient type alias for a `HashMap` containing the mapping between a [`SubscriptionId`] and
-/// an associated generic type.
+/// New type`HashMap` that maps a [`SubscriptionId`] to some associated type `T`.
 ///
-/// Used by [`ExchangeTransformers`](crate::transformer::ExchangeTransformer) to identify the
+/// Used by [`ExchangeTransformer`](crate::transformer::ExchangeTransformer)s to identify the
 /// Barter [`Instrument`] associated with incoming exchange messages.
 #[derive(Clone, Eq, PartialEq, Debug, Deserialize, Serialize)]
 pub struct Map<T>(pub HashMap<SubscriptionId, T>);

@@ -44,3 +44,10 @@ impl Validator for CoinbaseSubResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Todo:
+}

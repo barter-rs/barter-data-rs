@@ -20,7 +20,7 @@ pub struct KrakenTrades {
     pub trades: Vec<KrakenTrade>,
 }
 
-/// [`Kraken`] trade.
+/// [`Kraken`](super::Kraken) trade.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Serialize)]

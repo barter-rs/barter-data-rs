@@ -8,7 +8,7 @@ use barter_integration::model::{Exchange, Instrument, SubscriptionId};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-/// [`Binance`](super::Binance) real-time OrderBook Level1 (top of book) message.
+/// [`Binance`](super::super::Binance) real-time OrderBook Level1 (top of book) message.
 ///
 /// See docs:<https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams>
 /// See docs:<https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
