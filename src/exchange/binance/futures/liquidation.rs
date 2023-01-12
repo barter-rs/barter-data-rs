@@ -11,7 +11,27 @@ use serde::{Deserialize, Serialize};
 
 /// [`BinanceFuturesUsd`](super::BinanceFuturesUsd) Liquidation order message.
 ///
+/// ### Raw Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
+/// ```json
+/// {
+///     "e": "forceOrder",
+///     "E": 1665523974222,
+///     "o": {
+///         "s": "BTCUSDT",
+///         "S": "SELL",
+///         "o": "LIMIT",
+///         "f": "IOC",
+///         "q": "0.009",
+///         "p": "18917.15",
+///         "ap": "18990.00",
+///         "X": "FILLED",
+///         "l": "0.009",
+///         "z": "0.009",
+///         "T": 1665523974217
+///     }
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceLiquidation {
     #[serde(alias = "o")]
@@ -19,6 +39,23 @@ pub struct BinanceLiquidation {
 }
 
 /// [`BinanceFuturesUsd`](super::BinanceFuturesUsd) Liquidation order.
+///
+/// ### Raw Payload Examples
+/// ```json
+/// {
+///     "s": "BTCUSDT",
+///     "S": "SELL",
+///     "o": "LIMIT",
+///     "f": "IOC",
+///     "q": "0.009",
+///     "p": "18917.15",
+///     "ap": "18990.00",
+///     "X": "FILLED",
+///     "l": "0.009",
+///     "z": "0.009",
+///     "T": 1665523974217
+/// }
+/// ```
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#liquidation-order-streams>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -91,7 +128,8 @@ mod tests {
 
         #[test]
         fn test_binance_liquidation() {
-            let input = r#"{
+            let input = r#"
+            {
                 "e": "forceOrder",
                 "E": 1665523974222,
                 "o": {
@@ -107,7 +145,8 @@ mod tests {
                     "z": "0.009",
                     "T": 1665523974217
                 }
-            }"#;
+            }
+            "#;
 
             assert_eq!(
                 serde_json::from_str::<BinanceLiquidation>(input).unwrap(),

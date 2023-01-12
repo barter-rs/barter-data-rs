@@ -22,7 +22,22 @@ pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://api.binance.co
 
 /// [`BinanceSpot`](super::BinanceSpot) OrderBook Level2 deltas WebSocket message.
 ///
+/// ### Raw Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#partial-book-depth-streams>
+/// ```json
+/// {
+///     "e":"depthUpdate",
+///     "E":1671656397761,
+///     "s":"ETHUSDT",
+///     "U":22611425143,
+///     "u":22611425151,
+///     "b":[
+///         ["1209.67000000","85.48210000"],
+///         ["1209.66000000","20.68790000"]
+///     ],
+///     "a":[]
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceSpotOrderBookL2Delta {
     #[serde(

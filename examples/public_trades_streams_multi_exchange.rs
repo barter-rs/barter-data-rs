@@ -31,7 +31,7 @@ async fn main() {
             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
             (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
         ])
-        .subscribe(vec![
+        .subscribe([
             (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),

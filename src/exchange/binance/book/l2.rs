@@ -14,8 +14,36 @@ use serde::{Deserialize, Serialize};
 /// Used as the starting [`OrderBook`] before OrderBook Level2 delta WebSocket updates are
 /// applied.
 ///
+/// ### Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#order-book>
+/// #### BinanceSpot OrderBookL2Snapshot
+/// ```json
+/// {
+///     "lastUpdateId": 1027024,
+///     "bids": [
+///         ["4.00000000", "431.00000000"]
+///     ],
+///     "asks": [
+///         ["4.00000200", "12.00000000"]
+///     ]
+/// }
+/// ```
+///
+/// #### BinanceFuturesUsd OrderBookL2Snapshot
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#order-book>
+/// ```json
+/// {
+///     "lastUpdateId": 1027024,
+///     "E": 1589436922972,
+///     "T": 1589436922959,
+///     "bids": [
+///         ["4.00000000", "431.00000000"]
+///     ],
+///     "asks": [
+///         ["4.00000200", "12.00000000"]
+///     ]
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceOrderBookL2Snapshot {
     #[serde(rename = "lastUpdateId")]

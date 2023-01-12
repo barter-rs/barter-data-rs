@@ -7,7 +7,11 @@ pub mod l2;
 
 /// [`Binance`](super::Binance) OrderBook level.
 ///
+/// #### Raw Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+/// ```json
+/// ["4.00000200", "12.00000000"]
+/// ```
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceLevel {
     #[serde(deserialize_with = "barter_integration::de::de_str")]

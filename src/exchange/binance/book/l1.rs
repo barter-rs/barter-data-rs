@@ -10,8 +10,32 @@ use serde::{Deserialize, Serialize};
 
 /// [`Binance`](super::super::Binance) real-time OrderBook Level1 (top of book) message.
 ///
-/// See docs:<https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams>
-/// See docs:<https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
+/// ### Raw Payload Examples
+/// #### BinanceSpot OrderBookL1
+/// See docs: <https://binance-docs.github.io/apidocs/spot/en/#individual-symbol-book-ticker-streams>
+/// ```json
+/// {
+///     "u":22606535573,
+///     "s":"ETHUSDT",
+///     "b":"1215.27000000",
+///     "B":"32.49110000",
+///     "a":"1215.28000000",
+///     "A":"13.93900000"
+/// }
+/// ```
+///
+/// #### BinanceFuturesUsd OrderBookL1
+/// See docs: <https://binance-docs.github.io/apidocs/futures/en/#individual-symbol-book-ticker-streams>
+/// ```json
+/// {
+///     "u":22606535573,
+///     "s":"ETHUSDT",
+///     "b":"1215.27000000",
+///     "B":"32.49110000",
+///     "a":"1215.28000000",
+///     "A":"13.93900000"
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceOrderBookL1 {
     #[serde(alias = "s", deserialize_with = "de_ob_l1_subscription_id")]
@@ -51,8 +75,9 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL1)> for MarketIter<OrderBook
     }
 }
 
-/// Deserialize a [`BinanceOrderBookL1`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`]
-/// (eg/ "@bookTicker|BTCUSDT").
+/// Deserialize a [`BinanceOrderBookL1`] "s" (eg/ "BTCUSDT") as the associated [`SubscriptionId`].
+///
+/// eg/ "@bookTicker|BTCUSDT"
 pub fn de_ob_l1_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: serde::de::Deserializer<'de>,
@@ -78,14 +103,15 @@ mod tests {
             let tests = vec![
                 TestCase {
                     // TC0: valid Spot BinanceOrderBookL1
-                    input: r#"{
-                    "u":22606535573,
-                    "s":"ETHUSDT",
-                    "b":"1215.27000000",
-                    "B":"32.49110000",
-                    "a":"1215.28000000",
-                    "A":"13.93900000"
-                }
+                    input: r#"
+                    {
+                        "u":22606535573,
+                        "s":"ETHUSDT",
+                        "b":"1215.27000000",
+                        "B":"32.49110000",
+                        "a":"1215.28000000",
+                        "A":"13.93900000"
+                    }
                 "#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|ETHUSDT"),
@@ -97,17 +123,18 @@ mod tests {
                 },
                 TestCase {
                     // TC1: valid FuturePerpetual BinanceOrderBookL1
-                    input: r#"{
-                    "e":"bookTicker",
-                    "u":2286618712950,
-                    "s":"BTCUSDT",
-                    "b":"16858.90",
-                    "B":"13.692",
-                    "a":"16859.00",
-                    "A":"30.219",
-                    "T":1671621244670,
-                    "E":1671621244673
-                }"#,
+                    input: r#"
+                    {
+                        "e":"bookTicker",
+                        "u":2286618712950,
+                        "s":"BTCUSDT",
+                        "b":"16858.90",
+                        "B":"13.692",
+                        "a":"16859.00",
+                        "A":"30.219",
+                        "T":1671621244670,
+                        "E":1671621244673
+                    }"#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|BTCUSDT"),
                         best_bid_price: 16858.90,

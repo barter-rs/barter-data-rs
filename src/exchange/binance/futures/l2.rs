@@ -22,7 +22,25 @@ pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://fapi.binance.c
 
 /// [`BinanceFuturesUsd`](super::BinanceFuturesUsd) OrderBook Level2 deltas WebSocket message.
 ///
+/// ### Raw Payload Examples
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#partial-book-depth-streams>
+/// ```json
+/// {
+///     "e": "depthUpdate",
+///     "E": 123456789,
+///     "T": 123456788,
+///     "s": "BTCUSDT",
+///     "U": 157,
+///     "u": 160,
+///     "pu": 149,
+///     "b": [
+///         ["0.0024", "10"]
+///     ],
+///     "a": [
+///         ["0.0026", "100"]
+///     ]
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceFuturesOrderBookL2Delta {
     #[serde(
