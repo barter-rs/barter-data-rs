@@ -17,19 +17,17 @@ pub type GateioFuturesTrades = GateioMessage<Vec<GateioFuturesTradeInner>>;
 /// real-time trade WebSocket message.
 ///
 /// ### Raw Payload Examples
-/// #### FuturePerpetual Sell Trade
+/// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
 /// ```json
 /// {
-///   "size": -108,
 ///   "id": 27753479,
 ///   "create_time": 1545136464,
 ///   "create_time_ms": 1545136464123,
 ///   "price": "96.4",
+///   "size": -108,
 ///   "contract": "BTC_USD"
 /// }
 /// ```
-///
-/// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct GateioFuturesTradeInner {
     #[serde(rename = "contract")]

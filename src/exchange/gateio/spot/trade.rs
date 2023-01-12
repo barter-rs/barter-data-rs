@@ -15,7 +15,7 @@ pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;
 /// [`GateioSpot`](super::GateioSpot) real-time trade WebSocket message.
 ///
 /// ### Raw Payload Examples
-/// #### Spot Sell Trade
+/// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
 /// ```json
 /// {
 ///   "id": 309143071,
@@ -27,8 +27,6 @@ pub type GateioSpotTrade = GateioMessage<GateioSpotTradeInner>;
 ///   "price": "0.4705000000"
 /// }
 /// ```
-///
-/// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct GateioSpotTradeInner {
     #[serde(rename = "currency_pair")]
