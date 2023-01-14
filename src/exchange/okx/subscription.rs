@@ -70,59 +70,63 @@ impl Validator for OkxSubResponse {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_de_okx_subscription_response() {
-        struct TestCase {
-            input: &'static str,
-            expected: Result<OkxSubResponse, SocketError>,
-        }
+    mod de {
+        use super::*;
 
-        let cases = vec![
-            TestCase {
-                // TC0: input response is subscription success
-                input: r#"
+        #[test]
+        fn test_okx_subscription_response() {
+            struct TestCase {
+                input: &'static str,
+                expected: Result<OkxSubResponse, SocketError>,
+            }
+
+            let cases = vec![
+                TestCase {
+                    // TC0: input response is subscription success
+                    input: r#"
                 {
                     "event": "subscribe",
                     "args": {"channel": "trades", "instId": "BTC-USD-191227"}
                 }
                 "#,
-                expected: Ok(OkxSubResponse::Subscribed),
-            },
-            TestCase {
-                // TC1: input response is failed subscription
-                input: r#"
+                    expected: Ok(OkxSubResponse::Subscribed),
+                },
+                TestCase {
+                    // TC1: input response is failed subscription
+                    input: r#"
                 {
                     "event": "error",
                     "code": "60012",
                     "msg": "Invalid request: {\"op\": \"subscribe\", \"args\":[{ \"channel\" : \"trades\", \"instId\" : \"BTC-USD-191227\"}]}"
                 }
                 "#,
-                expected: Ok(OkxSubResponse::Error {
-                    code: "60012".to_string(),
-                    message: "Invalid request: {\"op\": \"subscribe\", \"args\":[{ \"channel\" : \"trades\", \"instId\" : \"BTC-USD-191227\"}]}".to_string()
-                }),
-            },
-        ];
+                    expected: Ok(OkxSubResponse::Error {
+                        code: "60012".to_string(),
+                        message: "Invalid request: {\"op\": \"subscribe\", \"args\":[{ \"channel\" : \"trades\", \"instId\" : \"BTC-USD-191227\"}]}".to_string()
+                    }),
+                },
+            ];
 
-        for (index, test) in cases.into_iter().enumerate() {
-            let actual = serde_json::from_str::<OkxSubResponse>(test.input);
-            match (actual, test.expected) {
-                (Ok(actual), Ok(expected)) => {
-                    assert_eq!(actual, expected, "TC{} failed", index)
-                }
-                (Err(_), Err(_)) => {
-                    // Test passed
-                }
-                (actual, expected) => {
-                    // Test failed
-                    panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+            for (index, test) in cases.into_iter().enumerate() {
+                let actual = serde_json::from_str::<OkxSubResponse>(test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
                 }
             }
         }
     }
 
     #[test]
-    fn test_validate_coinbase_subscription_response() {
+    fn test_validate_okx_sub_response() {
         struct TestCase {
             input_response: OkxSubResponse,
             is_valid: bool,

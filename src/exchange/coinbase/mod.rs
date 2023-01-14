@@ -28,7 +28,9 @@ pub const BASE_URL_COINBASE: &str = "wss://ws-feed.exchange.coinbase.com";
 /// [`Coinbase`] exchange.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview>
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
+)]
 pub struct Coinbase;
 
 impl Connector for Coinbase {

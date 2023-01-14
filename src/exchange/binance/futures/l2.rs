@@ -43,7 +43,10 @@ pub const HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT: &str = "https://fapi.binance.c
 /// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceFuturesOrderBookL2Delta {
-    #[serde(alias = "s", deserialize_with = "super::super::book::l2::de_ob_l2_subscription_id")]
+    #[serde(
+        alias = "s",
+        deserialize_with = "super::super::book::l2::de_ob_l2_subscription_id"
+    )]
     pub subscription_id: SubscriptionId,
     #[serde(alias = "U")]
     pub first_update_id: u64,

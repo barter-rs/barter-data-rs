@@ -45,7 +45,7 @@ mod tests {
                 expected: Result<GateioSubResponse, SocketError>,
             }
 
-            let cases = vec![TestCase {
+            let tests = vec![TestCase {
                 // TC0: input response is Subscribed
                 input: r#"
                     {
@@ -67,7 +67,7 @@ mod tests {
                 }),
             }];
 
-            for (index, test) in cases.into_iter().enumerate() {
+            for (index, test) in tests.into_iter().enumerate() {
                 let actual = serde_json::from_str::<GateioSubResponse>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {

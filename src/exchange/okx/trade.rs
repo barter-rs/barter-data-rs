@@ -53,18 +53,7 @@ impl<T> Identifier<Option<SubscriptionId>> for OkxMessage<T> {
 
 /// [`Okx`](super::Okx) real-time trade WebSocket message.
 ///
-/// ### Raw Payload Examples
-/// #### Spot Buy Trade
-/// ```json
-/// {
-///   "instId": "BTC-USDT",
-///   "tradeId": "130639474",
-///   "px": "42219.9",
-///   "sz": "0.12060306",
-///   "side": "buy",
-///   "ts": "1630048897897"
-/// }
-/// ```
+/// See [`OkxMessage`] for full raw payload examples.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel-trades-channel>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
@@ -128,5 +117,57 @@ where
 mod tests {
     use super::*;
 
-    // Todo:
+    mod de {
+        use super::*;
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+        use barter_integration::error::SocketError;
+        use std::time::Duration;
+
+        #[test]
+        fn test_okx_message_trades() {
+            let input = r#"
+            {
+                "arg": {
+                    "channel": "trades",
+                    "instId": "BTC-USDT"
+                },
+                "data": [
+                    {
+                        "instId": "BTC-USDT",
+                        "tradeId": "130639474",
+                        "px": "42219.9",
+                        "sz": "0.12060306",
+                        "side": "buy",
+                        "ts": "1630048897897"
+                    }
+                ]
+            }
+            "#;
+
+            let actual = serde_json::from_str::<OkxTrades>(input);
+            let expected: Result<OkxTrades, SocketError> = Ok(OkxTrades {
+                subscription_id: SubscriptionId::from("trades|BTC-USDT"),
+                data: vec![OkxTrade {
+                    id: "130639474".to_string(),
+                    price: 42219.9,
+                    amount: 0.12060306,
+                    side: Side::Buy,
+                    time: datetime_utc_from_epoch_duration(Duration::from_millis(1630048897897)),
+                }],
+            });
+
+            match (actual, expected) {
+                (Ok(actual), Ok(expected)) => {
+                    assert_eq!(actual, expected, "TC failed")
+                }
+                (Err(_), Err(_)) => {
+                    // Test passed
+                }
+                (actual, expected) => {
+                    // Test failed
+                    panic!("TC failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                }
+            }
+        }
+    }
 }

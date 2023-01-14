@@ -13,6 +13,8 @@ use serde::Serialize;
 
 /// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
 ///
+/// See [`KrakenMessage`](super::message::KrakenMessage) for full raw payload examples.
+///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Serialize)]
 pub struct KrakenTrades {
@@ -21,6 +23,8 @@ pub struct KrakenTrades {
 }
 
 /// [`Kraken`](super::Kraken) trade.
+///
+/// See [`KrakenMessage`](super::message::KrakenMessage) for full raw payload examples.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Serialize)]
@@ -187,42 +191,5 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
 
         // Use Visitor implementation to deserialise the KrakenTrade
         deserializer.deserialize_seq(SeqVisitor)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_de_kraken_trades() {
-        let message = r#"
-        [
-          0,
-          [
-            [
-              "5541.20000",
-              "0.15850568",
-              "1534614057.321597",
-              "s",
-              "l",
-              ""
-            ],
-            [
-              "6060.00000",
-              "0.02455000",
-              "1534614057.324998",
-              "b",
-              "l",
-              ""
-            ]
-          ],
-          "trade",
-          "XBT/USD"
-        ]
-        "#;
-
-        let trades = serde_json::from_str::<KrakenTrades>(message).unwrap();
-        assert_eq!(trades.trades.len(), 2);
     }
 }
