@@ -85,9 +85,13 @@ impl From<(ExchangeId, Instrument, GateioFuturesTrades)> for MarketIter<PublicTr
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_de_gateio_message_futures_trade() {
-        let input = "{\"time\":1669843487,\"time_ms\":1669843487733,\"channel\":\"futures.trades\",\"event\":\"update\",\"result\":[{\"contract\":\"ETH_USDT\",\"create_time\":1669843487,\"create_time_ms\":1669843487724,\"id\":180276616,\"price\":\"1287\",\"size\":3}]}";
-        serde_json::from_str::<GateioFuturesTrades>(input).unwrap();
+    mod de {
+        use super::*;
+
+        #[test]
+        fn test_gateio_message_futures_trade() {
+            let input = "{\"time\":1669843487,\"time_ms\":1669843487733,\"channel\":\"futures.trades\",\"event\":\"update\",\"result\":[{\"contract\":\"ETH_USDT\",\"create_time\":1669843487,\"create_time_ms\":1669843487724,\"id\":180276616,\"price\":\"1287\",\"size\":3}]}";
+            serde_json::from_str::<GateioFuturesTrades>(input).unwrap();
+        }
     }
 }

@@ -62,20 +62,13 @@ pub struct BinanceLiquidation {
 pub struct BinanceLiquidationOrder {
     #[serde(alias = "s", deserialize_with = "de_liquidation_subscription_id")]
     pub subscription_id: SubscriptionId,
-
     #[serde(alias = "S")]
     pub side: Side,
-
     #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
-
     #[serde(alias = "q", deserialize_with = "barter_integration::de::de_str")]
     pub quantity: f64,
-
-    #[serde(
-        alias = "T",
-        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
-    )]
+    #[serde(alias = "T", deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
 }
 

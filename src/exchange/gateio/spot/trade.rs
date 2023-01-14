@@ -73,5 +73,29 @@ impl From<(ExchangeId, Instrument, GateioSpotTrade)> for MarketIter<PublicTrade>
 mod tests {
     use super::*;
 
-    // Todo:
+    mod de {
+        use super::*;
+
+        #[test]
+        fn test_gateio_message_futures_trade() {
+            let input = r#"
+            {
+                "time": 1606292218,
+                "time_ms": 1606292218231,
+                "channel": "spot.trades",
+                "event": "update",
+                "result": {
+                    "id": 309143071,
+                    "create_time": 1606292218,
+                    "create_time_ms": "1606292218213.4578",
+                    "side": "sell",
+                    "currency_pair": "GT_USDT",
+                    "amount": "16.4700000000",
+                    "price": "0.4705000000"
+                }
+            }
+            "#;
+            serde_json::from_str::<GateioSpotTrade>(input).unwrap();
+        }
+    }
 }

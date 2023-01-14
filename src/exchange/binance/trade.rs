@@ -54,10 +54,7 @@ use serde::{Deserialize, Serialize};
 pub struct BinanceTrade {
     #[serde(alias = "s", deserialize_with = "de_trade_subscription_id")]
     pub subscription_id: SubscriptionId,
-    #[serde(
-        alias = "T",
-        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
-    )]
+    #[serde(alias = "T",deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc")]
     pub time: DateTime<Utc>,
     #[serde(alias = "t")]
     pub id: u64,

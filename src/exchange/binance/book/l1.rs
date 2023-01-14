@@ -39,15 +39,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BinanceOrderBookL1 {
     #[serde(alias = "s", deserialize_with = "de_ob_l1_subscription_id")]
-    subscription_id: SubscriptionId,
+    pub subscription_id: SubscriptionId,
     #[serde(alias = "b", deserialize_with = "barter_integration::de::de_str")]
-    best_bid_price: f64,
+    pub best_bid_price: f64,
     #[serde(alias = "B", deserialize_with = "barter_integration::de::de_str")]
-    best_bid_amount: f64,
+    pub best_bid_amount: f64,
     #[serde(alias = "a", deserialize_with = "barter_integration::de::de_str")]
-    best_ask_price: f64,
+    pub best_ask_price: f64,
     #[serde(alias = "A", deserialize_with = "barter_integration::de::de_str")]
-    best_ask_amount: f64,
+    pub best_ask_amount: f64,
 }
 
 impl Identifier<Option<SubscriptionId>> for BinanceOrderBookL1 {
