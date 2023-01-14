@@ -32,11 +32,6 @@ pub mod subscriber;
 pub mod subscription;
 pub mod transformer;
 
-// Todo:
-//  - Rust Docs:
-//     - Normalise styling of model docs, see Okx etc (check doc --open before I decide to go ahead)
-//  - Tests where I've added \todos (can use the examples I get for the model docs)
-
 // Todo: Maybe In Futures:
 //  Symbol Aliases:
 //  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)

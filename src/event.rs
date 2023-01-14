@@ -3,7 +3,7 @@ use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Convenient new type containing a collection of [`Market<Event>`](Market)s.
 #[derive(Debug)]
 pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, DataError>>);
 

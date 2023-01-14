@@ -63,7 +63,7 @@ where
     }
 }
 
-/// Defines the frequency and recipe for custom
+/// Defines the frequency and construction function for custom
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket) pings - used for exchanges
 /// that require additional application-level pings.
 #[derive(Debug)]

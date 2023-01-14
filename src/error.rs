@@ -1,7 +1,7 @@
 use barter_integration::error::SocketError;
 use thiserror::Error;
 
-/// Todo:
+/// All errors generated in `barter-data`.
 #[derive(Debug, Error)]
 pub enum DataError {
     #[error("SocketError: {0}")]
@@ -20,7 +20,7 @@ pub enum DataError {
 }
 
 impl DataError {
-    /// Todo:
+    /// Determine if an error requires a [`MarketStream`] to re-initialise.
     #[allow(clippy::match_like_matches_macro)]
     pub fn is_terminal(&self) -> bool {
         match self {
