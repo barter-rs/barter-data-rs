@@ -2,9 +2,40 @@ use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::SubscriptionId;
 use serde::Deserialize;
 
+/// Defines an exchange specific market and channel combination used by an exchange [`Connector`] to
+/// build the [`WsMessage`] subscription payloads to send to the exchange server.
+///
+/// ### Examples
+/// #### Binance OrderBooksL2
+/// ```json
+/// ExchangeSub {
+///     channel: BinanceChannel("@depth@100ms"),
+///     market: BinanceMarket("btcusdt"),
+/// }
+/// ```
+/// #### Kraken PublicTrades
+/// ```json
+/// ExchangeSub {
+///     channel: KrakenChannel("trade"),
+///     market: KrakenChannel("BTC/USDT")
+/// }
+/// ```
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize)]
 pub struct ExchangeSub<Channel, Market> {
+    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
+    /// channel to be subscribed to.
+    ///
+    /// ### Examples
+    /// - [`BinanceChannel("@depth@100ms")`](BinanceChannel)
+    /// - [`KrakenChannel("trade")`](KrakenChannel)
     pub channel: Channel,
+
+    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
+    /// market that can be subscribed to.
+    ///
+    /// ### Examples
+    /// - [`BinanceMarket("btcusdt")`](BinanceMarket)
+    /// - [`KrakenMarket("BTC/USDT")`](KrakenMarket)
     pub market: Market,
 }
 

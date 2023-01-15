@@ -34,10 +34,20 @@ where
     /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;
 
-    /// Todo:
+    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
+    /// channel to be subscribed to.
+    ///
+    /// ### Examples
+    /// - [`BinanceChannel("@depth@100ms")`](BinanceChannel)
+    /// - [`KrakenChannel("trade")`](KrakenChannel)
     type Channel: AsRef<str>;
 
-    /// Todo:
+    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
+    /// market that can be subscribed to.
+    ///
+    /// ### Examples
+    /// - [`BinanceMarket("btcusdt")`](BinanceMarket)
+    /// - [`KrakenMarket("BTC/USDT")`](KrakenMarket)
     type Market: AsRef<str>;
 
     /// Todo:
@@ -45,19 +55,24 @@ where
     type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + Debug + DeserializeOwned;
 
-    /// Base Url of the exchange server to establish a connection with.
+    /// Base [`Url`] of the exchange server being connected with.
     fn url() -> Result<Url, SocketError>;
 
-    /// Todo:
+    /// Defines [`PingInterval`] of custom application-level
+    /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket) pings for the exchange
+    /// server being connected with.
+    ///
+    /// Defaults to `None`, meaning that no custom pings are sent.
     fn ping_interval() -> Option<PingInterval> {
         None
     }
 
-    /// Todo:
+    /// Defines how to translate a collection of [`ExchangeSub`]s into the [`WsMessage`]
+    /// subscription payloads sent to the exchange server.
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
     /// Number of [`Subscription`](crate::subscription::Subscription) responses expected from the
-    /// exchange in responses to the requests send. Used to validate all
+    /// exchange server in responses to the requests send. Used to validate all
     /// [`Subscription`](crate::subscription::Subscription)s were accepted.
     fn expected_responses(map: &Map<Instrument>) -> usize {
         map.0.len()
