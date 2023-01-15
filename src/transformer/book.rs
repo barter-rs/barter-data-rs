@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
 
-/// Todo:
+/// Defines how to apply a [`Self::Update`] to an [`Self::OrderBook`].
 #[async_trait]
 pub trait OrderBookUpdater
 where
@@ -25,6 +25,8 @@ where
     type OrderBook;
     type Update;
 
+    /// Initialises the [`InstrumentOrderBook`] for the provided [`Instrument`]. This often requires
+    /// a HTTP call to receive a starting [`OrderBook`] snapshot.
     async fn init<Exchange, Kind>(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         instrument: Instrument,
@@ -33,6 +35,7 @@ where
         Exchange: Send,
         Kind: Send;
 
+    /// Apply the [`Self::Update`] to the provided mutable [`Self::OrderBook`].
     fn update(
         &mut self,
         book: &mut Self::OrderBook,
@@ -40,7 +43,8 @@ where
     ) -> Result<Option<Self::OrderBook>, DataError>;
 }
 
-/// Todo:
+/// [`OrderBook`] for an [`Instrument`] with an exchange specific [`OrderBookUpdater`] to define
+/// how to update it.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct InstrumentOrderBook<Updater> {
     pub instrument: Instrument,
@@ -48,7 +52,9 @@ pub struct InstrumentOrderBook<Updater> {
     pub book: OrderBook,
 }
 
-/// Todo:
+/// Standard generic [`ExchangeTransformer`] to translate exchange specific OrderBook types into
+/// normalised Barter OrderBook types. Requires an exchange specific [`OrderBookUpdater`]
+/// implementation.
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
 pub struct MultiBookTransformer<Exchange, Kind, Updater> {
     pub book_map: Map<InstrumentOrderBook<Updater>>,

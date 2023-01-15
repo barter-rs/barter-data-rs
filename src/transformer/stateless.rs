@@ -16,7 +16,8 @@ use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
 
-/// Todo:
+/// Standard generic stateless [`ExchangeTransformer`] to translate exchange specific types into
+/// normalised Barter types. Often used with [`PublicTrades`] or [`OrderBooksL1`] streams.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
 pub struct StatelessTransformer<Exchange, Kind, Input> {
     instrument_map: Map<Instrument>,

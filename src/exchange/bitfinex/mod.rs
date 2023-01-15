@@ -1,3 +1,24 @@
+//!
+//! ### Notes
+//! #### SubscripionId
+//! - Successful Bitfinex subscription responses contain a numeric `CHANNEL_ID` that must be used to
+//!   identify future messages relating to that subscription (not persistent across connections).
+//! - To identify the initial subscription response containing the `CHANNEL_ID`, the "channel" &
+//!   "market" identifiers can be used for the `SubscriptionId(channel|market)`
+//!   (eg/ SubscriptionId("trades|tBTCUSD")).
+//! - Once the subscription has been validated and the `CHANNEL_ID` determined, each `SubscriptionId`
+//!   in the `SubscriptionIds` `HashMap` is mutated to become `SubscriptionId(CHANNEL_ID)`.
+//!   eg/ SubscriptionId("trades|tBTCUSD") -> SubscriptionId(69)
+//!
+//! #### Connection Limits
+//! - The user is allowed up to 20 connections per minute on the public API.
+//! - Each connection can be used to connect up to 25 different channels.
+//!
+//! #### Trade Variants
+//! - Bitfinex trades subscriptions results in receiving tag="te" & tag="tu" trades.
+//! - Both appear to be identical payloads, but "te" arriving marginally faster.
+//! - Therefore, tag="tu" trades are filtered out and considered only as additional Heartbeats.
+
 use self::{
     channel::BitfinexChannel, market::BitfinexMarket, message::BitfinexMessage,
     subscription::BitfinexPlatformEvent, validator::BitfinexWebSocketSubValidator,

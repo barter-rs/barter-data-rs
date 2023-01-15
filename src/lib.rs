@@ -57,15 +57,8 @@ pub mod subscription;
 pub mod transformer;
 
 // Todo: Before Release:
-//  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)
-//  - Fix imports
-//  - Add derives eagerly
-//  - Rust docs
-//  - Check rust docs & fix
 //  - Readme.md, examples, etc. including table of available exchanges & SubKinds
 //  - Release barter-integration & switch toml
-
-// Todo: After Release:
 //  - Code Style section in contribution readme.md
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite

@@ -42,7 +42,8 @@ impl Identifier<Option<SubscriptionId>> for KrakenTrades {
     }
 }
 
-/// Todo: important
+/// Generate a custom [`Kraken`](super::Kraken) trade identifier since it is not provided in the
+/// [`KrakenTrade`] model.
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
         "{}_{}_{}_{}",

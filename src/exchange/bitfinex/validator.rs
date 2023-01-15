@@ -19,7 +19,16 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-/// Todo: Important
+/// [`Bitfinex`](super::Bitfinex) specific [`SubscriptionValidator`].
+///
+/// ### Notes
+/// - Required because Bitfinex has a non-self-describing data format after subscriptions have been
+///   validated.
+/// - The [`BitfinexChannelId`] is used to identify the usbscription associated with incoming
+///   events, rather than a `String` channel-market identifier.
+/// - Therefore the [`SubscriptionId`] format must change during [`BitfinexWebSocketSubValidator::validate`]
+///   to use the [`BitfinexChannelId`] (see module level "SubscriptionId" documentation notes
+///   for more details).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexWebSocketSubValidator;
 

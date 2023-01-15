@@ -145,14 +145,10 @@ pub struct BitfinexSubResponse {
     #[serde(rename = "chanId")]
     pub channel_id: BitfinexChannelId,
 }
-/// [`Bitfinex`](super::Bitfinex) channel identifier received in the [`BitfinexSubResponse`] - this
-/// is then used to identify the Barter [`Instrument`] associated with received
-///
-/// The custom [`BitfinexWebSocketSubValidator`](super::validator::BitfinexWebSocketSubValidator)
-/// [`SubscriptionValidator`]
-///
-/// Todo:
-///
+
+/// [`Bitfinex`](super::Bitfinex) channel identifier that is used to identify the subscription
+/// associated with incoming events. See the module level "SubscriptionId" documentation notes
+/// for more details.
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general#subscribe-to-channels>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
