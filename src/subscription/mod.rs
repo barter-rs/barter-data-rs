@@ -11,13 +11,19 @@ use std::{
     fmt::{Debug, Display, Formatter},
 };
 
-/// Todo:
+/// OrderBook [`SubKind`]s and the associated Barter output data models.
 pub mod book;
+
+/// Candle [`SubKind`] and the associated Barter output data model.
 pub mod candle;
+
+/// Liquidation [`SubKind`] and the associated Barter output data model.
 pub mod liquidation;
+
+/// Public trade [`SubKind`] and the associated Barter output data model.
 pub mod trade;
 
-/// Todo:
+/// Defines the type of a [`Subscription`], and the output [`Self::Event`] that it yields.
 pub trait SubKind
 where
     Self: Debug + Clone,
@@ -25,7 +31,8 @@ where
     type Event: Debug;
 }
 
-/// Todo:
+/// Barter [`Subscription`] used to subscribe to a [`SubKind`] for a particular exchange
+/// [`Instrument`].
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 pub struct Subscription<Exchange, Kind> {
     pub exchange: Exchange,
