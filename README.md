@@ -43,6 +43,21 @@ From a user perspective, it's major component is the `StreamBuilder` structures 
 arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply build your dream set of 
 `MarketStreams` and `Barter-Data` will do the rest!
 
+### Supported Exchange Subscriptions
+
+|       Exchange        |        Constructor Code        |                      InstrumentKinds                      |                          SubKinds                           |
+|:---------------------:|:------------------------------:|:---------------------------------------------------------:|:-----------------------------------------------------------:|
+|    **BinanceSpot**    |    `BinanceSpot::default()`    |                           Spot                            |      PublicTrades <br> OrderBooksL1 <br> OrderBooksL2       |                                                              |
+| **BinanceFuturesUsd** | `BinanceFuturesUsd::default()` |                      FuturePerpetual                      |      PublicTrades <br> OrderBooksL1 <br> OrderBooksL2       |
+|     **Bitfinex**      |           `Bitfinex`           |                           Spot                            |                        PublicTrades                         |
+|     **Coinbase**      |           `Coinbase`           |                           Spot                            |                        PublicTrades                         |
+|    **GateioSpot**     |    `GateioSpot::default()`     |                           Spot                            |                        PublicTrades                         |
+| **GateioFuturesUsd**  | `GateioFuturesUsd::default()`  |                      FuturePerpetual                      |                        PublicTrades                         |
+| **GateioFuturesBtc**  | `GateioFuturesBtc::default()`  |                      FuturePerpetual                      |                        PublicTrades                         |
+|      **Kraken**       |            `Kraken`            |                           Spot                            |                        PublicTrades                         |
+|        **Okx**        |             `Okx`              |                 Spot <br> FuturePerpetual                 |                        PublicTrades                         |
+
+
 ## Examples
 See barter-data-rs/examples for a more comprehensive selection of examples! 
 
