@@ -1,4 +1,3 @@
-use super::{InstrumentOrderBook, OrderBookUpdater};
 use crate::{
     error::DataError,
     event::{Market, MarketIter},
@@ -16,6 +15,38 @@ use barter_integration::{
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
+
+/// Todo:
+#[async_trait]
+pub trait OrderBookUpdater
+where
+    Self: Sized,
+{
+    type OrderBook;
+    type Update;
+
+    async fn init<Exchange, Kind>(
+        ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
+        instrument: Instrument,
+    ) -> Result<InstrumentOrderBook<Self>, DataError>
+    where
+        Exchange: Send,
+        Kind: Send;
+
+    fn update(
+        &mut self,
+        book: &mut Self::OrderBook,
+        update: Self::Update,
+    ) -> Result<Option<Self::OrderBook>, DataError>;
+}
+
+/// Todo:
+#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub struct InstrumentOrderBook<Updater> {
+    pub instrument: Instrument,
+    pub updater: Updater,
+    pub book: OrderBook,
+}
 
 /// Todo:
 #[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]

@@ -3,7 +3,7 @@ use super::{Binance, ExchangeServer};
 use crate::{
     exchange::{ExchangeId, StreamSelector},
     subscription::book::OrderBooksL2,
-    transformer::book::multi::MultiBookTransformer,
+    transformer::book::MultiBookTransformer,
     ExchangeWsStream,
 };
 
