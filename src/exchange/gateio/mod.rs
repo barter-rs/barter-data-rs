@@ -8,10 +8,15 @@ use serde_json::json;
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
-/// Todo:
+/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
+/// specific channel used for generating [`Connector::requests`].
 pub mod channel;
 pub mod futures;
+
+/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
+/// specific market used for generating [`Connector::requests`].
 pub mod market;
+
 pub mod message;
 pub mod spot;
 pub mod subscription;

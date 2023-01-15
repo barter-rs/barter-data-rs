@@ -14,9 +14,14 @@ use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
 
-/// Todo:
+/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
+/// specific channel used for generating [`Connector::requests`].
 pub mod channel;
+
+/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
+/// specific market used for generating [`Connector::requests`].
 pub mod market;
+
 pub mod message;
 pub mod subscription;
 pub mod trade;
