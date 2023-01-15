@@ -1,13 +1,13 @@
 use self::trade::GateioSpotTrade;
 use super::Gateio;
-use crate::exchange::{ExchangeServer, StreamSelector};
 use crate::{
-    exchange::ExchangeId, subscription::trade::PublicTrades,
+    exchange::{ExchangeServer, StreamSelector, ExchangeId},
+    subscription::trade::PublicTrades,
     transformer::stateless::StatelessTransformer, ExchangeWsStream,
 };
 use barter_macro::{DeExchange, SerExchange};
 
-/// Todo:
+/// Public trades types.
 pub mod trade;
 
 /// [`GateioSpot`] WebSocket server base url.
@@ -15,10 +15,10 @@ pub mod trade;
 /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/>
 pub const WEBSOCKET_BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
 
-/// Todo:
+/// [`Gateio`](super::Gateio) spot exchange.
 pub type GateioSpot = Gateio<GateioServerSpot>;
 
-/// Todo:
+/// [`Gateio`](super::Gateio) spot [`ExchangeServer`].
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
 )]

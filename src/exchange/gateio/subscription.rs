@@ -2,10 +2,11 @@ use super::message::GateioMessage;
 use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Expected [`Gateio`](super::Gateio) [`Subscription`] response type wrapped in the generic
+/// [`GateioMessage<T>`](GateioMessage).
 pub type GateioSubResponse = GateioMessage<GateioSubResult>;
 
-/// Todo:
+/// Expected [`Gateio`](super::Gateio) [`Subscription`] response type.
 ///
 /// See [`GateioMessage`](super::message::GateioMessage) for full raw payload examples.
 ///

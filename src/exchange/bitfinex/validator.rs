@@ -19,7 +19,7 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-/// Todo:
+/// Todo: Important
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexWebSocketSubValidator;
 

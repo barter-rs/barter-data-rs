@@ -1,7 +1,8 @@
 use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// [`Bitfinex`](super::Bitfinex) platform event detailing the variants expected to be received
+/// while connecting and subscribing.
 ///
 /// ### Raw Payload Examples
 /// See docs: <https://docs.bitfinex.com/docs/ws-general>
@@ -144,8 +145,14 @@ pub struct BitfinexSubResponse {
     #[serde(rename = "chanId")]
     pub channel_id: BitfinexChannelId,
 }
-
+/// [`Bitfinex`](super::Bitfinex) channel identifier received in the [`BitfinexSubResponse`] - this
+/// is then used to identify the Barter [`Instrument`] associated with received
+///
+/// The custom [`BitfinexWebSocketSubValidator`](super::validator::BitfinexWebSocketSubValidator)
+/// [`SubscriptionValidator`]
+///
 /// Todo:
+///
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-general#subscribe-to-channels>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]

@@ -8,7 +8,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Public trades types.
 pub mod trade;
 
 /// [`GateioFuturesUsd`] WebSocket server base url.
@@ -16,10 +16,10 @@ pub mod trade;
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
 pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
 
-/// Todo:
+/// [`Gateio`](super::Gateio) futures usd exchange.
 pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 
-/// Todo:
+/// [`Gateio`](super::Gateio) futures usd [`ExchangeServer`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct GateioServerFuturesUsd;
 
@@ -40,10 +40,10 @@ impl StreamSelector<PublicTrades> for GateioFuturesUsd {
 /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
 pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
 
-/// Todo:
+/// [`Gateio`](super::Gateio) futures btc exchange.
 pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
 
-/// Todo:
+/// [`Gateio`](super::Gateio) futures btc [`ExchangeServer`].
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
 )]
