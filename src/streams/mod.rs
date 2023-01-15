@@ -4,8 +4,12 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
 
-/// Todo:
+/// Defines the [`StreamBuilder`](builder::StreamBuilder) API for initialising [`MarketStream`]
+/// [`Streams`].
 pub mod builder;
+
+/// Central consumer loop functionality used by the [`StreamBuilder`](builder::StreamBuilder) to
+/// to drive a re-connecting [`MarketStream`].
 pub mod consumer;
 
 /// Collection of exchange [`Market<Event>`](Market) streams for a specific [`SubKind`].

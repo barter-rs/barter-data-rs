@@ -3,11 +3,11 @@ use self::{
     subscription::BitfinexPlatformEvent, validator::BitfinexWebSocketSubValidator,
 };
 use crate::{
-    exchange::{StreamSelector, Connector, ExchangeId, ExchangeSub},
-    ExchangeWsStream,
+    exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
     subscriber::WebSocketSubscriber,
     subscription::trade::PublicTrades,
     transformer::stateless::StatelessTransformer,
+    ExchangeWsStream,
 };
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use barter_macro::{DeExchange, SerExchange};

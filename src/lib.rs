@@ -18,8 +18,8 @@ use crate::{
 };
 use async_trait::async_trait;
 use barter_integration::{
-    ExchangeStream,
     protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
+    ExchangeStream,
 };
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;

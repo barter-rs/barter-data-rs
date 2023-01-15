@@ -1,8 +1,10 @@
 use self::l2::BinanceSpotBookUpdater;
 use super::{Binance, ExchangeServer};
 use crate::{
-    exchange::{StreamSelector, ExchangeId}, ExchangeWsStream,
-    subscription::book::OrderBooksL2, transformer::book::multi::MultiBookTransformer,
+    exchange::{ExchangeId, StreamSelector},
+    subscription::book::OrderBooksL2,
+    transformer::book::multi::MultiBookTransformer,
+    ExchangeWsStream,
 };
 
 /// Todo:

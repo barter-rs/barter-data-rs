@@ -1,5 +1,10 @@
 use self::subscription::ExchangeSub;
-use crate::{MarketStream, subscriber::{Subscriber, validator::SubscriptionValidator}, subscription::Map};
+use crate::subscription::SubKind;
+use crate::{
+    subscriber::{validator::SubscriptionValidator, Subscriber},
+    subscription::Map,
+    MarketStream,
+};
 use barter_integration::{
     error::SocketError, model::Instrument, protocol::websocket::WsMessage, Validator,
 };
@@ -9,7 +14,6 @@ use std::{
     time::Duration,
 };
 use url::Url;
-use crate::subscription::SubKind;
 
 /// `BinanceSpot` & `BinanceFuturesUsd` [`Connector`] and [`StreamSelector`] implementations.
 pub mod binance;
@@ -41,7 +45,7 @@ pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 /// Defines the [`MarketStream`] kind associated with an exchange [`Subscription`] [`SubKind`].
 ///
 /// ### Notes
-/// Must be implemented by an exchange [`Connector`] if it supports a [`SubKind`].
+/// Must be implemented by an exchange [`Connector`] if it supports a specific[`SubKind`].
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
