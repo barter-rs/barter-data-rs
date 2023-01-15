@@ -6,7 +6,79 @@
 )]
 
 //! # Barter-Data
-//! Todo:
+//! A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency
+//! exchanges - batteries included. It is:
+//! * **Easy**: Barter-Data's simple [`StreamBuilder`](streams::builder::StreamBuilder) interface allows for easy & quick setup (see example below!).
+//! * **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
+//! * **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
+//! * **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to with coding new integrations!
+//!
+//! ## User API
+//! - [`StreamBuilder`](streams::builder::StreamBuilder) for initialising [`MarketStream`]s of various kinds.
+//! - Define what exchange market data you want to stream using the [`Subscription`] type.
+//! - Pass [`Subscription`]s to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe) method.
+//! - Each call to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe)
+//!   method opens a new WebSocket connection to the exchange - giving you full control.
+//! - Call [`StreamBuilder::init`](streams::builder::StreamBuilder::init) to start streaming!
+//!
+//! ## Examples
+//! ### Multi Exchange Public Trades
+//! ```rust,no_run
+//! use barter_data::exchange::gateio::spot::GateioSpot;
+//! use barter_data::{
+//!     exchange::{
+//!         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+//!         coinbase::Coinbase,
+//!         okx::Okx,
+//!     },
+//!     streams::Streams,
+//!     subscription::trade::PublicTrades,
+//! };
+//! use barter_integration::model::InstrumentKind;
+//! use futures::StreamExt;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Initialise PublicTrades Streams for various exchanges
+//!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
+//!     let streams = Streams::builder()
+//!         .subscribe([
+//!             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
+//!             (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (GateioSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (GateioSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!        ])
+//!         .init()
+//!         .await
+//!         .unwrap();
+//!
+//!     // Join all exchange PublicTrades streams into a single tokio_stream::StreamMap
+//!     // Notes:
+//!     //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+//!     //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
+//!     let mut joined_stream = streams.join_map().await;
+//!
+//!     while let Some((exchange, trade)) = joined_stream.next().await {
+//!         println!("Exchange: {exchange}, Market<PublicTrade>: {trade:?}");
+//!     }
+//! }
+//! ```
 
 use crate::{
     error::DataError,
