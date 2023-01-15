@@ -51,7 +51,9 @@ where
     type Market: AsRef<str>;
 
     /// Todo:
-    type Subscriber: Subscriber<Self::SubValidator>;
+    type Subscriber: Subscriber;
+
+
     type SubValidator: SubscriptionValidator;
 
     /// Deserialisable type that the [`Self::SubValidator`] expects to receive from the exchange server in

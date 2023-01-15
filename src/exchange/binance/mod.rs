@@ -35,7 +35,7 @@ where
     const ID: ExchangeId = Server::ID;
     type Channel = BinanceChannel;
     type Market = BinanceMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
     type SubResponse = BinanceSubResponse;
 

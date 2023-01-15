@@ -39,7 +39,7 @@ impl Connector for Bitfinex {
     const ID: ExchangeId = ExchangeId::Bitfinex;
     type Channel = BitfinexChannel;
     type Market = BitfinexMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = BitfinexWebSocketSubValidator;
     type SubResponse = BitfinexPlatformEvent;
 

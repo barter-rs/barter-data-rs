@@ -15,7 +15,6 @@ use barter_integration::{
 };
 use futures::SinkExt;
 use serde::{Deserialize, Serialize};
-use std::marker::PhantomData;
 use tracing::{debug, info};
 
 /// Todo:
@@ -26,10 +25,7 @@ pub mod validator;
 
 /// Todo:
 #[async_trait]
-pub trait Subscriber<Validator>
-where
-    Validator: SubscriptionValidator,
-{
+pub trait Subscriber {
     type SubMapper: SubscriptionMapper;
 
     async fn subscribe<Exchange, Kind>(
@@ -38,20 +34,14 @@ where
     where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
-        Validator: 'async_trait;
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct WebSocketSubscriber<Validator> {
-    phantom: PhantomData<Validator>,
-}
+pub struct WebSocketSubscriber;
 
 #[async_trait]
-impl<Validator> Subscriber<Validator> for WebSocketSubscriber<Validator>
-where
-    Validator: SubscriptionValidator,
-{
+impl Subscriber for WebSocketSubscriber {
     type SubMapper = WebSocketSubMapper;
 
     async fn subscribe<Exchange, Kind>(
@@ -61,7 +51,6 @@ where
         Exchange: Connector + Send + Sync,
         Kind: SubKind + Send + Sync,
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
-        Validator: 'async_trait,
     {
         // Define variables for logging ergonomics
         let exchange = Exchange::ID;
@@ -85,7 +74,7 @@ where
         }
 
         // Validate Subscription responses
-        let map = Validator::validate::<Exchange, Kind>(instrument_map, &mut websocket).await?;
+        let map = Exchange::SubValidator::validate::<Exchange, Kind>(instrument_map, &mut websocket).await?;
 
         info!(%exchange, "subscribed to WebSocket");
         Ok((websocket, map))

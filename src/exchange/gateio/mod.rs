@@ -29,7 +29,7 @@ where
     const ID: ExchangeId = Server::ID;
     type Channel = GateioChannel;
     type Market = GateioMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
     type SubResponse = GateioSubResponse;
 

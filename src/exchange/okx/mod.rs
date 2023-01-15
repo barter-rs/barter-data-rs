@@ -36,7 +36,7 @@ impl Connector for Okx {
     const ID: ExchangeId = ExchangeId::Okx;
     type Channel = OkxChannel;
     type Market = OkxMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
     type SubResponse = OkxSubResponse;
 

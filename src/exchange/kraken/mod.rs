@@ -38,7 +38,7 @@ impl Connector for Kraken {
     const ID: ExchangeId = ExchangeId::Kraken;
     type Channel = KrakenChannel;
     type Market = KrakenMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
     type SubResponse = KrakenSubResponse;
 

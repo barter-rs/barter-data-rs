@@ -37,7 +37,7 @@ impl Connector for Coinbase {
     const ID: ExchangeId = ExchangeId::Coinbase;
     type Channel = CoinbaseChannel;
     type Market = CoinbaseMarket;
-    type Subscriber = WebSocketSubscriber<Self::SubValidator>;
+    type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
     type SubResponse = CoinbaseSubResponse;
 
