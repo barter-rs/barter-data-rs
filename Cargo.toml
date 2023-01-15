@@ -1,7 +1,7 @@
 [package]
 name = "barter-data"
-version = "0.5.11"
-authors = ["keirbailey <keirinvestment@gmail.com>"]
+version = "0.6.0"
+authors = ["JustAStream"]
 edition = "2021"
 license = "MIT"
 documentation = "https://docs.rs/barter-data/"
@@ -11,14 +11,13 @@ description = "High performance & normalised WebSocket intergration for leading 
 keywords = ["trading", "backtesting", "crypto", "stocks", "investment"]
 categories = ["accessibility", "simulation"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.4.1"
+barter-integration = "0.5.0"
+barter-macro =  "0.1.1"
 
 # Logging
 tracing = "0.1.36"
@@ -28,6 +27,10 @@ tokio = { version = "1.20.1", features = ["sync", "macros", "rt-multi-thread"] }
 tokio-stream = { version = "0.1.9", features = ["sync"] }
 futures = "0.3.21"
 async-trait = "0.1.57"
+
+# Protocol
+url = "2.3.1"
+reqwest = "0.11.13"
 
 # Error
 thiserror = "1.0.32"

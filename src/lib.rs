@@ -5,346 +5,211 @@
     // missing_docs
 )]
 
-use crate::model::{
-    subscription::{Subscription, SubscriptionIds, SubscriptionMeta},
-    MarketEvent,
+//! # Barter-Data
+//! A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency
+//! exchanges - batteries included. It is:
+//! * **Easy**: Barter-Data's simple [`StreamBuilder`](streams::builder::StreamBuilder) interface allows for easy & quick setup (see example below!).
+//! * **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
+//! * **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
+//! * **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to with coding new integrations!
+//!
+//! ## User API
+//! - [`StreamBuilder`](streams::builder::StreamBuilder) for initialising [`MarketStream`]s of various kinds.
+//! - Define what exchange market data you want to stream using the [`Subscription`] type.
+//! - Pass [`Subscription`]s to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe) method.
+//! - Each call to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe)
+//!   method opens a new WebSocket connection to the exchange - giving you full control.
+//! - Call [`StreamBuilder::init`](streams::builder::StreamBuilder::init) to start streaming!
+//!
+//! ## Examples
+//! ### Multi Exchange Public Trades
+//! ```rust,no_run
+//! use barter_data::exchange::gateio::spot::GateioSpot;
+//! use barter_data::{
+//!     exchange::{
+//!         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+//!         coinbase::Coinbase,
+//!         okx::Okx,
+//!     },
+//!     streams::Streams,
+//!     subscription::trade::PublicTrades,
+//! };
+//! use barter_integration::model::InstrumentKind;
+//! use futures::StreamExt;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Initialise PublicTrades Streams for various exchanges
+//!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
+//!     let streams = Streams::builder()
+//!         .subscribe([
+//!             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
+//!             (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (GateioSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (GateioSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!         ])
+//!         .subscribe([
+//!             (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+//!             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!        ])
+//!         .init()
+//!         .await
+//!         .unwrap();
+//!
+//!     // Join all exchange PublicTrades streams into a single tokio_stream::StreamMap
+//!     // Notes:
+//!     //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+//!     //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
+//!     let mut joined_stream = streams.join_map().await;
+//!
+//!     while let Some((exchange, trade)) = joined_stream.next().await {
+//!         println!("Exchange: {exchange}, Market<PublicTrade>: {trade:?}");
+//!     }
+//! }
+//! ```
+
+use crate::{
+    error::DataError,
+    event::Market,
+    exchange::{Connector, ExchangeId, PingInterval},
+    subscriber::Subscriber,
+    subscription::{SubKind, Subscription},
+    transformer::ExchangeTransformer,
 };
 use async_trait::async_trait;
 use barter_integration::{
-    error::SocketError,
-    model::Exchange,
-    protocol::websocket::{connect, WebSocket, WebSocketParser, WsMessage, WsSink, WsStream},
-    Event, ExchangeStream, Transformer, Validator,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
+    ExchangeStream,
 };
 use futures::{SinkExt, Stream, StreamExt};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::{
-    fmt::{Debug, Display, Formatter},
-    time::Duration,
-};
 use tokio::sync::mpsc;
-use tracing::error;
+use tracing::{debug, error};
 
-///! # Barter-Data
+/// All [`Error`](std::error::Error)s generated in Barter-Data.
+pub mod error;
 
-/// Core data structures to support consuming [`MarketStream`]s.
-///
-/// eg/ `MarketEvent`, `PublicTrade`, etc.
-pub mod model;
+/// Defines the generic [`Market<Event>`](event::Market) used in every [`MarketStream`].
+pub mod event;
 
-/// Contains `Subscriber` & `ExchangeMapper` implementations for specific exchanges.
+/// [`Connector`] implementations for each exchange.
 pub mod exchange;
 
-/// Initialises [`MarketStream`]s for an arbitrary number of exchanges using generic Barter
-/// [`Subscription`]s.
-pub mod builder;
+/// High-level API types used for building [`MarketStream`]s from collections
+/// of Barter [`Subscription`]s.
+pub mod streams;
 
-/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite [`WebSocket`]
-pub type ExchangeWsStream<Exchange> =
-    ExchangeStream<WebSocketParser, WsStream, Exchange, MarketEvent>;
+/// [`Subscriber`], [`SubscriptionMapper`](subscriber::mapper::SubscriptionMapper) and
+/// [`SubscriptionValidator`](subscriber::validator::SubscriptionValidator)  traits that define how a
+/// [`Connector`] will subscribe to exchange [`MarketStream`]s.
+///
+/// Standard implementations for subscribing to WebSocket [`MarketStream`]s are included.
+pub mod subscriber;
 
-/// [`Stream`] supertrait for streams that yield [`MarketEvent`]s. Provides an entry-point abstraction
-/// for an [`ExchangeStream`].
-#[async_trait]
-pub trait MarketStream:
-    Stream<Item = Result<Event<MarketEvent>, SocketError>> + Sized + Unpin
-{
-    /// Initialises a new [`MarketStream`] using the provided subscriptions.
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError>;
+/// Types that communicate the type of each [`MarketStream`] to initialise, and what normalised
+/// Barter output type the exchange will be transformed into.
+pub mod subscription;
+
+/// Generic [`ExchangeTransformer`] implementations used by [`MarketStream`]s to translate exchange
+/// specific types to normalised Barter types.
+///
+/// Standard implementations that work for most exchanges are included such as: <br>
+/// - [`StatelessTransformer`](transformer::stateless::StatelessTransformer) for
+///   [`PublicTrades`](crate::subscription::trade::PublicTrades)
+///   and [`OrderBooksL1`](crate::subscription::book::OrderBooksL1) streams. <br>
+/// - [`MultiBookTransformer`](transformer::book::MultiBookTransformer) for
+///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and
+///   [`OrderBooksL3`](crate::subscription::book::OrderBooksL3) streams.
+pub mod transformer;
+
+// Todo: Before Release:
+//  - Readme.md, examples, etc. including table of available exchanges & SubKinds
+//  - Release barter-integration & switch toml
+//  - Code Style section in contribution readme.md
+
+/// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
+/// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
+pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStream, Transformer>;
+
+/// Defines a generic identification type for the implementor.
+pub trait Identifier<T> {
+    fn id(&self) -> T;
 }
 
-/// Trait that defines how a subscriber will establish a [`WebSocket`] connection with an exchange,
-/// and action [`Subscription`]s. This must be implemented when integrating a new exchange.
+/// [`Stream`] that yields [`Market<Kind>`](Market) events. The type of [`Market<Kind>`](Market)
+/// depends on the provided [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
-pub trait Subscriber {
-    /// Deserialisable type that this [`Subscriber`] expects to receive from the exchange in
-    /// response to [`Subscription`] requests. Implements [`Validator`] in order to determine
-    /// if the `SubResponse` communicates a successful outcome.
-    type SubResponse: Validator + DeserializeOwned;
-
-    /// Initialises a [`WebSocket`] connection, actions the provided collection of Barter
-    /// [`Subscription`]s, and validates that the [`Subscription`] were accepted by the exchange.
-    async fn subscribe(
-        subscriptions: &[Subscription],
-    ) -> Result<(WebSocket, SubscriptionIds), SocketError> {
-        // Connect to exchange
-        let mut websocket = connect(Self::base_url()).await?;
-
-        // Subscribe
-        let SubscriptionMeta {
-            ids,
-            subscriptions,
-            expected_responses,
-        } = Self::build_subscription_meta(subscriptions)?;
-
-        for subscription in subscriptions {
-            websocket.send(subscription).await?;
-        }
-
-        // Validate subscriptions
-        let ids = Self::validate(ids, &mut websocket, expected_responses).await?;
-
-        Ok((websocket, ids))
-    }
-
-    /// Returns the Base URL of the exchange to establish a connection with.
-    fn base_url() -> &'static str;
-
-    /// Uses the provided Barter [`Subscription`]s to build exchange specific subscription
-    /// payloads. Generates a [`SubscriptionIds`] `Hashmap` that is used by an [`ExchangeTransformer`]
-    /// to identify the Barter [`Subscription`]s associated with received messages.
-    fn build_subscription_meta(
-        subscriptions: &[Subscription],
-    ) -> Result<SubscriptionMeta, SocketError>;
-
-    /// Uses the provided [`WebSocket`] connection to consume [`Subscription`] responses and
-    /// validate their outcomes.
-    async fn validate(
-        ids: SubscriptionIds,
-        websocket: &mut WebSocket,
-        expected_responses: usize,
-    ) -> Result<SubscriptionIds, SocketError> {
-        // Establish time limit in which we expect to validate all the Subscriptions
-        let timeout = Self::subscription_timeout();
-
-        // Parameter to keep track of successful Subscription outcomes
-        let mut success_responses = 0usize;
-
-        loop {
-            // Break if all Subscriptions were a success
-            if success_responses == expected_responses {
-                break Ok(ids);
-            }
-
-            tokio::select! {
-                // If timeout reached, return SubscribeError
-                _ = tokio::time::sleep(timeout) => {
-                    break Err(SocketError::Subscribe(
-                        format!("subscription validation timeout reached: {:?}", timeout))
-                    )
-                },
-
-                // Parse incoming messages and determine subscription outcomes
-                message = websocket.next() => match message {
-                    Some(Ok(WsMessage::Text(payload))) => {
-                        if let Ok(response) = serde_json::from_str::<Self::SubResponse>(&payload) {
-                            match response.validate() {
-                                // Subscription success
-                                Ok(_) => { success_responses += 1; }
-
-                                // Subscription failure
-                                Err(err) => break Err(err)
-                            }
-                        } else {
-                            // Some already active Subscriptions may start coming through
-                            continue;
-                        }
-                    },
-                    Some(Ok(WsMessage::Close(close_frame))) => {
-                        break Err(SocketError::Subscribe(
-                            format!("received WebSocket CloseFrame: {:?}", close_frame))
-                        )
-                    },
-                    _ => continue,
-                }
-            }
-        }
-    }
-
-    /// Return the expected `Duration` in which the exchange will respond to all actioned
-    /// `WebSocket` [`Subscription`] requests.
-    ///
-    /// Default: 10 seconds
-    fn subscription_timeout() -> Duration {
-        Duration::from_secs(10)
-    }
-}
-
-/// Defines how to translate between exchange specific data structures & Barter data
-/// structures. This must be implemented when integrating a new exchange.
-pub trait ExchangeTransformer: Transformer<MarketEvent> + Sized {
-    /// Unique identifier for an [`ExchangeTransformer`].
-    const EXCHANGE: ExchangeId;
-
-    /// Constructs a new [`ExchangeTransformer`] using a transmitter to the [`WsSink`] and the
-    /// [`SubscriptionIds`] `HashMap`.
-    ///
-    /// Note:
-    ///  - If required, the [`WsSink`] transmitter may be used to send messages to the exchange.
-    fn new(ws_sink_tx: mpsc::UnboundedSender<WsMessage>, ids: SubscriptionIds) -> Self;
-}
-
-#[async_trait]
-impl<Exchange> MarketStream for ExchangeWsStream<Exchange>
+pub trait MarketStream<Exchange, Kind>
 where
-    Exchange: Subscriber + ExchangeTransformer + Send,
+    Self: Stream<Item = Result<Market<Kind::Event>, DataError>> + Send + Sized + Unpin,
+    Exchange: Connector,
+    Kind: SubKind,
 {
-    async fn init(subscriptions: &[Subscription]) -> Result<Self, SocketError> {
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
+    where
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
+}
+
+#[async_trait]
+impl<Exchange, Kind, Transformer> MarketStream<Exchange, Kind> for ExchangeWsStream<Transformer>
+where
+    Exchange: Connector + Send + Sync,
+    Kind: SubKind + Send + Sync,
+    Transformer: ExchangeTransformer<Exchange, Kind> + Send,
+    Kind::Event: Send,
+{
+    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
+    where
+        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+    {
         // Connect & subscribe
-        let (websocket, ids) = Exchange::subscribe(subscriptions).await?;
+        let (websocket, map) = Exchange::Subscriber::subscribe(subscriptions).await?;
 
         // Split WebSocket into WsStream & WsSink components
         let (ws_sink, ws_stream) = websocket.split();
 
-        // Task to distribute ExchangeTransformer outgoing messages (eg/ custom pongs) to exchange
-        // --> ExchangeTransformer is operating in a synchronous trait context
-        // --> ExchangeTransformer sends messages sync via channel to async distribution task
-        // --> Async distribution tasks forwards the messages to the exchange via the ws_sink
+        // Spawn task to distribute Transformer messages (eg/ custom pongs) to the exchange
         let (ws_sink_tx, ws_sink_rx) = mpsc::unbounded_channel();
-        tokio::spawn(distribute_responses_to_the_exchange(
-            Exchange::EXCHANGE,
+        tokio::spawn(distribute_messages_to_exchange(
+            Exchange::ID,
             ws_sink,
             ws_sink_rx,
         ));
 
-        // Construct ExchangeTransformer w/ transmitter to WsSink
-        let transformer = Exchange::new(ws_sink_tx, ids);
+        // Spawn optional task to distribute custom application-level pings to the exchange
+        if let Some(ping_interval) = Exchange::ping_interval() {
+            tokio::spawn(schedule_pings_to_exchange(
+                Exchange::ID,
+                ws_sink_tx.clone(),
+                ping_interval,
+            ));
+        }
+
+        // Construct Transformer associated with this Exchange and SubKind
+        let transformer = Transformer::new(ws_sink_tx, map).await?;
 
         Ok(ExchangeWsStream::new(ws_stream, transformer))
     }
 }
 
-/// Used to uniquely identify an [`ExchangeTransformer`] implementation. Each variant represents an
-/// exchange server which can be subscribed to. Note that an exchange may have multiple servers
-/// (eg/ binance, binance_futures), therefore there could be a many-to-one relationship between
-/// an [`ExchangeId`] and an [`Exchange`].
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-#[serde(rename = "exchange", rename_all = "snake_case")]
-pub enum ExchangeId {
-    BinanceFuturesUsd,
-    Binance,
-    Coinbase,
-    Ftx,
-    Kraken,
-}
-
-impl From<ExchangeId> for Exchange {
-    fn from(exchange_id: ExchangeId) -> Self {
-        Exchange::from(exchange_id.as_str())
-    }
-}
-
-impl Display for ExchangeId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
-
-impl ExchangeId {
-    /// Return the exchange name associated with this [`ExchangeId`].
-    ///
-    /// eg/ ExchangeId::BinanceFuturesUsd => "binance"
-    pub fn name(&self) -> &'static str {
-        match self {
-            ExchangeId::Binance | ExchangeId::BinanceFuturesUsd => "binance",
-            ExchangeId::Coinbase => "coinbase",
-            ExchangeId::Ftx => "ftx",
-            ExchangeId::Kraken => "kraken",
-        }
-    }
-
-    /// Return the &str representation this [`ExchangeId`] is associated with.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ExchangeId::Binance => "binance",
-            ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
-            ExchangeId::Coinbase => "coinbase",
-            ExchangeId::Ftx => "ftx",
-            ExchangeId::Kraken => "kraken",
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the ingestion of
-    /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_spot(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => false,
-            _ => true,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_futures(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
-            ExchangeId::Ftx => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`PublicTrade`](model::PublicTrade) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_trades(&self) -> bool {
-        match self {
-            _ => true,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`Candle`](model::Candle) market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_candles(&self) -> bool {
-        match self {
-            ExchangeId::Kraken => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of OrderBook snapshot
-    /// market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_order_books(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// L2 OrderBook delta market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_order_book_l2_deltas(&self) -> bool {
-        match self {
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// L3 OrderBook delta market data.
-    #[allow(clippy::match_like_matches_macro)]
-    #[allow(clippy::match_single_binding)]
-    pub fn supports_order_book_l3_deltas(&self) -> bool {
-        match self {
-            _ => false,
-        }
-    }
-
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// liquidation orders market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_liquidations(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
-            _ => false,
-        }
-    }
-}
-
-/// Consume [`WsMessage`]s transmitted from the [`ExchangeTransformer`] and send them on to the
-/// exchange via the [`WsSink`].
+/// Transmit [`WsMessage`]s sent from the [`ExchangeTransformer`] to the exchange via
+/// the [`WsSink`].
 ///
-/// If an [`ExchangeTransformer`] is required to send responses to the exchange (eg/ custom pongs),
-/// it can so by transmitting the responses to the  `mpsc::UnboundedReceiver<WsMessage>` owned by
-/// this asynchronous distribution task. These are then sent to the exchange via the [`WsSink`].
-/// This is required because an [`ExchangeTransformer`] is operating in a synchronous trait context,
-/// and therefore cannot flush the [`WsSink`] without the [`futures:task::context`].
-async fn distribute_responses_to_the_exchange(
+/// **Note:**
+/// ExchangeTransformer is operating in a synchronous trait context so we use this separate task
+/// to avoid adding `#[\async_trait\]` to the transformer - this avoids allocations.
+pub async fn distribute_messages_to_exchange(
     exchange: ExchangeId,
     mut ws_sink: WsSink,
     mut ws_sink_rx: mpsc::UnboundedReceiver<WsMessage>,
@@ -359,56 +224,33 @@ async fn distribute_responses_to_the_exchange(
             error!(
                 %exchange,
                 %error,
-                "failed to send ExchangeTransformer output message to the exchange via WsSink"
+                "failed to send  output message to the exchange via WsSink"
             );
         }
     }
 }
 
-/// Test utilities for conveniently generating public [`MarketEvent`] types.
-pub mod test_util {
-    use crate::{
-        model::{Candle, DataKind, MarketEvent, PublicTrade},
-        ExchangeId,
-    };
-    use barter_integration::model::{Exchange, Instrument, InstrumentKind, Side};
-    use chrono::Utc;
-    use std::ops::{Add, Sub};
+/// Schedule the sending of custom application-level ping [`WsMessage`]s to the exchange using
+/// the provided [`PingInterval`].
+///
+/// **Notes:**
+///  - This is only used for those exchanges that require custom application-level pings.
+///  - This is additional to the protocol-level pings already handled by `tokio_tungstenite`.
+pub async fn schedule_pings_to_exchange(
+    exchange: ExchangeId,
+    ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
+    PingInterval { mut interval, ping }: PingInterval,
+) {
+    loop {
+        // Wait for next scheduled ping
+        interval.tick().await;
 
-    /// Build a [`MarketEvent`] of [`DataKind::Trade`] with the provided [`Side`].
-    pub fn market_trade(side: Side) -> MarketEvent {
-        MarketEvent {
-            exchange_time: Utc::now(),
-            received_time: Utc::now(),
-            exchange: Exchange::from(ExchangeId::Binance),
-            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
-            kind: DataKind::Trade(PublicTrade {
-                id: "trade_id".to_string(),
-                price: 1000.0,
-                quantity: 1.0,
-                side,
-            }),
-        }
-    }
+        // Construct exchange custom application-level ping payload
+        let payload = ping();
+        debug!(%exchange, %payload, "sending custom application-level ping to exchange");
 
-    /// Build a [`MarketEvent`] of [`DataKind::Candle`] with the provided time interval.
-    pub fn market_candle(interval: chrono::Duration) -> MarketEvent {
-        let now = Utc::now();
-        MarketEvent {
-            exchange_time: now,
-            received_time: now.add(chrono::Duration::milliseconds(200)),
-            exchange: Exchange::from(ExchangeId::Binance),
-            instrument: Instrument::from(("btc", "usdt", InstrumentKind::Spot)),
-            kind: DataKind::Candle(Candle {
-                start_time: now.sub(interval),
-                end_time: now,
-                open: 960.0,
-                high: 1100.0,
-                low: 950.0,
-                close: 1000.0,
-                volume: 100000.0,
-                trade_count: 1000,
-            }),
+        if ws_sink_tx.send(payload).is_err() {
+            break;
         }
     }
 }
