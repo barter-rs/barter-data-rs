@@ -41,7 +41,11 @@ pub mod subscription;
 /// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod trade;
 
-/// Todo:
+/// Generic [`Binance<Server>`](Binance) exchange.
+///
+/// ### Notes
+/// A `Server` [`ExchangeServer`] implementations exists for
+/// [`BinanceSpot`](spot::BinanceSpot) and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Binance<Server> {
     server: PhantomData<Server>,
