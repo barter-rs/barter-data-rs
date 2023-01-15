@@ -53,6 +53,11 @@ where
     /// Todo:
     type Subscriber: Subscriber<Self::SubValidator>;
     type SubValidator: SubscriptionValidator;
+
+    /// Deserialisable type that the [`Self::SubValidator`] expects to receive from the exchange server in
+    /// response to the [`Subscription`] [`Self::requests`] sent over the [`WebSocket`].
+    /// Implements [`Validator`] in order to determine if [`Self`] communicates a successful
+    /// [`Subscription`] outcome.
     type SubResponse: Validator + Debug + DeserializeOwned;
 
     /// Base [`Url`] of the exchange server being connected with.
