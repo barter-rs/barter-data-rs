@@ -1,8 +1,9 @@
 use crate::{
     error::DataError,
     event::Market,
+    exchange::StreamSelector,
     subscription::{SubKind, Subscription},
-    Identifier, MarketStream, StreamSelector,
+    Identifier, MarketStream,
 };
 use futures::StreamExt;
 use std::time::Duration;

@@ -18,8 +18,8 @@ use crate::{
 };
 use async_trait::async_trait;
 use barter_integration::{
-    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
     ExchangeStream,
+    protocol::websocket::{WebSocketParser, WsMessage, WsSink, WsStream},
 };
 use futures::{SinkExt, Stream, StreamExt};
 use tokio::sync::mpsc;
@@ -75,15 +75,6 @@ pub type ExchangeWsStream<Transformer> = ExchangeStream<WebSocketParser, WsStrea
 /// Defines a generic identification type for the implementor.
 pub trait Identifier<T> {
     fn id(&self) -> T;
-}
-
-/// Defines the [`MarketStream`] kind associated with an exchange [`Subscription`] [`SubKind`].
-pub trait StreamSelector<Kind>
-where
-    Self: Connector,
-    Kind: SubKind,
-{
-    type Stream: MarketStream<Self, Kind>;
 }
 
 /// [`Stream`] that yields [`Market<Kind>`](Market) events. The type of [`Market<Kind>`](Market)

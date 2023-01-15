@@ -1,9 +1,9 @@
 use self::trade::GateioSpotTrade;
 use super::Gateio;
-use crate::exchange::ExchangeServer;
+use crate::exchange::{ExchangeServer, StreamSelector};
 use crate::{
-    exchange::ExchangeId, subscription::trade::PublicTrades,
-    transformer::stateless::StatelessTransformer, ExchangeWsStream, StreamSelector,
+    exchange::ExchangeId, ExchangeWsStream,
+    subscription::trade::PublicTrades, transformer::stateless::StatelessTransformer,
 };
 use barter_macro::{DeExchange, SerExchange};
 

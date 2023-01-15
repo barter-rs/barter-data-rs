@@ -1,10 +1,10 @@
 use self::{l2::BinanceFuturesBookUpdater, liquidation::BinanceLiquidation};
 use super::{Binance, ExchangeServer};
 use crate::{
-    exchange::ExchangeId,
+    exchange::{StreamSelector, ExchangeId},
+    ExchangeWsStream,
     subscription::{book::OrderBooksL2, liquidation::Liquidations},
     transformer::{book::multi::MultiBookTransformer, stateless::StatelessTransformer},
-    ExchangeWsStream, StreamSelector,
 };
 
 /// Todo:

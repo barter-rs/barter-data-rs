@@ -2,9 +2,9 @@ use super::{consumer::consume, Streams};
 use crate::{
     error::DataError,
     event::Market,
-    exchange::ExchangeId,
+    exchange::{StreamSelector, ExchangeId},
+    Identifier,
     subscription::{SubKind, Subscription},
-    Identifier, StreamSelector,
 };
 use barter_integration::{error::SocketError, Validator};
 use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin};

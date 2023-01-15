@@ -3,11 +3,11 @@ use self::{
     subscription::BinanceSubResponse, trade::BinanceTrade,
 };
 use crate::{
-    exchange::{Connector, ExchangeId, ExchangeServer, ExchangeSub},
+    exchange::{StreamSelector, Connector, ExchangeId, ExchangeServer, ExchangeSub},
+    ExchangeWsStream,
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{book::OrderBooksL1, trade::PublicTrades, Map},
+    subscription::{book::OrderBooksL1, Map, trade::PublicTrades},
     transformer::stateless::StatelessTransformer,
-    ExchangeWsStream, StreamSelector,
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use std::{fmt::Debug, marker::PhantomData};

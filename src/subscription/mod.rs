@@ -1,4 +1,4 @@
-use crate::StreamSelector;
+use crate::exchange::StreamSelector;
 use barter_integration::{
     error::SocketError,
     model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
