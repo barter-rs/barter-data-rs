@@ -10,11 +10,12 @@ use tokio::sync::mpsc;
 /// Generic OrderBook [`ExchangeTransformer`]s.
 pub mod book;
 
-/// Generic stateless [`ExchangeTransformer`] - often used for transforming
+/// Generic stateless [`ExchangeTransformer`] often used for transforming
 /// [`PublicTrades`](crate::subscription::trade::PublicTrades) streams.
 pub mod stateless;
 
-/// Todo:
+/// Defines how to construct a [`Transformer`] used by [`MarketStream`]s to translate exchange
+/// specific types to normalised Barter types.
 #[async_trait]
 pub trait ExchangeTransformer<Exchange, Kind>
 where

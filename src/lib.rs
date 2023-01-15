@@ -2,10 +2,12 @@
     missing_debug_implementations,
     missing_copy_implementations,
     rust_2018_idioms,
-    // missing_docs
+    missing_docs
 )]
 
-///! # Barter-Data
+//! # Barter-Data
+//! Todo:
+
 use crate::{
     error::DataError,
     event::Market,
@@ -25,22 +27,34 @@ use tracing::{debug, error};
 
 /// All [`Error`](std::error::Error)s generated in Barter-Data.
 pub mod error;
-pub mod event;
-pub mod exchange;
-pub mod streams;
-pub mod subscriber;
-pub mod subscription;
-pub mod transformer;
 
-// Todo: Maybe In Futures:
-//  Symbol Aliases:
-//  - Kraken btc -> xbt ("btc" sub accepted but trades use XBT so it's unidentifiable)
-//  - Bitfinex ust -> usdt
-//  InstrumentKind becomes a type.
-//  SubscriptionId:
-//  - SubscriptionId<T> ? eg/ Bitfinex uses u32 channel_id
-//  - Use Cow for SubscriptionId? Would stop cloning deserialised data eg/ market since SubscriptionId just used for SubMap.get()
-//   '--> DataError would always be SubscriptionId<String> though (at util from SubId<T> -> SubId<String>)
+/// Defines the generic [`Market<Event>`](event::Market) used in every [`MarketStream`].
+pub mod event;
+
+/// [`Connector`] implementations for each exchange.
+pub mod exchange;
+
+/// High-level API types used for building [`MarketStream`]s from collections
+/// of Barter [`Subscription`]s.
+pub mod streams;
+
+/// [`Subscriber`], [`SubscriptionMapper`] and [`SubscriptionValidator`] traits that define how a
+/// [`Connector`] will subscribe to exchange [`MarketStream`]s.
+///
+/// Standard implementations for subscribing to WebSocket [`MarketStream`]s are included.
+pub mod subscriber;
+
+/// Types that communicate the type of each [`MarketStream`] to initialise, and what normalised
+/// Barter output type the exchange will be transformed into.
+pub mod subscription;
+
+/// Generic [`ExchangeTransformer`] implementations used by [`MarketStream`]s to translate exchange
+/// specific types to normalised Barter types.
+///
+/// Standard implementations that work for most exchanges are included such as: <br>
+/// - [`StatelessTransformer`] for [`PublicTrades`] and [`OrderBooksL1`] streams. <br>
+/// - [`MultiBookTransformer`] for [`OrderBooksL2`] and [`OrderBooksL3`] streams.
+pub mod transformer;
 
 // Todo: Before Release:
 //  - Add logging - ensure all facets are the same (eg/ exchange instead of exchange_id)

@@ -34,8 +34,13 @@ where
     /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;
 
+    /// Todo:
     type Channel: AsRef<str>;
+
+    /// Todo:
     type Market: AsRef<str>;
+
+    /// Todo:
     type Subscriber: Subscriber<Self::SubValidator>;
     type SubValidator: SubscriptionValidator;
     type SubResponse: Validator + Debug + DeserializeOwned;
@@ -43,10 +48,12 @@ where
     /// Base Url of the exchange server to establish a connection with.
     fn url() -> Result<Url, SocketError>;
 
+    /// Todo:
     fn ping_interval() -> Option<PingInterval> {
         None
     }
 
+    /// Todo:
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
     /// Number of [`Subscription`](crate::subscription::Subscription) responses expected from the
