@@ -5,7 +5,8 @@ use crate::{
 use barter_integration::model::InstrumentKind;
 use serde::Serialize;
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Gateio`](super::Gateio) channel to be subscribed to.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]

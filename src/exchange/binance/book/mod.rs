@@ -1,8 +1,10 @@
 use crate::subscription::book::Level;
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Level 1 OrderBook types (top of book).
 pub mod l1;
+
+/// Level 2 OrderBook types (top of book).
 pub mod l2;
 
 /// [`Binance`](super::Binance) OrderBook level.

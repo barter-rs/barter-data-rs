@@ -5,7 +5,8 @@ use crate::{
 };
 use serde::Serialize;
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Coinbase`](super::Coinbase) channel to be subscribed to.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]

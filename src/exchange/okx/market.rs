@@ -3,7 +3,8 @@ use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::InstrumentKind;
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Okx`](super::Okx) market that can be subscribed to.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]

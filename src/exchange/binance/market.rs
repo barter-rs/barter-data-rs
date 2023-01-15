@@ -2,7 +2,8 @@ use super::Binance;
 use crate::{subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Binance`](super::Binance)
+/// market that can be subscribed to.
 ///
 /// See docs: <https://binance-docs.github.io/apidocs/spot/en/#websocket-market-streams>
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>

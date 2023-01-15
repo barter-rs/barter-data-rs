@@ -34,7 +34,12 @@ pub mod spot;
 /// and [`GateioFuturesBtc`](futures::GateioFuturesBtc).
 pub mod subscription;
 
-/// Todo:
+/// Generic [`Gateio<Server>`](Gateio) exchange.
+///
+/// ### Notes
+/// A `Server` [`ExchangeServer`] implementations exists for [`GateioSpot`](spot::GateioSpot),
+/// [`GateioFuturesUsd`](futures::GateioFuturesUsd) and
+/// [`GateioFuturesBtc`](futures::GateioFuturesBtc).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Gateio<Server> {
     server: PhantomData<Server>,

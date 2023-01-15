@@ -5,7 +5,8 @@ use crate::{
 };
 use serde::Serialize;
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Bitfinex`](super::Bitfinex) channel to be subscribed to.
 ///
 /// See docs: <https://docs.bitfinex.com/docs/ws-public>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]

@@ -7,8 +7,10 @@ use crate::{
     ExchangeWsStream,
 };
 
-/// Todo:
+/// Level 2 OrderBook types (top of book) and futures [`OrderBookUpdater`] implementation.
 pub mod l2;
+
+/// Liquidation types.
 pub mod liquidation;
 
 /// [`BinanceFuturesUsd`] WebSocket server base url.
@@ -16,12 +18,10 @@ pub mod liquidation;
 /// See docs: <https://binance-docs.github.io/apidocs/futures/en/#websocket-market-streams>
 pub const WEBSOCKET_BASE_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.com/ws";
 
-/// Todo:
-///
+/// [`Binance`](super::Binance) futures usd exchange.
 pub type BinanceFuturesUsd = Binance<BinanceServerFuturesUsd>;
 
-/// Todo:
-///
+/// [`Binance`](super::Binance) futures usd [`ExchangeServer`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct BinanceServerFuturesUsd;
 

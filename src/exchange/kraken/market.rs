@@ -2,9 +2,10 @@ use super::Kraken;
 use crate::{subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Kraken`](super::Kraken) market that can be subscribed to.
 ///
-/// See docs: <>
+/// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct KrakenMarket(pub String);
 

@@ -2,7 +2,8 @@ use super::Gateio;
 use crate::{subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
-/// Todo:
+/// Type that defines how to translate a Barter [`Subscription`] into a
+/// [`Gateio`](super::Gateio) market that can be subscribed to.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
