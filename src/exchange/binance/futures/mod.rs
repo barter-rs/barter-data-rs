@@ -7,7 +7,8 @@ use crate::{
     ExchangeWsStream,
 };
 
-/// Level 2 OrderBook types (top of book) and futures [`OrderBookUpdater`] implementation.
+/// Level 2 OrderBook types (top of book) and futures
+/// [`OrderBookUpdater`](crate::transformer::book::OrderBookUpdater) implementation.
 pub mod l2;
 
 /// Liquidation types.
@@ -21,7 +22,7 @@ pub const WEBSOCKET_BASE_URL_BINANCE_FUTURES_USD: &str = "wss://fstream.binance.
 /// [`Binance`](super::Binance) futures usd exchange.
 pub type BinanceFuturesUsd = Binance<BinanceServerFuturesUsd>;
 
-/// [`Binance`](super::Binance) futures usd [`ExchangeServer`].
+/// [`Binance`](super::Binance) futures usd [`ExchangeServer`](super::super::ExchangeServer).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct BinanceServerFuturesUsd;
 

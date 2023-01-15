@@ -14,8 +14,8 @@ pub mod book;
 /// [`PublicTrades`](crate::subscription::trade::PublicTrades) streams.
 pub mod stateless;
 
-/// Defines how to construct a [`Transformer`] used by [`MarketStream`]s to translate exchange
-/// specific types to normalised Barter types.
+/// Defines how to construct a [`Transformer`] used by [`MarketStream`](super::MarketStream)s to
+/// translate exchange specific types to normalised Barter types.
 #[async_trait]
 pub trait ExchangeTransformer<Exchange, Kind>
 where

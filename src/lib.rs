@@ -38,7 +38,8 @@ pub mod exchange;
 /// of Barter [`Subscription`]s.
 pub mod streams;
 
-/// [`Subscriber`], [`SubscriptionMapper`] and [`SubscriptionValidator`] traits that define how a
+/// [`Subscriber`], [`SubscriptionMapper`](subscriber::mapper::SubscriptionMapper) and
+/// [`SubscriptionValidator`](subscriber::validator::SubscriptionValidator)  traits that define how a
 /// [`Connector`] will subscribe to exchange [`MarketStream`]s.
 ///
 /// Standard implementations for subscribing to WebSocket [`MarketStream`]s are included.
@@ -52,8 +53,12 @@ pub mod subscription;
 /// specific types to normalised Barter types.
 ///
 /// Standard implementations that work for most exchanges are included such as: <br>
-/// - [`StatelessTransformer`] for [`PublicTrades`] and [`OrderBooksL1`] streams. <br>
-/// - [`MultiBookTransformer`] for [`OrderBooksL2`] and [`OrderBooksL3`] streams.
+/// - [`StatelessTransformer`](transformer::stateless::StatelessTransformer) for
+///   [`PublicTrades`](crate::subscription::trade::PublicTrades)
+///   and [`OrderBooksL1`](crate::subscription::book::OrderBooksL1) streams. <br>
+/// - [`MultiBookTransformer`](transformer::book::MultiBookTransformer) for
+///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and
+///   [`OrderBooksL3`](crate::subscription::book::OrderBooksL3) streams.
 pub mod transformer;
 
 // Todo: Before Release:

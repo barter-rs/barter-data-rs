@@ -17,24 +17,25 @@ use url::Url;
 /// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod book;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific channel used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
 pub mod channel;
 
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
 /// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod futures;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific market used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
 /// [`BinanceSpot`](spot::BinanceSpot).
 pub mod spot;
 
-/// [`Subscription`] response type and response [`Validator`] common to both
-/// [`BinanceSpot`](spot::BinanceSpot) and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
+/// [`Subscription`](crate::subscription::Subscription) response type and response
+/// [`Validator`](barter_integration::Validator) common to both [`BinanceSpot`](spot::BinanceSpot)
+/// and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod subscription;
 
 /// Public trade types common to both [`BinanceSpot`](spot::BinanceSpot) and
@@ -44,7 +45,7 @@ pub mod trade;
 /// Generic [`Binance<Server>`](Binance) exchange.
 ///
 /// ### Notes
-/// A `Server` [`ExchangeServer`] implementations exists for
+/// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
 /// [`BinanceSpot`](spot::BinanceSpot) and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Binance<Server> {

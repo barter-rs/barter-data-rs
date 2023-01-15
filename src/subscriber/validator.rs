@@ -16,8 +16,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-/// Defines how to validate that actioned market data [`Subscription`]s were accepted by the
-/// exchange.
+/// Defines how to validate that actioned market data
+/// [`Subscription`](crate::subscription::Subscription)s were accepted by the exchange.
 #[async_trait]
 pub trait SubscriptionValidator {
     type Parser: StreamParser;

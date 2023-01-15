@@ -20,7 +20,7 @@ pub enum DataError {
 }
 
 impl DataError {
-    /// Determine if an error requires a [`MarketStream`] to re-initialise.
+    /// Determine if an error requires a [`MarketStream`](super::MarketStream) to re-initialise.
     #[allow(clippy::match_like_matches_macro)]
     pub fn is_terminal(&self) -> bool {
         match self {

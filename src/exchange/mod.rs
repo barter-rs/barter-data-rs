@@ -38,14 +38,16 @@ pub mod okx;
 /// exchange [`Connector`] to build [`WsMessage`] subscription payloads.
 pub mod subscription;
 
-/// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
-/// to actioned [`Subscription`](crate::subscription::Subscription) requests.
+/// Default [`Duration`] the [`Connector::SubValidator`] will wait to receive all success responses to actioned
+/// [`Subscription`](crate::subscription::Subscription) requests.
 pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Defines the [`MarketStream`] kind associated with an exchange [`Subscription`] [`SubKind`].
+/// Defines the [`MarketStream`] kind associated with an exchange
+/// [`Subscription`](crate::subscription::Subscription) [`SubKind`](crate::subscription::SubKind).
 ///
 /// ### Notes
-/// Must be implemented by an exchange [`Connector`] if it supports a specific[`SubKind`].
+/// Must be implemented by an exchange [`Connector`] if it supports a specific
+/// [`SubKind`](crate::subscription::SubKind).
 pub trait StreamSelector<Kind>
 where
     Self: Connector,
@@ -66,34 +68,38 @@ where
     /// Unique identifier for the exchange server being connected with.
     const ID: ExchangeId;
 
-    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
-    /// channel to be subscribed to.
+    /// Type that defines how to translate a Barter
+    /// [`Subscription`](crate::subscription::Subscription) into an exchange specific channel
+    /// to be subscribed to.
     ///
     /// ### Examples
-    /// - [`BinanceChannel("@depth@100ms")`](BinanceChannel)
-    /// - [`KrakenChannel("trade")`](KrakenChannel)
+    /// - [`BinanceChannel("@depth@100ms")`](binance::channel::BinanceChannel)
+    /// - [`KrakenChannel("trade")`](kraken::channel::KrakenChannel)
     type Channel: AsRef<str>;
 
-    /// Type that defines how to translate a Barter [`Subscription`] into an exchange specific
-    /// market that can be subscribed to.
+    /// Type that defines how to translate a Barter
+    /// [`Subscription`](crate::subscription::Subscription) into an exchange specific market that
+    /// can be subscribed to.
     ///
     /// ### Examples
-    /// - [`BinanceMarket("btcusdt")`](BinanceMarket)
-    /// - [`KrakenMarket("BTC/USDT")`](KrakenMarket)
+    /// - [`BinanceMarket("btcusdt")`](binance::market::BinanceMarket)
+    /// - [`KrakenMarket("BTC/USDT")`](kraken::market::KrakenMarket)
     type Market: AsRef<str>;
 
     /// [`Subscriber`] type that establishes a connection with the exchange server, and actions
-    /// [`Subscription`]s over the socket.
+    /// [`Subscription`](crate::subscription::Subscription)s over the socket.
     type Subscriber: Subscriber;
 
     /// [`SubscriptionValidator`] type that listens to responses from the exchange server and
-    /// validates if the actioned [`Subscription`]s were successful.
+    /// validates if the actioned [`Subscription`](crate::subscription::Subscription)s were
+    /// successful.
     type SubValidator: SubscriptionValidator;
 
     /// Deserialisable type that the [`Self::SubValidator`] expects to receive from the exchange server in
-    /// response to the [`Subscription`] [`Self::requests`] sent over the [`WebSocket`].
-    /// Implements [`Validator`] in order to determine if [`Self`] communicates a successful
-    /// [`Subscription`] outcome.
+    /// response to the [`Subscription`](crate::subscription::Subscription) [`Self::requests`]
+    /// sent over the [`WebSocket`](barter_integration::protocol::websocket::WebSocket). Implements
+    /// [`Validator`](barter_integration::Validator) in order to determine if [`Self`]
+    /// communicates a successful [`Subscription`](crate::subscription::Subscription) outcome.
     type SubResponse: Validator + Debug + DeserializeOwned;
 
     /// Base [`Url`] of the exchange server being connected with.
@@ -126,7 +132,8 @@ where
     }
 }
 
-/// Used when an exchange has servers different [`InstrumentKind`] market data on distinct servers,
+/// Used when an exchange has servers different
+/// [`InstrumentKind`](barter_integration::model::InstrumentKind) market data on distinct servers,
 /// allowing all the [`Connector`] logic to be identical apart from what this trait provides.
 ///
 /// ### Examples
@@ -149,9 +156,9 @@ pub struct PingInterval {
 /// Unique identifier an exchange server [`Connector`].
 ///
 /// ### Notes
-/// An exchange may server different [`InstrumentKind`] market data on distinct servers
-/// (eg/ Binance, Gateio). Such exchanges have multiple [`Self`] variants, and often utilise the
-/// [`ExchangeServer`] trait.
+/// An exchange may server different [`InstrumentKind`](barter_integration::model::InstrumentKind)
+/// market data on distinct servers (eg/ Binance, Gateio). Such exchanges have multiple [`Self`]
+/// variants, and often utilise the [`ExchangeServer`] trait.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename = "exchange", rename_all = "snake_case")]
 pub enum ExchangeId {

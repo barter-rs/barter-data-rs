@@ -35,24 +35,26 @@ use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific channel used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
 pub mod channel;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific market used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
 /// [`BitfinexMessage`](message::BitfinexMessage) type for [`Bitfinex`].
 pub mod message;
 
-/// [`Subscription`] response types and response [`Validator`] for [`Bitfinex`].
+/// [`Subscription`](crate::subscription::Subscription) response types and response
+/// [`Validator`](barter_integration::Validator) for [`Bitfinex`].
 pub mod subscription;
 
 /// Public trade types for [`Bitfinex`].
 pub mod trade;
 
-/// Custom [`SubscriptionValidator`] implementation for [`Bitfinex`].
+/// Custom [`SubscriptionValidator`](crate::subscriber::validator::SubscriptionValidator)
+/// implementation for [`Bitfinex`].
 pub mod validator;
 
 /// [`Bitfinex`] server base url.

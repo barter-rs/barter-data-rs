@@ -14,15 +14,16 @@ use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific channel used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
 pub mod channel;
 
-/// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
-/// specific market used for generating [`Connector::requests`].
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
-/// [`Subscription`] response type and response [`Validator`] for [`Coinbase`].
+/// [`Subscription`](crate::subscription::Subscription) response type and response
+/// [`Validator`](barter_integration::Validator) for [`Coinbase`].
 pub mod subscription;
 
 /// Public trade types for [`Coinbase`].

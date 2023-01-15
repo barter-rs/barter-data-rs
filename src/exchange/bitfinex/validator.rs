@@ -24,11 +24,12 @@ use tracing::debug;
 /// ### Notes
 /// - Required because Bitfinex has a non-self-describing data format after subscriptions have been
 ///   validated.
-/// - The [`BitfinexChannelId`] is used to identify the usbscription associated with incoming
+/// - The [`BitfinexChannelId`](super::subscription::BitfinexChannelId) is used to identify the
+///   [`Subscription`](crate::subscription::Subscription) associated with incoming
 ///   events, rather than a `String` channel-market identifier.
 /// - Therefore the [`SubscriptionId`] format must change during [`BitfinexWebSocketSubValidator::validate`]
-///   to use the [`BitfinexChannelId`] (see module level "SubscriptionId" documentation notes
-///   for more details).
+///   to use the [`BitfinexChannelId`](super::subscription::BitfinexChannelId)
+///   (see module level "SubscriptionId" documentation notes for more details).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitfinexWebSocketSubValidator;
 

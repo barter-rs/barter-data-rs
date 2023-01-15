@@ -17,7 +17,8 @@ pub trait SubscriptionMapper {
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
-/// Standard [`SubscriptionMapper`] for [`WebSocket`]s suitable for most exchanges.
+/// Standard [`SubscriptionMapper`] for
+/// [`WebSocket`](barter_integration::protocol::websocket::WebSocket)s suitable for most exchanges.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubMapper;
 
