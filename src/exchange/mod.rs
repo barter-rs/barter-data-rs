@@ -33,8 +33,7 @@ pub mod kraken;
 pub mod okx;
 
 /// Defines the generic [`ExchangeSub`] containing a market and channel combination used by an
-/// exchange [`Connector`] to build the [`WsMessage`] subscription payloads to send to the
-/// exchange server.
+/// exchange [`Connector`] to build [`WsMessage`] subscription payloads.
 pub mod subscription;
 
 /// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
@@ -65,9 +64,12 @@ where
     /// - [`KrakenMarket("BTC/USDT")`](KrakenMarket)
     type Market: AsRef<str>;
 
-    /// Todo:
+    /// [`Subscriber`] type that establishes a connection with the exchange server, and actions
+    /// [`Subscription`]s over the socket.
     type Subscriber: Subscriber;
 
+    /// [`SubscriptionValidator`] type that listens to responses from the exchange server and
+    /// validates if the actioned [`Subscription`]s were successful.
     type SubValidator: SubscriptionValidator;
 
     /// Deserialisable type that the [`Self::SubValidator`] expects to receive from the exchange server in
@@ -106,6 +108,17 @@ where
     }
 }
 
+/// Used when an exchange has servers different [`InstrumentKind`] market data on distinct servers,
+/// allowing all the [`Connector`] logic to be identical apart from what this trait provides.
+///
+/// ### Examples
+/// - [`BinanceServerSpot`](binance::spot::BinanceServerSpot)
+/// - [`BinanceServerFuturesUsd`](binance::futures::BinanceServerFuturesUsd)
+pub trait ExchangeServer: Default + Debug + Clone + Send {
+    const ID: ExchangeId;
+    fn websocket_url() -> &'static str;
+}
+
 /// Defines the frequency and construction function for custom
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket) pings - used for exchanges
 /// that require additional application-level pings.
@@ -115,7 +128,12 @@ pub struct PingInterval {
     pub ping: fn() -> WsMessage,
 }
 
-/// Todo:
+/// Unique identifier an exchange server [`Connector`].
+///
+/// ### Notes
+/// An exchange may server different [`InstrumentKind`] market data on distinct servers
+/// (eg/ Binance, Gateio). Such exchanges have multiple [`Self`] variants, and often utilise the
+/// [`ExchangeServer`] trait.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 #[serde(rename = "exchange", rename_all = "snake_case")]
 pub enum ExchangeId {
@@ -158,8 +176,8 @@ impl ExchangeId {
         }
     }
 
-    /// Determines whether this [`ExchangeId`] supports the ingestion of
-    /// [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
+    /// Determines whether the [`Connector`] associated with this [`ExchangeId`] supports the
+    /// ingestion of [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
     #[allow(clippy::match_like_matches_macro)]
     pub fn supports_spot(&self) -> bool {
         match self {
@@ -168,8 +186,9 @@ impl ExchangeId {
         }
     }
 
-    /// Determines whether this [`ExchangeId`] supports the collection of
-    /// [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind) market data.
+    /// Determines whether the [`Connector`] associated with this [`ExchangeId`] supports the
+    /// collection of [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind)
+    /// market data.
     #[allow(clippy::match_like_matches_macro)]
     pub fn supports_futures(&self) -> bool {
         match self {
@@ -178,10 +197,4 @@ impl ExchangeId {
             _ => false,
         }
     }
-}
-
-/// Todo:
-pub trait ExchangeServer: Default + Debug + Clone + Send {
-    const ID: ExchangeId;
-    fn websocket_url() -> &'static str;
 }
