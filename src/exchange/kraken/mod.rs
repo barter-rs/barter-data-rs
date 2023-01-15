@@ -21,8 +21,14 @@ pub mod channel;
 /// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
 /// specific market used for generating [`Connector::requests`].
 pub mod market;
+
+/// [`KrakenMessage`](message::KrakenMessage) type for [`Kraken`].
 pub mod message;
+
+/// [`Subscription`] response type and response [`Validator`] for [`Kraken`].
 pub mod subscription;
+
+/// Public trade types for [`Kraken`].
 pub mod trade;
 
 /// [`Kraken`] server base url.

@@ -22,9 +22,16 @@ pub mod channel;
 /// specific market used for generating [`Connector::requests`].
 pub mod market;
 
+/// [`BitfinexMessage`](message::BitfinexMessage) type for [`Bitfinex`].
 pub mod message;
+
+/// [`Subscription`] response types and response [`Validator`] for [`Bitfinex`].
 pub mod subscription;
+
+/// Public trade types for [`Bitfinex`].
 pub mod trade;
+
+/// Custom [`SubscriptionValidator`] implementation for [`Bitfinex`].
 pub mod validator;
 
 /// [`Bitfinex`] server base url.

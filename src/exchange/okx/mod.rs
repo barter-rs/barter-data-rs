@@ -21,7 +21,10 @@ pub mod channel;
 /// specific market used for generating [`Connector::requests`].
 pub mod market;
 
+/// [`Subscription`] response type and response [`Validator`] for [`Okx`].
 pub mod subscription;
+
+/// Public trade types for [`Okx`].
 pub mod trade;
 
 /// [`Okx`] server base url.

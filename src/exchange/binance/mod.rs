@@ -13,21 +13,32 @@ use barter_integration::{error::SocketError, model::Instrument, protocol::websoc
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
-/// Todo:
+/// OrderBook types common to both [`BinanceSpot`](spot::BinanceSpot) and
+/// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod book;
 
 /// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
 /// specific channel used for generating [`Connector::requests`].
 pub mod channel;
 
+/// [`ExchangeServer`] and [`StreamSelector`] implementations for
+/// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod futures;
 
 /// Defines the type that translates a Barter [`Subscription`] into an exchange [`Connector`]
 /// specific market used for generating [`Connector::requests`].
 pub mod market;
 
+/// [`ExchangeServer`] and [`StreamSelector`] implementations for
+/// [`BinanceSpot`](spot::BinanceSpot).
 pub mod spot;
+
+/// [`Subscription`] response type and response [`Validator`] common to both
+/// [`BinanceSpot`](spot::BinanceSpot) and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod subscription;
+
+/// Public trade types common to both [`BinanceSpot`](spot::BinanceSpot) and
+/// [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 pub mod trade;
 
 /// Todo:

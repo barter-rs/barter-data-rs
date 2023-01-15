@@ -22,7 +22,10 @@ pub mod channel;
 /// specific market used for generating [`Connector::requests`].
 pub mod market;
 
+/// [`Subscription`] response type and response [`Validator`] for [`Coinbase`].
 pub mod subscription;
+
+/// Public trade types for [`Coinbase`].
 pub mod trade;
 
 /// [`Coinbase`] server base url.
