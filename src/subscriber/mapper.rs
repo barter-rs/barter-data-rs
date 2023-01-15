@@ -7,7 +7,8 @@ use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Todo:
+/// Defines how to map a collection of Barter [`Subscription`]s into exchange specific
+/// [`SubscriptionMeta`], containing subscription payloads that are sent to the exchange.
 pub trait SubscriptionMapper {
     fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta
     where
@@ -16,7 +17,7 @@ pub trait SubscriptionMapper {
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
-/// Todo:
+/// Standard [`SubscriptionMapper`] for [`WebSocket`]s suitable for most exchanges.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubMapper;
 

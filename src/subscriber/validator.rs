@@ -16,7 +16,8 @@ use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
-/// Todo:
+/// Defines how to validate that actioned market data [`Subscription`]s were accepted by the
+/// exchange.
 #[async_trait]
 pub trait SubscriptionValidator {
     type Parser: StreamParser;
@@ -30,7 +31,7 @@ pub trait SubscriptionValidator {
         Kind: SubKind + Send;
 }
 
-/// Todo:
+/// Standard [`SubscriptionValidator`] for [`WebSocket`]s suitable for most exchanges.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubValidator;
 

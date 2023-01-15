@@ -17,13 +17,15 @@ use futures::SinkExt;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-/// Todo:
+/// [`SubscriptionMapper`](mapper::SubscriptionMapper) implementations defining how to map a
+/// collection of Barter [`Subscription`]s into exchange specific [`SubscriptionMeta`].
 pub mod mapper;
 
-/// Todo:
+/// [`SubscriptionValidator`](validator::SubscriptionValidator) implementations defining how to
+/// validate actioned [`Subscription`]s were successful.
 pub mod validator;
 
-/// Todo:
+/// Defines how to connect to a socket and subscribe to market data streams.
 #[async_trait]
 pub trait Subscriber {
     type SubMapper: SubscriptionMapper;
@@ -37,6 +39,7 @@ pub trait Subscriber {
         Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
+/// Standard [`Subscriber`] for [`WebSocket`]s suitable for most exchanges.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct WebSocketSubscriber;
 

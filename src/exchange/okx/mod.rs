@@ -32,7 +32,7 @@ pub mod trade;
 /// See docs: <https://www.okx.com/docs-v5/en/#overview-api-resources-and-support>
 pub const BASE_URL_OKX: &str = "wss://wsaws.okx.com:8443/ws/v5/public";
 
-/// Todo:
+/// [`Okx`] exchange.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api>
 #[derive(

@@ -42,7 +42,7 @@ impl Identifier<Option<SubscriptionId>> for KrakenTrades {
     }
 }
 
-/// Todo:
+/// Todo: important
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
         "{}_{}_{}_{}",

@@ -62,7 +62,7 @@ pub struct GateioMessage<T> {
     pub data: T,
 }
 
-/// Todo:
+/// [`Gateio`](super::Gateio) WebSocket error message.
 ///
 /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
