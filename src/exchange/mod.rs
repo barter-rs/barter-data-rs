@@ -50,7 +50,11 @@ where
     type Stream: MarketStream<Self, Kind>;
 }
 
-/// Todo:
+/// Primary exchange abstraction. Defines how to translate Barter types into exchange specific
+/// types, as well as connecting, subscribing, and interacting with the exchange server.
+///
+/// ### Notes
+/// This must be implemented for a new exchange integration!
 pub trait Connector
 where
     Self: Clone + Default + Debug + for<'de> Deserialize<'de> + Serialize + Sized,
