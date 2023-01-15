@@ -13,13 +13,28 @@ use std::{
 };
 use url::Url;
 
-/// Todo:
+/// `BinanceSpot` & `BinanceFuturesUsd` [`Connector`] and [`StreamSelector`] implementations.
 pub mod binance;
+
+/// `Bitfinex` [`Connector`] and [`StreamSelector`] implementations.
 pub mod bitfinex;
+
+/// `Coinbase` [`Connector`] and [`StreamSelector`] implementations.
 pub mod coinbase;
+
+/// `GateioSpot`, `GateioFuturesUsd` & `GateioFuturesBtc` [`Connector`] and [`StreamSelector`]
+/// implementations.
 pub mod gateio;
+
+/// `Kraken` [`Connector`] and [`StreamSelector`] implementations.
 pub mod kraken;
+
+/// `Okx` [`Connector`] and [`StreamSelector`] implementations.
 pub mod okx;
+
+/// Defines the generic [`ExchangeSub`] containing a market and channel combination used by an
+/// exchange [`Connector`] to build the [`WsMessage`] subscription payloads to send to the
+/// exchange server.
 pub mod subscription;
 
 /// Default [`Duration`] the [`SubscriptionValidator`] will wait to receive all success responses
@@ -52,7 +67,6 @@ where
 
     /// Todo:
     type Subscriber: Subscriber;
-
 
     type SubValidator: SubscriptionValidator;
 

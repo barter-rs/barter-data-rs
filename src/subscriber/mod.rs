@@ -74,7 +74,9 @@ impl Subscriber for WebSocketSubscriber {
         }
 
         // Validate Subscription responses
-        let map = Exchange::SubValidator::validate::<Exchange, Kind>(instrument_map, &mut websocket).await?;
+        let map =
+            Exchange::SubValidator::validate::<Exchange, Kind>(instrument_map, &mut websocket)
+                .await?;
 
         info!(%exchange, "subscribed to WebSocket");
         Ok((websocket, map))
