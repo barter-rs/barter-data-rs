@@ -1,11 +1,13 @@
 use self::{
+    book::l1::KrakenOrderBookL1,
     channel::KrakenChannel, market::KrakenMarket, message::KrakenMessage,
     subscription::KrakenSubResponse,
+    trade::KrakenTrades,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::trade::PublicTrades,
+    subscription::{book::OrderBooksL1, trade::PublicTrades},
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
@@ -13,6 +15,9 @@ use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
 use url::Url;
+
+/// Order book types for [`Kraken`]
+pub mod book;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
 /// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
@@ -77,5 +82,9 @@ impl Connector for Kraken {
 }
 
 impl StreamSelector<PublicTrades> for Kraken {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, KrakenMessage>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, KrakenTrades>>;
+}
+
+impl StreamSelector<OrderBooksL1> for Kraken {
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, KrakenOrderBookL1>>;
 }

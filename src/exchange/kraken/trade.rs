@@ -1,3 +1,4 @@
+use super::KrakenMessage;
 use crate::{
     event::{Market, MarketIter},
     exchange::ExchangeId,
@@ -11,13 +12,16 @@ use barter_integration::{
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+/// Terse type alias for an [`Kraken`](super::Kraken) real-time trades WebSocket message.
+pub type KrakenTrades = KrakenMessage<KrakenTradesInner>;
+
 /// Collection of [`KrakenTrade`] items with an associated [`SubscriptionId`] (eg/ "trade|XBT/USD").
 ///
 /// See [`KrakenMessage`](super::message::KrakenMessage) for full raw payload examples.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 #[derive(Clone, PartialEq, PartialOrd, Debug, Serialize)]
-pub struct KrakenTrades {
+pub struct KrakenTradesInner {
     pub subscription_id: SubscriptionId,
     pub trades: Vec<KrakenTrade>,
 }
@@ -36,7 +40,7 @@ pub struct KrakenTrade {
     pub side: Side,
 }
 
-impl Identifier<Option<SubscriptionId>> for KrakenTrades {
+impl Identifier<Option<SubscriptionId>> for KrakenTradesInner {
     fn id(&self) -> Option<SubscriptionId> {
         Some(self.subscription_id.clone())
     }
@@ -56,28 +60,32 @@ fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
 
 impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, KrakenTrades)) -> Self {
-        trades
-            .trades
-            .into_iter()
-            .map(|trade| {
-                Ok(Market {
-                    exchange_time: trade.time,
-                    received_time: Utc::now(),
-                    exchange: Exchange::from(exchange_id),
-                    instrument: instrument.clone(),
-                    event: PublicTrade {
-                        id: custom_kraken_trade_id(&trade),
-                        price: trade.price,
-                        amount: trade.amount,
-                        side: trade.side,
-                    },
+        match trades {
+            KrakenTrades::Data(trades) => 
+                trades
+                .trades
+                .into_iter()
+                .map(|trade| {
+                    Ok(Market {
+                        exchange_time: trade.time,
+                        received_time: Utc::now(),
+                        exchange: Exchange::from(exchange_id),
+                        instrument: instrument.clone(),
+                        event: PublicTrade {
+                            id: custom_kraken_trade_id(&trade),
+                            price: trade.price,
+                            amount: trade.amount,
+                            side: trade.side,
+                        },
+                    })
                 })
-            })
-            .collect()
+                .collect(),
+            KrakenTrades::Event(_) => Self(vec![]),
+        }
     }
 }
 
-impl<'de> serde::de::Deserialize<'de> for KrakenTrades {
+impl<'de> serde::de::Deserialize<'de> for KrakenTradesInner {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -85,10 +93,10 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrades {
         struct SeqVisitor;
 
         impl<'de> serde::de::Visitor<'de> for SeqVisitor {
-            type Value = KrakenTrades;
+            type Value = KrakenTradesInner;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("KrakenTrades struct from the Kraken WebSocket API")
+                formatter.write_str("KrakenTradesInner struct from the Kraken WebSocket API")
             }
 
             fn visit_seq<SeqAccessor>(
@@ -119,7 +127,7 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrades {
                 //  '--> Exchange may add fields without warning
                 while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
 
-                Ok(KrakenTrades {
+                Ok(KrakenTradesInner {
                     subscription_id,
                     trades,
                 })
@@ -192,5 +200,117 @@ impl<'de> serde::de::Deserialize<'de> for KrakenTrade {
 
         // Use Visitor implementation to deserialise the KrakenTrade
         deserializer.deserialize_seq(SeqVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+
+        use crate::exchange::kraken::message::{KrakenError, KrakenEvent, KrakenMessage};
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+        use barter_integration::error::SocketError;
+        use barter_integration::model::{Side, SubscriptionId};
+
+        #[test]
+        fn test_trade() {
+
+        }
+        
+        #[test]
+        fn test_kraken_message() {
+            struct TestCase {
+                input: &'static str,
+                expected: Result<KrakenTrades, SocketError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid KrakenTrades::Data(KrakenTradesInner)
+                    input: r#"
+                    [
+                        0,
+                        [
+                            [
+                                "5541.20000",
+                                "0.15850568",
+                                "1534614057.321597",
+                                "s",
+                                "l",
+                                ""
+                            ],
+                            [
+                                "6060.00000",
+                                "0.02455000",
+                                "1534614057.324998",
+                                "b",
+                                "l",
+                                ""
+                            ]
+                        ],
+                      "trade",
+                      "XBT/USD"
+                    ]
+                    "#,
+                    expected: Ok(KrakenTrades::Data(KrakenTradesInner {
+                        subscription_id: SubscriptionId::from("trade|XBT/USD"),
+                        trades: vec![
+                            KrakenTrade {
+                                price: 5541.2,
+                                amount: 0.15850568,
+                                time: datetime_utc_from_epoch_duration(
+                                    std::time::Duration::from_secs_f64(1534614057.321597),
+                                ),
+                                side: Side::Sell,
+                            },
+                            KrakenTrade {
+                                price: 6060.0,
+                                amount: 0.02455000,
+                                time: datetime_utc_from_epoch_duration(
+                                    std::time::Duration::from_secs_f64(1534614057.324998),
+                                ),
+                                side: Side::Buy,
+                            },
+                        ],
+                    })),
+                }, 
+                TestCase {
+                    // TC1: valid KrakenTrades::Event(KrakenEvent::Heartbeat)
+                    input: r#"{"event": "heartbeat"}"#,
+                    expected: Ok(KrakenMessage::Event(KrakenEvent::Heartbeat)),
+                },
+                TestCase {
+                    // TC2: valid KrakenTrades::Event(KrakenEvent::Error(KrakenError))
+                    input: r#"
+                    {
+                        "errorMessage": "Malformed request",
+                        "event": "error"
+                    }
+                    "#,
+                    expected: Ok(KrakenMessage::Event(KrakenEvent::Error(KrakenError {
+                        message: "Malformed request".to_string(),
+                    }))),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = serde_json::from_str::<KrakenTrades>(test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
     }
 }

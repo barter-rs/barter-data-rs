@@ -1,17 +1,30 @@
-use super::trade::KrakenTrades;
-use crate::{
-    event::MarketIter, exchange::ExchangeId, subscription::trade::PublicTrade, Identifier,
-};
-use barter_integration::model::{Instrument, SubscriptionId};
+use crate::Identifier;
+use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
-
 /// [`Kraken`](super::Kraken) message variants that can be received over
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
 ///
 /// ### Raw Payload Examples
 /// See docs: <https://docs.kraken.com/websockets/#overview>
+/// #### OrderBookL1
+/// See docs: <https://docs.kraken.com/websockets/#message-spread>
+/// ```json
+/// [
+///     0,
+///     [
+///         "5698.40000",
+///         "5700.00000",
+///         "1542057299.545897",
+///         "1.01234567",
+///         "0.98765432"
+///     ],
+///     "spread",
+///     "XBT/USD"
+/// ]
+/// ```
+/// 
 /// #### Trades
-/// See docs: <<https://docs.kraken.com/websockets/#message-trade>
+/// See docs: <https://docs.kraken.com/websockets/#message-trade>
 /// ```json
 /// [
 ///     0,
@@ -56,25 +69,19 @@ use serde::{Deserialize, Serialize};
 /// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "snake_case")]
-pub enum KrakenMessage {
-    Trades(KrakenTrades),
+pub enum KrakenMessage<T> {
+    Data(T),
     Event(KrakenEvent),
 }
 
-impl Identifier<Option<SubscriptionId>> for KrakenMessage {
+impl<T> Identifier<Option<SubscriptionId>> for KrakenMessage<T> 
+where
+    T: Identifier<Option<SubscriptionId>> 
+{
     fn id(&self) -> Option<SubscriptionId> {
         match self {
-            KrakenMessage::Trades(trades) => Some(trades.subscription_id.clone()),
-            KrakenMessage::Event(_) => None,
-        }
-    }
-}
-
-impl From<(ExchangeId, Instrument, KrakenMessage)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, KrakenMessage)) -> Self {
-        match message {
-            KrakenMessage::Trades(trades) => Self::from((exchange_id, instrument, trades)),
-            KrakenMessage::Event(_) => Self(vec![]),
+            Self::Data(data) => data.id(),
+            Self::Event(_) => None,
         }
     }
 }
@@ -108,108 +115,4 @@ pub enum KrakenEvent {
 pub struct KrakenError {
     #[serde(alias = "errorMessage")]
     pub message: String,
-}
-
-#[cfg(test)]
-mod tests {
-    mod de {
-        use crate::exchange::kraken::message::{KrakenError, KrakenEvent, KrakenMessage};
-        use crate::exchange::kraken::trade::{KrakenTrade, KrakenTrades};
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
-        use barter_integration::model::{Side, SubscriptionId};
-
-        #[test]
-        fn test_kraken_message() {
-            struct TestCase {
-                input: &'static str,
-                expected: Result<KrakenMessage, SocketError>,
-            }
-
-            let tests = vec![
-                TestCase {
-                    // TC0: valid KrakenMessage::Trades(KrakenTrades)
-                    input: r#"
-                    [
-                        0,
-                        [
-                            [
-                                "5541.20000",
-                                "0.15850568",
-                                "1534614057.321597",
-                                "s",
-                                "l",
-                                ""
-                            ],
-                            [
-                                "6060.00000",
-                                "0.02455000",
-                                "1534614057.324998",
-                                "b",
-                                "l",
-                                ""
-                            ]
-                        ],
-                      "trade",
-                      "XBT/USD"
-                    ]
-                    "#,
-                    expected: Ok(KrakenMessage::Trades(KrakenTrades {
-                        subscription_id: SubscriptionId::from("trade|XBT/USD"),
-                        trades: vec![
-                            KrakenTrade {
-                                price: 5541.2,
-                                amount: 0.15850568,
-                                time: datetime_utc_from_epoch_duration(
-                                    std::time::Duration::from_secs_f64(1534614057.321597),
-                                ),
-                                side: Side::Sell,
-                            },
-                            KrakenTrade {
-                                price: 6060.0,
-                                amount: 0.02455000,
-                                time: datetime_utc_from_epoch_duration(
-                                    std::time::Duration::from_secs_f64(1534614057.324998),
-                                ),
-                                side: Side::Buy,
-                            },
-                        ],
-                    })),
-                },
-                TestCase {
-                    // TC1: valid KrakenMessage::Event(KrakenEvent::Heartbeat)
-                    input: r#"{"event": "heartbeat"}"#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Heartbeat)),
-                },
-                TestCase {
-                    // TC2: valid KrakenMessage::Event(KrakenEvent::Error)
-                    input: r#"
-                    {
-                        "errorMessage": "Malformed request",
-                        "event": "error"
-                    }
-                    "#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Error(KrakenError {
-                        message: "Malformed request".to_string(),
-                    }))),
-                },
-            ];
-
-            for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<KrakenMessage>(test.input);
-                match (actual, test.expected) {
-                    (Ok(actual), Ok(expected)) => {
-                        assert_eq!(actual, expected, "TC{} failed", index)
-                    }
-                    (Err(_), Err(_)) => {
-                        // Test passed
-                    }
-                    (actual, expected) => {
-                        // Test failed
-                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
-                    }
-                }
-            }
-        }
-    }
 }
