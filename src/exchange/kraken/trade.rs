@@ -65,7 +65,7 @@ impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),
                     instrument: instrument.clone(),
-                    event: PublicTrade {
+                    kind: PublicTrade {
                         id: custom_kraken_trade_id(&trade),
                         price: trade.price,
                         amount: trade.amount,

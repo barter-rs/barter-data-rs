@@ -218,7 +218,7 @@ impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: book,
+            kind: book,
         })])
     }
 }

@@ -66,7 +66,7 @@ impl From<(ExchangeId, Instrument, BinanceOrderBookL1)> for MarketIter<OrderBook
             received_time: time_now,
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: OrderBookL1 {
+            kind: OrderBookL1 {
                 last_update_time: time_now,
                 best_bid: Level::new(book.best_bid_price, book.best_bid_amount),
                 best_ask: Level::new(book.best_ask_price, book.best_ask_amount),

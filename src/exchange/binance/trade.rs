@@ -82,7 +82,7 @@ impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketIter<PublicTrade> {
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: PublicTrade {
+            kind: PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
                 amount: trade.amount,

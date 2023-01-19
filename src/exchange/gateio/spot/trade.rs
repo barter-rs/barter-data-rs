@@ -59,7 +59,7 @@ impl From<(ExchangeId, Instrument, GateioSpotTrade)> for MarketIter<PublicTrade>
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: PublicTrade {
+            kind: PublicTrade {
                 id: trade.data.id.to_string(),
                 price: trade.data.price,
                 amount: trade.data.amount,

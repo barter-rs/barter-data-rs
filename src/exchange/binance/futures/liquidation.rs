@@ -90,7 +90,7 @@ impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketIter<Liquidati
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: Liquidation {
+            kind: Liquidation {
                 side: liquidation.order.side,
                 price: liquidation.order.price,
                 quantity: liquidation.order.quantity,

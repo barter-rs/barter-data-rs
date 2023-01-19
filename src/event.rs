@@ -20,13 +20,40 @@ impl<T> FromIterator<Result<MarketEvent<T>, DataError>> for MarketIter<T> {
 ///
 /// Note: `T` can be an enum if required.
 ///
-/// See [`crate::subscription`] for all existing Barter Market event variants
-/// (eg/ [`MarketEvent<PublicTrade>`](crate::subscription::trade::PublicTrade)).
+/// See [`crate::subscription`] for all existing Barter Market event variants.
+///
+/// ### Examples
+/// - [`MarketEvent<PublicTrade>`](crate::subscription::trade::PublicTrade)
+/// - [`MarketEvent<OrderBookL1>`](crate::subscription::book::OrderBookL1)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct MarketEvent<T> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
     pub instrument: Instrument,
-    pub event: T,
+    pub kind: T,
+}
+
+/// Duplicates the standard library [`From`] trait. Enables the ergonomic improvements of
+/// mapping a generic type into a generic type without conflicting with the std library
+/// `impl<T> From<T> for T`.
+///
+/// Useful for the mapping a [`MarketEvent<X>`](MarketEvent) into a different [`MarketEvent<Y>`].
+pub trait FromExt<Input> {
+    fn from(value: Input) -> Self;
+}
+
+impl<Input, Output> FromExt<MarketEvent<Input>> for MarketEvent<Output>
+where
+    Output: From<Input>
+{
+    fn from(event: MarketEvent<Input>) -> Self {
+        Self {
+            exchange_time: event.exchange_time,
+            received_time: event.received_time,
+            exchange: event.exchange,
+            instrument: event.instrument,
+            kind: Output::from(event.kind)
+        }
+    }
 }

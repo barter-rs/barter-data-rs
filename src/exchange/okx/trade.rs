@@ -83,7 +83,7 @@ impl From<(ExchangeId, Instrument, OkxTrades)> for MarketIter<PublicTrade> {
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),
                     instrument: instrument.clone(),
-                    event: PublicTrade {
+                    kind: PublicTrade {
                         id: trade.id,
                         price: trade.price,
                         amount: trade.amount,
