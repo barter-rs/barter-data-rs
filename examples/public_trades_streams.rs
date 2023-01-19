@@ -38,6 +38,9 @@ async fn main() {
         .unwrap();
 
     // Select the ExchangeId::BinanceFuturesUsd stream
+    // Notes:
+    //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
     let mut binance_stream = streams
         .select(ExchangeId::BinanceFuturesUsd)
         .unwrap();
