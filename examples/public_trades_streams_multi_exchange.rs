@@ -1,8 +1,8 @@
-use barter_data::exchange::gateio::spot::GateioSpot;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         coinbase::Coinbase,
+        gateio::spot::GateioSpot,
         okx::Okx,
     },
     streams::Streams,
