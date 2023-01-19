@@ -1,6 +1,6 @@
 use crate::{
     error::DataError,
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::Connector,
     subscription::{book::OrderBook, Map, SubKind},
     transformer::ExchangeTransformer,
@@ -114,7 +114,7 @@ where
 {
     type Error = DataError;
     type Input = Updater::Update;
-    type Output = Market<Kind::Event>;
+    type Output = MarketEvent<Kind::Event>;
     type OutputIter = Vec<Result<Self::Output, Self::Error>>;
 
     fn transform(&mut self, update: Self::Input) -> Self::OutputIter {

@@ -1,6 +1,6 @@
 use crate::{
     error::DataError,
-    event::Market,
+    event::MarketEvent,
     exchange::StreamSelector,
     subscription::{SubKind, Subscription},
     Identifier, MarketStream,
@@ -15,14 +15,14 @@ use tracing::{error, info, warn};
 /// of repeated disconnections with re-initialisation failures.
 pub const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 
-/// Central [`Market<Event>`](Market) consumer loop.
+/// Central [`MarketEvent<T>`](MarketEvent) consumer loop.
 ///
 /// Initialises an exchange [`MarketStream`] using a collection of [`Subscription`]s. Consumed
 /// events are distributed downstream via the `exchange_tx mpsc::UnboundedSender`. A re-connection
 /// mechanism with an exponential backoff policy is utilised to ensure maximum up-time.
 pub async fn consume<Exchange, Kind>(
     subscriptions: Vec<Subscription<Exchange, Kind>>,
-    exchange_tx: mpsc::UnboundedSender<Market<Kind::Event>>,
+    exchange_tx: mpsc::UnboundedSender<MarketEvent<Kind::Event>>,
 ) -> DataError
 where
     Exchange: StreamSelector<Kind>,
@@ -69,10 +69,10 @@ where
             }
         };
 
-        // Consume Result<Market<Event>, DataError> from MarketStream
+        // Consume Result<MarketEvent<T>, DataError> from MarketStream
         while let Some(event_result) = stream.next().await {
             match event_result {
-                // If Ok: send Market<Event> to exchange receiver
+                // If Ok: send MarketEvent<T> to exchange receiver
                 Ok(market_event) => {
                     let _ = exchange_tx.send(market_event).map_err(|err| {
                         error!(

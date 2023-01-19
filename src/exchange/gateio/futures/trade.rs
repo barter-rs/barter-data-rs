@@ -1,6 +1,6 @@
 use super::super::message::GateioMessage;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::{ExchangeId, ExchangeSub},
     subscription::trade::PublicTrade,
     Identifier,
@@ -60,7 +60,7 @@ impl From<(ExchangeId, Instrument, GateioFuturesTrades)> for MarketIter<PublicTr
             .data
             .into_iter()
             .map(|trade| {
-                Ok(Market {
+                Ok(MarketEvent {
                     exchange_time: trade.time,
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),

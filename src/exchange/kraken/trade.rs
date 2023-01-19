@@ -1,5 +1,5 @@
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
     subscription::trade::PublicTrade,
     Identifier,
@@ -60,7 +60,7 @@ impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
             .trades
             .into_iter()
             .map(|trade| {
-                Ok(Market {
+                Ok(MarketEvent {
                     exchange_time: trade.time,
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),

@@ -1,6 +1,6 @@
 use super::CoinbaseChannel;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::{ExchangeId, ExchangeSub},
     subscription::trade::PublicTrade,
     Identifier,
@@ -50,7 +50,7 @@ impl Identifier<Option<SubscriptionId>> for CoinbaseTrade {
 
 impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, CoinbaseTrade)) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),

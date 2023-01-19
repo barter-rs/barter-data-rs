@@ -1,6 +1,6 @@
 use super::super::message::GateioMessage;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::{ExchangeId, ExchangeSub},
     subscription::trade::PublicTrade,
     Identifier,
@@ -54,7 +54,7 @@ impl Identifier<Option<SubscriptionId>> for GateioSpotTrade {
 
 impl From<(ExchangeId, Instrument, GateioSpotTrade)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, GateioSpotTrade)) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: trade.data.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),

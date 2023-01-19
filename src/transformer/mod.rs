@@ -1,6 +1,6 @@
 use crate::{
     error::DataError,
-    event::Market,
+    event::MarketEvent,
     subscription::{Map, SubKind},
 };
 use async_trait::async_trait;
@@ -19,7 +19,7 @@ pub mod stateless;
 #[async_trait]
 pub trait ExchangeTransformer<Exchange, Kind>
 where
-    Self: Transformer<Output = Market<Kind::Event>, Error = DataError> + Sized,
+    Self: Transformer<Output = MarketEvent<Kind::Event>, Error = DataError> + Sized,
     Kind: SubKind,
 {
     /// Construct a new [`Self`].

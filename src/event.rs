@@ -3,30 +3,30 @@ use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Convenient new type containing a collection of [`Market<Event>`](Market)s.
+/// Convenient new type containing a collection of [`MarketEvent<T>`](MarketEvent)s.
 #[derive(Debug)]
-pub struct MarketIter<Event>(pub Vec<Result<Market<Event>, DataError>>);
+pub struct MarketIter<T>(pub Vec<Result<MarketEvent<T>, DataError>>);
 
-impl<Event> FromIterator<Result<Market<Event>, DataError>> for MarketIter<Event> {
-    fn from_iter<T>(iter: T) -> Self
+impl<T> FromIterator<Result<MarketEvent<T>, DataError>> for MarketIter<T> {
+    fn from_iter<Iter>(iter: Iter) -> Self
     where
-        T: IntoIterator<Item = Result<Market<Event>, DataError>>,
+        Iter: IntoIterator<Item = Result<MarketEvent<T>, DataError>>,
     {
         Self(iter.into_iter().collect())
     }
 }
 
-/// Normalised Barter [`Market<Event>`](Self) wrapping the `Event` variant in metadata.
+/// Normalised Barter [`MarketEvent<T>`](Self) wrapping the `T` data variant in metadata.
 ///
-/// Note: `Event` can be an enum if required.
+/// Note: `T` can be an enum if required.
 ///
 /// See [`crate::subscription`] for all existing Barter Market event variants
-/// (eg/ [`Market<PublicTrade>`](crate::subscription::trade::PublicTrade)).
+/// (eg/ [`MarketEvent<PublicTrade>`](crate::subscription::trade::PublicTrade)).
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
-pub struct Market<Event> {
+pub struct MarketEvent<T> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
     pub instrument: Instrument,
-    pub event: Event,
+    pub event: T,
 }

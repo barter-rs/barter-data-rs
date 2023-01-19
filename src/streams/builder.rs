@@ -1,7 +1,7 @@
 use super::{consumer::consume, Streams};
 use crate::{
     error::DataError,
-    event::Market,
+    event::MarketEvent,
     exchange::{ExchangeId, StreamSelector},
     subscription::{SubKind, Subscription},
     Identifier,
@@ -11,7 +11,7 @@ use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData,
 use tokio::sync::mpsc;
 
 /// Convenient type alias representing a [`Future`] which yields an exchange
-/// [`Market<Event>`](Market) receiver.
+/// [`MarketEvent<T>`](MarketEvent) receiver.
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
 /// Builder to configure and initialise [`Streams`] instances for a specific [`SubKind`].
@@ -89,10 +89,10 @@ where
         self
     }
 
-    /// Spawn a [`Market<Event>`](Market) consumer loop for each collection of [`Subscription`]s
+    /// Spawn a [`MarketEvent<T>`](MarketEvent) consumer loop for each collection of [`Subscription`]s
     /// added to [`StreamBuilder`] via the [`subscribe()`](StreamBuilder::subscribe()) method.
     ///
-    /// Each consumer loop distributes consumed [`Market<Event>s`](Market) to the [`Streams`]
+    /// Each consumer loop distributes consumed [`MarketEvent<T>s`](MarketEvent) to the [`Streams`]
     /// `HashMap` returned by this method.
     pub async fn init(self) -> Result<Streams<Kind>, DataError> {
         // Await Stream initialisation futures and ensure success
@@ -110,14 +110,14 @@ where
 }
 
 /// Convenient type that holds the [`mpsc::UnboundedSender`] and [`mpsc::UnboundedReceiver`] for a
-/// [`Market<Event>`](Market) channel.
+/// [`MarketEvent<T>`](MarketEvent) channel.
 #[derive(Debug)]
 pub struct ExchangeChannel<Kind>
 where
     Kind: SubKind,
 {
-    tx: mpsc::UnboundedSender<Market<<Kind as SubKind>::Event>>,
-    rx: mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>,
+    tx: mpsc::UnboundedSender<MarketEvent<<Kind as SubKind>::Event>>,
+    rx: mpsc::UnboundedReceiver<MarketEvent<<Kind as SubKind>::Event>>,
 }
 
 impl<Kind> ExchangeChannel<Kind>
