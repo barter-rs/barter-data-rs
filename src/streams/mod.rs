@@ -1,8 +1,14 @@
+use std::any::Any;
 use self::builder::StreamBuilder;
-use crate::{event::MarketEvent, exchange::ExchangeId, subscription::SubKind};
+use crate::{
+    event::{MarketEvent, FromExt},
+    exchange::ExchangeId, subscription::SubKind
+};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
+use crate::subscription::book::OrderBooksL1;
+use crate::subscription::trade::{PublicTrade, PublicTrades};
 
 /// Defines the [`StreamBuilder`](builder::StreamBuilder) API for initialising
 /// [`MarketStream`](super::MarketStream) [`Streams`].
@@ -75,46 +81,74 @@ where
     /// Todo:
     ///  - Naming
     ///  - Find way to pass an iterator of Streams...
+    ///  - Create re-usable function for this spawning stuff
+    ///  - MAKE MERGED_STREAM FROM BUILDERS W/ ONLY ONE AWAIT AFTER INIT
+    ///    '--> eg/ MultiStreamBuilder { futures: Vec< async builder.init() > }
     pub async fn merge<AnotherKind, Output>(
         self,
         other: Streams<AnotherKind>
-    ) -> mpsc::UnboundedReceiver<Output>
+    ) -> MergedStreams<Output>
     where
         AnotherKind: SubKind,
         AnotherKind::Event: Send + 'static,
         Kind::Event: Send + 'static,
-        Output: From<MarketEvent<Kind::Event>> + From<MarketEvent<AnotherKind::Event>> + Send + 'static,
+        Output: FromExt<MarketEvent<Kind::Event>> + FromExt<MarketEvent<AnotherKind::Event>> + Send + 'static,
     {
-        let (output_tx, output_rx) = mpsc::unbounded_channel();
+        let (merged_tx, merged_rx) = mpsc::unbounded_channel();
 
         for mut exchange_rx in self.streams.into_values() {
-            let output_tx = output_tx.clone();
+            let merged_tx = merged_tx.clone();
             tokio::spawn(async move {
                 while let Some(event) = exchange_rx.recv().await {
-                    let _ = output_tx.send(Output::from(event));
+                    let _ = merged_tx.send(Output::from(event));
                 }
             });
         }
 
         for mut exchange_rx in other.streams.into_values() {
-            let output_tx = output_tx.clone();
+            let merged_tx = merged_tx.clone();
             tokio::spawn(async move {
                 while let Some(event) = exchange_rx.recv().await {
-                    let _ = output_tx.send(Output::from(event));
+                    let _ = merged_tx.send(Output::from(event));
                 }
             });
         }
 
-        output_rx
+        MergedStreams {
+            merged_tx,
+            merged_rx
+        }
     }
-
 }
 
-mod tests {
-    use super::*;
+/// Todo:
+#[derive(Debug)]
+pub struct MergedStreams<Output> {
+    pub merged_tx: mpsc::UnboundedSender<Output>,
+    pub merged_rx: mpsc::UnboundedReceiver<Output>
+}
 
-    #[test]
-    fn combine_streams() {
+impl<Output> MergedStreams<Output>
+{
+    /// Todo:
+    pub async fn merge<OtherKind>(
+        self,
+        other: Streams<OtherKind>
+    ) -> Self
+    where
+        Output: FromExt<MarketEvent<OtherKind::Event>> + Send + 'static,
+        OtherKind: SubKind,
+        OtherKind::Event: Send + 'static,
+    {
+        for mut exchange_rx in other.streams.into_values() {
+            let merged_tx = self.merged_tx.clone();
+            tokio::spawn(async move {
+                while let Some(event) = exchange_rx.recv().await {
+                    let _ = merged_tx.send(Output::from(event));
+                }
+            });
+        }
 
+        self
     }
 }

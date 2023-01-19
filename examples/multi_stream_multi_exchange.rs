@@ -11,28 +11,33 @@ use barter_data::{
     },
 };
 use barter_integration::model::InstrumentKind;
-use futures::StreamExt;
 use tokio::sync::mpsc;
+use tokio_stream::StreamExt;
 use tracing::info;
+use barter_data::subscription::book::{OrderBook, OrderBooksL2};
 
-// Define common OutputEvent type
+// Define custom enum to hold multiple market event kinds
 #[derive(Debug)]
-enum OutputEvent {
-    Trade(MarketEvent<PublicTrade>),
-    OrderBookL1(MarketEvent<OrderBookL1>)
+pub enum DataKind {
+    Trade(PublicTrade),
+    OrderBookL1(OrderBookL1),
+    OrderBook(OrderBook),
 }
 
-// Implement From for OutputEvent to satisfy Streams::merge() trait bounds
-impl From<MarketEvent<PublicTrade>> for OutputEvent {
-    fn from(trade: MarketEvent<PublicTrade>) -> Self {
+// Provide From mappings for each variant to satisfy Streams::merge() trait bounds
+impl From<PublicTrade> for DataKind {
+    fn from(trade: PublicTrade) -> Self {
         Self::Trade(trade)
     }
 }
-
-// Implement From for OutputEvent to satisfy Streams::merge() trait bounds
-impl From<MarketEvent<OrderBookL1>> for OutputEvent {
-    fn from(book_l1: MarketEvent<OrderBookL1>) -> Self {
+impl From<OrderBookL1> for DataKind {
+    fn from(book_l1: OrderBookL1) -> Self {
         Self::OrderBookL1(book_l1)
+    }
+}
+impl From<OrderBook> for DataKind {
+    fn from(book: OrderBook) -> Self {
+        Self::OrderBook(book)
     }
 }
 
@@ -72,13 +77,29 @@ async fn main() {
         .await
         .unwrap();
 
+    // Initialise OrderBooksL2 Stream for various exchanges
+    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
+    let book_l2_streams = Streams::builder()
+        .subscribe([
+            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2),
+        ])
+        .subscribe([
+            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL2),
+        ])
+        .init()
+        .await
+        .unwrap();
+
     // Todo:
-    let mut merged_stream: mpsc::UnboundedReceiver<OutputEvent> = trade_streams
+    let mut merged_stream: mpsc::UnboundedReceiver<MarketEvent<DataKind>> = trade_streams
         .merge(book_l1_streams)
-        .await;
+        .await
+        .merge(book_l2_streams)
+        .await
+        .merged_rx;
 
     while let Some(event) = merged_stream.recv().await {
-        info!("OutputEvent: {event:?}");
+        info!("MarketEvent<DataKind>: {event:?}");
     }
 }
 
