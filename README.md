@@ -1,3 +1,4 @@
+
 # Barter-Data
 A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency 
 exchanges - batteries included. It is:
@@ -54,7 +55,7 @@ arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply
 |    **GateioSpot**     |    `GateioSpot::default()`     |                           Spot                            |                        PublicTrades                         |
 | **GateioFuturesUsd**  | `GateioFuturesUsd::default()`  |                      FuturePerpetual                      |                        PublicTrades                         |
 | **GateioFuturesBtc**  | `GateioFuturesBtc::default()`  |                      FuturePerpetual                      |                        PublicTrades                         |
-|      **Kraken**       |            `Kraken`            |                           Spot                            |                        PublicTrades                         |
+|      **Kraken**       |            `Kraken`            |                           Spot                            |                        PublicTrades     <br> OrderBooksL1                    |
 |        **Okx**        |             `Okx`              |                 Spot <br> FuturePerpetual                 |                        PublicTrades                         |
 
 
