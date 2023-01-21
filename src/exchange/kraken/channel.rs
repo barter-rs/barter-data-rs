@@ -16,12 +16,12 @@ impl KrakenChannel {
     /// [`Kraken`] real-time trades channel name.
     ///
     /// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
-    const TRADES: Self = Self("trade");
+    pub const TRADES: Self = Self("trade");
 
     /// [`Kraken`] real-time OrderBook Level1 (top of book) channel name.
     ///
     /// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
-    const ORDER_BOOK_L1: Self = Self("spread");
+    pub const ORDER_BOOK_L1: Self = Self("spread");
 }
 
 impl Identifier<KrakenChannel> for Subscription<Kraken, PublicTrades> {

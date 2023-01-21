@@ -208,26 +208,20 @@ mod tests {
 
     mod de {
         use super::*;
-
-        use crate::exchange::kraken::message::{KrakenError, KrakenEvent, KrakenMessage};
         use barter_integration::de::datetime_utc_from_epoch_duration;
         use barter_integration::error::SocketError;
         use barter_integration::model::{Side, SubscriptionId};
 
         #[test]
-        fn test_trade() {}
-
-        #[test]
-        fn test_kraken_message() {
+        fn test_kraken_message_trades() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<KrakenTrades, SocketError>,
             }
 
-            let tests = vec![
-                TestCase {
-                    // TC0: valid KrakenTrades::Data(KrakenTradesInner)
-                    input: r#"
+            let tests = vec![TestCase {
+                // TC0: valid KrakenTrades::Data(KrakenTradesInner)
+                input: r#"
                     [
                         0,
                         [
@@ -252,46 +246,28 @@ mod tests {
                       "XBT/USD"
                     ]
                     "#,
-                    expected: Ok(KrakenTrades::Data(KrakenTradesInner {
-                        subscription_id: SubscriptionId::from("trade|XBT/USD"),
-                        trades: vec![
-                            KrakenTrade {
-                                price: 5541.2,
-                                amount: 0.15850568,
-                                time: datetime_utc_from_epoch_duration(
-                                    std::time::Duration::from_secs_f64(1534614057.321597),
-                                ),
-                                side: Side::Sell,
-                            },
-                            KrakenTrade {
-                                price: 6060.0,
-                                amount: 0.02455000,
-                                time: datetime_utc_from_epoch_duration(
-                                    std::time::Duration::from_secs_f64(1534614057.324998),
-                                ),
-                                side: Side::Buy,
-                            },
-                        ],
-                    })),
-                },
-                TestCase {
-                    // TC1: valid KrakenTrades::Event(KrakenEvent::Heartbeat)
-                    input: r#"{"event": "heartbeat"}"#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Heartbeat)),
-                },
-                TestCase {
-                    // TC2: valid KrakenTrades::Event(KrakenEvent::Error(KrakenError))
-                    input: r#"
-                    {
-                        "errorMessage": "Malformed request",
-                        "event": "error"
-                    }
-                    "#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Error(KrakenError {
-                        message: "Malformed request".to_string(),
-                    }))),
-                },
-            ];
+                expected: Ok(KrakenTrades::Data(KrakenTradesInner {
+                    subscription_id: SubscriptionId::from("trade|XBT/USD"),
+                    trades: vec![
+                        KrakenTrade {
+                            price: 5541.2,
+                            amount: 0.15850568,
+                            time: datetime_utc_from_epoch_duration(
+                                std::time::Duration::from_secs_f64(1534614057.321597),
+                            ),
+                            side: Side::Sell,
+                        },
+                        KrakenTrade {
+                            price: 6060.0,
+                            amount: 0.02455000,
+                            time: datetime_utc_from_epoch_duration(
+                                std::time::Duration::from_secs_f64(1534614057.324998),
+                            ),
+                            side: Side::Buy,
+                        },
+                    ],
+                })),
+            }];
 
             for (index, test) in tests.into_iter().enumerate() {
                 let actual = serde_json::from_str::<KrakenTrades>(test.input);

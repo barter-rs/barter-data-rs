@@ -1,11 +1,13 @@
 use crate::Identifier;
 use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
+
 /// [`Kraken`](super::Kraken) message variants that can be received over
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
 ///
 /// ### Raw Payload Examples
 /// See docs: <https://docs.kraken.com/websockets/#overview>
+///
 /// #### OrderBookL1
 /// See docs: <https://docs.kraken.com/websockets/#message-spread>
 /// ```json
@@ -115,4 +117,53 @@ pub enum KrakenEvent {
 pub struct KrakenError {
     #[serde(alias = "errorMessage")]
     pub message: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+        use barter_integration::error::SocketError;
+
+        #[test]
+        fn test_kraken_message_event() {
+            struct TestCase {
+                input: &'static str,
+                expected: Result<KrakenMessage<()>, SocketError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid KrakenTrades::Event(KrakenEvent::Heartbeat)
+                    input: r#"{"event": "heartbeat"}"#,
+                    expected: Ok(KrakenMessage::Event(KrakenEvent::Heartbeat)),
+                },
+                TestCase {
+                    // TC1: valid KrakenTrades::Event(KrakenEvent::Error(KrakenError))
+                    input: r#"{"errorMessage": "Malformed request", "event": "error"}"#,
+                    expected: Ok(KrakenMessage::Event(KrakenEvent::Error(KrakenError {
+                        message: "Malformed request".to_string(),
+                    }))),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = serde_json::from_str::<KrakenMessage<()>>(test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
+        }
+    }
 }

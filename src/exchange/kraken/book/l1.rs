@@ -1,21 +1,25 @@
 use super::super::KrakenMessage;
+use crate::exchange::kraken::channel::KrakenChannel;
+use crate::exchange::subscription::ExchangeSub;
 use crate::{
-    event::{MarketIter, MarketEvent},
+    event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
     subscription::book::{Level, OrderBookL1},
     Identifier,
 };
 use barter_integration::{
-    de::{datetime_utc_from_epoch_duration, de_str, extract_next},
+    de::extract_next,
     model::{Exchange, Instrument, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for an [`Kraken`](super::super::Kraken) real-time order book L1 WebSocket message.
+/// Terse type alias for an [`Kraken`](super::super::Kraken) real-time OrderBook Level1
+/// (top of book) WebSocket message.
 pub type KrakenOrderBookL1 = KrakenMessage<KrakenOrderBookL1Inner>;
 
-/// [`Kraken`](super::super::Kraken) real-time OrderBook Level1 (top of book) message.
+/// [`Kraken`](super::super::Kraken) real-time OrderBook Level1 (top of book) data and the
+/// associated [`SubscriptionId`].
 ///
 /// See [`KrakenMessage`](super::super::message::KrakenMessage) for full raw payload examples.
 ///
@@ -26,7 +30,7 @@ pub struct KrakenOrderBookL1Inner {
     pub spread: KrakenSpread,
 }
 
-/// [`Kraken`](super::super::Kraken) best bid and offer. Is an inner type containing the data for KrakenOrderBookL1.
+/// [`Kraken`](super::super::Kraken) best bid and ask.
 ///
 /// See [`KrakenMessage`](super::super::message::KrakenMessage) for full raw payload examples.
 ///
@@ -37,7 +41,7 @@ pub struct KrakenSpread {
     pub best_bid_price: f64,
     #[serde(deserialize_with = "barter_integration::de::de_str")]
     pub best_ask_price: f64,
-    #[serde(deserialize_with = "de_str_f64_epoch_s_as_datetime_utc")]
+    #[serde(deserialize_with = "barter_integration::de::de_str_f64_epoch_s_as_datetime_utc")]
     pub time: DateTime<Utc>,
     #[serde(deserialize_with = "barter_integration::de::de_str")]
     pub best_bid_amount: f64,
@@ -68,18 +72,6 @@ impl From<(ExchangeId, Instrument, KrakenOrderBookL1)> for MarketIter<OrderBookL
             KrakenOrderBookL1::Event(_) => MarketIter(vec![]),
         }
     }
-}
-
-/// Deserialize a &str "f64" seconds value as `DateTime<Utc>`.
-pub fn de_str_f64_epoch_s_as_datetime_utc<'de, D>(
-    deserializer: D,
-) -> Result<chrono::DateTime<chrono::Utc>, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    de_str(deserializer).map(|epoch_s: f64| {
-        datetime_utc_from_epoch_duration(std::time::Duration::from_secs_f64(epoch_s))
-    })
 }
 
 impl<'de> serde::de::Deserialize<'de> for KrakenOrderBookL1Inner {
@@ -118,7 +110,7 @@ impl<'de> serde::de::Deserialize<'de> for KrakenOrderBookL1Inner {
 
                 // Extract pair (eg/ "XBT/USD") & map to SubscriptionId (ie/ "spread|{pair}")
                 let subscription_id = extract_next::<SeqAccessor, String>(&mut seq, "pair")
-                    .map(|pair| SubscriptionId::from(format!("spread|{pair}")))?;
+                    .map(|market| ExchangeSub::from((KrakenChannel::ORDER_BOOK_L1, market)).id())?;
 
                 // Ignore any additional elements or SerDe will fail
                 //  '--> Exchange may add fields without warning
@@ -142,23 +134,20 @@ mod tests {
 
     mod de {
         use super::*;
-
-        use crate::exchange::kraken::message::{KrakenError, KrakenEvent, KrakenMessage};
         use barter_integration::de::datetime_utc_from_epoch_duration;
         use barter_integration::error::SocketError;
         use barter_integration::model::SubscriptionId;
 
         #[test]
-        fn test_kraken_message() {
+        fn test_kraken_message_order_book_l1() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<KrakenOrderBookL1, SocketError>,
             }
 
-            let tests = vec![
-                TestCase {
-                    // TC0: valid KrakenOrderBookL1::Data(KrakenOrderBookL1Inner)
-                    input: r#"
+            let tests = vec![TestCase {
+                // TC0: valid KrakenOrderBookL1::Data(KrakenOrderBookL1Inner)
+                input: r#"
                     [
                         0,
                         [
@@ -172,37 +161,19 @@ mod tests {
                         "XBT/USD"
                     ]
                     "#,
-                    expected: Ok(KrakenOrderBookL1::Data(KrakenOrderBookL1Inner {
-                        subscription_id: SubscriptionId::from("spread|XBT/USD"),
-                        spread: KrakenSpread {
-                            best_bid_price: 5698.4,
-                            best_bid_amount: 1.01234567,
-                            time: datetime_utc_from_epoch_duration(
-                                std::time::Duration::from_secs_f64(1542057299.545897),
-                            ),
-                            best_ask_price: 5700.0,
-                            best_ask_amount: 0.98765432,
-                        },
-                    })),
-                },
-                TestCase {
-                    // TC1: valid KrakenOrderBookL1::Event(KrakenEvent::Heartbeat)
-                    input: r#"{"event": "heartbeat"}"#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Heartbeat)),
-                },
-                TestCase {
-                    // TC2: valid KrakenOrderBookL1::Event(KrakenEvent::Error(KrakenError))
-                    input: r#"
-                    {
-                        "errorMessage": "Malformed request",
-                        "event": "error"
-                    }
-                    "#,
-                    expected: Ok(KrakenMessage::Event(KrakenEvent::Error(KrakenError {
-                        message: "Malformed request".to_string(),
-                    }))),
-                },
-            ];
+                expected: Ok(KrakenOrderBookL1::Data(KrakenOrderBookL1Inner {
+                    subscription_id: SubscriptionId::from("spread|XBT/USD"),
+                    spread: KrakenSpread {
+                        best_bid_price: 5698.4,
+                        best_bid_amount: 1.01234567,
+                        time: datetime_utc_from_epoch_duration(std::time::Duration::from_secs_f64(
+                            1542057299.545897,
+                        )),
+                        best_ask_price: 5700.0,
+                        best_ask_amount: 0.98765432,
+                    },
+                })),
+            }];
 
             for (index, test) in tests.into_iter().enumerate() {
                 let actual = serde_json::from_str::<KrakenOrderBookL1>(test.input);
