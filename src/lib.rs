@@ -1,8 +1,7 @@
 #![warn(
     missing_debug_implementations,
     missing_copy_implementations,
-    rust_2018_idioms,
-    missing_docs
+    rust_2018_idioms
 )]
 
 //! # Barter-Data
@@ -22,6 +21,8 @@
 //! - Call [`StreamBuilder::init`](streams::builder::StreamBuilder::init) to start streaming!
 //!
 //! ## Examples
+//! For a comprehensive collection of examples, see the /examples directory.
+//!
 //! ### Multi Exchange Public Trades
 //! ```rust,no_run
 //! use barter_data::exchange::gateio::spot::GateioSpot;
@@ -79,71 +80,6 @@
 //!     }
 //! }
 //! ```
-//! ### Multi Exchange L1 Order Book
-//! ```rust,no_run
-//! use barter_data::{
-//!     exchange::{
-//!         binance::spot::BinanceSpot,
-//!         kraken::Kraken,
-//!     },
-//!     streams::Streams,
-//!     subscription::book::OrderBooksL1,
-//! };
-//! use barter_integration::model::InstrumentKind;
-//! use futures::StreamExt;
-//! use tracing::info;
-//!
-//! #[rustfmt::skip]
-//! #[tokio::main]
-//! async fn main() {
-//!     // Initialise INFO Tracing log subscriber
-//!     init_logging();
-//!
-//!     // Initialise OrderBooksL1 Streams for various exchnages
-//!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-//!     let streams = Streams::builder()
-//!         .subscribe([
-//!             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL1),
-//!             (BinanceSpot::default(), "eth", "usd", InstrumentKind::Spot, OrderBooksL1),
-//!         ])
-//!         .subscribe([
-//!             (Kraken::default(), "xbt", "usd", InstrumentKind::Spot, OrderBooksL1),
-//!             (Kraken::default(), "ada", "usd", InstrumentKind::Spot, OrderBooksL1),
-//!             (Kraken::default(), "matic", "usd", InstrumentKind::Spot, OrderBooksL1),
-//!             (Kraken::default(), "dot", "usd", InstrumentKind::Spot, OrderBooksL1),
-//!         ])
-//!         .init()
-//!         .await
-//!         .unwrap();
-//!
-//!     // Join all exchange OrderBooksL1 streams into a single tokio_stream::StreamMap
-//!     // Notes:
-//!     //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
-//!     //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
-//!     let mut joined_stream = streams.join_map().await;
-//!
-//!     while let Some((exchange, order_book_l1)) = joined_stream.next().await {
-//!         info!("Exchange: {exchange}, Market<OrderBookL1>: {order_book_l1:?}");
-//!     }
-//! }
-//!
-//! // Initialise an INFO `Subscriber` for `Tracing` Json logs and install it as the global default.
-//! fn init_logging() {
-//!     tracing_subscriber::fmt()
-//!         // Filter messages based on the INFO
-//!         .with_env_filter(
-//!             tracing_subscriber::filter::EnvFilter::builder()
-//!                 .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
-//!                 .from_env_lossy(),
-//!         )
-//!         // Disable colours on release builds
-//!         .with_ansi(cfg!(debug_assertions))
-//!         // Enable Json formatting
-//!         .json()
-//!         // Install this Tracing subscriber as global default
-//!         .init()
-//! }
-//! ```
 
 use crate::{
     error::DataError,
@@ -197,11 +133,6 @@ pub mod subscription;
 ///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and
 ///   [`OrderBooksL3`](crate::subscription::book::OrderBooksL3) streams.
 pub mod transformer;
-
-// Todo: Before Release:
-//  - Readme.md, examples, etc. including table of available exchanges & SubKinds
-//  - Release barter-integration & switch toml
-//  - Code Style section in contribution readme.md
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
