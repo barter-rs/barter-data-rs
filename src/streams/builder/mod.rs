@@ -10,14 +10,16 @@ use barter_integration::{error::SocketError, Validator};
 use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 use tokio::sync::mpsc;
 
-/// Todo:
+/// Defines the [`MultiStreamBuilder`](multi::MultiStreamBuilder) API for ergonomically
+/// initialising a common [`Streams<Output>`](Streams) from multiple
+/// [`StreamBuilder<SubKind>`](StreamBuilder)s.
 pub mod multi;
 
-/// Convenient type alias representing a [`Future`] which yields an exchange
-/// [`MarketEvent<T>`](MarketEvent) receiver.
+/// Communicative type alias representing the [`Future`] result of a [`Subscription`] [`validate`]
+/// call generated whilst executing [`StreamBuilder::subscribe`].
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
-/// Builder to configure and initialise [`Streams<MarketEvent<SubKind::Event>`](Streams) instances
+/// Builder to configure and initialise a [`Streams<MarketEvent<SubKind::Event>`](Streams) instance
 /// for a specific [`SubKind`].
 #[derive(Default)]
 pub struct StreamBuilder<Kind>
@@ -49,14 +51,13 @@ where
         Self {
             channels: HashMap::new(),
             futures: Vec::new(),
-            // phantom: PhantomData::<Kind>::default(),
         }
     }
 
-    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be initialised on
+    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be actioned on
     /// a distinct [`WebSocket`](barter_integration::protocol::websocket::WebSocket) connection.
     ///
-    /// Note that the are [`Subscription`]s are not actioned until the
+    /// Note that [`Subscription`]s are not actioned until the
     /// [`init()`](StreamBuilder::init()) method is invoked.
     pub fn subscribe<SubIter, Sub, Exchange>(mut self, subscriptions: SubIter) -> Self
     where

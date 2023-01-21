@@ -38,7 +38,14 @@ pub struct MarketEvent<T> {
     pub kind: T,
 }
 
-/// Todo:
+/// Available kinds of normalised Barter [`MarketEvent<T>`](MarketEvent).
+///
+/// ### Notes
+/// - [`Self`] is only used as the [`MarketEvent<DataKind>`](MarketEvent) `Output` when combining
+///   several [`Streams<SubKind::Event>`](Streams) using the
+///   [`MultiStreamBuilder<Output>`](MultiStreamBuilder).
+/// - [`Self`] is purposefully not supported in any [`Subscription`]s directly, it is only used to
+///   make ergonomic [`Streams`] containing many [`MarketEvent<T>`](MarketEvent) kinds.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
     Trade(PublicTrade),
