@@ -13,7 +13,7 @@ async fn main() {
     init_logging();
 
     // Initialise OrderBooksL2 Streams for BinanceSpot only
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
+    // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
     let mut streams = Streams::builder()
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
@@ -46,7 +46,7 @@ async fn main() {
         .unwrap();
 
     while let Some(order_book_l2) = binance_stream.recv().await {
-        info!("Market<OrderBook>: {order_book_l2:?}");
+        info!("MarketEvent<OrderBook>: {order_book_l2:?}");
     }
 }
 

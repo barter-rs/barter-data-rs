@@ -14,6 +14,7 @@ use barter_integration::model::InstrumentKind;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tracing::info;
+use barter_data::streams::builder::multi::MultiStreamBuilder;
 use barter_data::subscription::book::{OrderBook, OrderBooksL2};
 
 // Define custom enum to hold multiple market event kinds
@@ -47,59 +48,57 @@ async fn main() {
     // Initialise INFO Tracing log subscriber
     init_logging();
 
-    // Initialise PublicTrades Streams for various exchanges
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let trade_streams = Streams::builder()
-        .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-        ])
-        .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-        ])
-        .subscribe([
-            (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-        ])
+    // Note:
+    // - Each call to StreamBuilder::subscribe() creates a separate WebSocket connection for those
+    //   Subscriptions passed.
+
+    // Initialise MarketEvent<DataKind> Streams for various exchanges
+    let streams: Streams<MarketEvent<DataKind>> = MultiStreamBuilder::new()
+        // Add PublicTrades Streams for various exchanges
+        .add(Streams::<PublicTrades>::builder()
+            .subscribe([
+                (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            ])
+            .subscribe([
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            ])
+            .subscribe([
+                (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+                (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            ])
+        )
+
+        // Add OrderBooksL1 Stream for various exchanges
+        .add(Streams::<OrderBooksL1>::builder()
+            .subscribe([
+                (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL1),
+            ])
+            .subscribe([
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL1),
+            ])
+        )
+
+        // Add OrderBooksL2 Stream for various exchanges
+        .add(Streams::<OrderBooksL2>::builder()
+            .subscribe([
+                (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2),
+            ])
+            .subscribe([
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL2),
+            ])
+        )
         .init()
         .await
         .unwrap();
 
-    // Initialise OrderBooksL1 Stream for various exchanges
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let book_l1_streams = Streams::builder()
-        .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL1),
-        ])
-        .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL1),
-        ])
-        .init()
-        .await
-        .unwrap();
+    // Join all exchange Streams into a single tokio_stream::StreamMap
+    // Notes:
+    //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
+    let mut joined_stream = streams.join_map().await;
 
-    // Initialise OrderBooksL2 Stream for various exchanges
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let book_l2_streams = Streams::builder()
-        .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2),
-        ])
-        .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL2),
-        ])
-        .init()
-        .await
-        .unwrap();
-
-    // Todo:
-    let mut merged_stream: mpsc::UnboundedReceiver<MarketEvent<DataKind>> = trade_streams
-        .merge(book_l1_streams)
-        .await
-        .merge(book_l2_streams)
-        .await
-        .merged_rx;
-
-    while let Some(event) = merged_stream.recv().await {
-        info!("MarketEvent<DataKind>: {event:?}");
+    while let Some((exchange, data)) = joined_stream.next().await {
+        info!("Exchange: {exchange}, MarketEvent<DataKind>: {data:?}");
     }
 }
 
@@ -119,3 +118,5 @@ fn init_logging() {
         // Install this Tracing subscriber as global default
         .init()
 }
+
+
