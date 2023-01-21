@@ -16,12 +16,12 @@ impl GateioChannel {
     /// Gateio [`InstrumentKind::Spot`] real-time trades channel.
     ///
     /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
-    const SPOT_TRADES: Self = Self("spot.trades");
+    pub const SPOT_TRADES: Self = Self("spot.trades");
 
     /// Gateio [`InstrumentKind::FuturePerpetual`] real-time trades channel.
     ///
     /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
-    const FUTURE_PERPETUAL_TRADES: Self = Self("futures.trades");
+    pub const FUTURE_PERPETUAL_TRADES: Self = Self("futures.trades");
 }
 
 impl<Server> Identifier<GateioChannel> for Subscription<Server, PublicTrades> {
