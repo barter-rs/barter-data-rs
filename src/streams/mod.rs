@@ -1,14 +1,10 @@
-use std::any::Any;
 use self::builder::StreamBuilder;
 use crate::{
-    event::{MarketEvent, FromExt},
     exchange::ExchangeId, subscription::SubKind
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
-use crate::subscription::book::OrderBooksL1;
-use crate::subscription::trade::{PublicTrade, PublicTrades};
 
 /// Defines the [`StreamBuilder`](builder::StreamBuilder) API for initialising
 /// [`MarketStream`](super::MarketStream) [`Streams`].
@@ -21,34 +17,32 @@ pub mod consumer;
 // Todo:
 //   - Ensure rust docs are all consistent after changing from Kind::Event to T
 //   - Ensure (tx, rx) naming is consistent (output_tx vs merged_tx vs joined_tx, etc)
+//   - Try to reduce code duplication... while let loop is v. common
 
 /// Ergonomic collection of exchange [`MarketEvent<T>`](MarketEvent) receivers.
 #[derive(Debug)]
 pub struct Streams<T> {
-    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<MarketEvent<T>>>,
+    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<T>>,
 }
 
 impl<T> Streams<T> {
-    /// Construct a [`StreamBuilder`] for configuring new [`MarketEvent<T>`](MarketEvent) [`Streams`].
+    /// Construct a [`StreamBuilder`] for configuring new [`MarketEvent<T>`](MarketEvent)
+    /// [`Streams`].
     pub fn builder<Kind>() -> StreamBuilder<Kind>
     where
         Kind: SubKind,
-    { // Todo: T is not the same as StreamBuilder<Kind>
-        StreamBuilder::new()
+    {
+        StreamBuilder::<Kind>::new()
     }
 
-    /// Remove an exchange [`MarketEvent<T>`](MarketEvent) [`mpsc::UnboundedReceiver`] from the
-    /// [`Streams`] `HashMap`.
-    pub fn select(
-        &mut self,
-        exchange: ExchangeId,
-    ) -> Option<mpsc::UnboundedReceiver<MarketEvent<T>>> {
+    /// Remove an exchange [`mpsc::UnboundedReceiver`] from the [`Streams`] `HashMap`.
+    pub fn select(&mut self, exchange: ExchangeId) -> Option<mpsc::UnboundedReceiver<T>> {
         self.streams.remove(&exchange)
     }
 
-    /// Join all exchange [`MarketEvent<T>`](MarketEvent) [`mpsc::UnboundedReceiver`] streams into a
-    /// unified [`mpsc::UnboundedReceiver`].
-    pub async fn join(self) -> mpsc::UnboundedReceiver<MarketEvent<T>>
+    /// Join all exchange [`mpsc::UnboundedReceiver`] streams into a unified
+    /// [`mpsc::UnboundedReceiver`].
+    pub async fn join(self) -> mpsc::UnboundedReceiver<T>
     where
         T: Send + 'static,
     {
@@ -69,11 +63,8 @@ impl<T> Streams<T> {
         output_rx
     }
 
-    /// Join all exchange [`MarketEvent<T>`](MarketEvent) [`mpsc::UnboundedReceiver`] streams into a
-    /// unified [`StreamMap`].
-    pub async fn join_map(
-        self,
-    ) -> StreamMap<ExchangeId, UnboundedReceiverStream<MarketEvent<T>>> {
+    /// Join all exchange [`mpsc::UnboundedReceiver`] streams into a unified [`StreamMap`].
+    pub async fn join_map(self) -> StreamMap<ExchangeId, UnboundedReceiverStream<T>> {
         self.streams
             .into_iter()
             .fold(StreamMap::new(), |mut map, (exchange, rx)| {
@@ -86,9 +77,10 @@ impl<T> Streams<T> {
     //  - Naming seems off compared to join_map
     //  - ensure ExchangeChannel is used as much as possible eg/ in fn join()
     //  - should I just be using `Stream` and stream.map?
-    pub async fn map<Output>(mut self) -> Streams<Output>
+    pub async fn map<Output>(self) -> Streams<Output>
     where
-        Output: From<MarketEvent<T>>,
+        T: Send + 'static,
+        Output: From<T> + Send + 'static,
     {
         let mut streams_mapped = HashMap::with_capacity(self.streams.len());
 
@@ -108,7 +100,7 @@ impl<T> Streams<T> {
             });
         }
 
-        Self {
+        Streams {
             streams: streams_mapped
         }
     }
@@ -159,34 +151,34 @@ impl<T> Streams<T> {
     // }
 }
 
-/// Todo:
-#[derive(Debug)]
-pub struct MergedStreams<Output> {
-    pub merged_tx: mpsc::UnboundedSender<Output>,
-    pub merged_rx: mpsc::UnboundedReceiver<Output>
-}
-
-impl<Output> MergedStreams<Output>
-{
-    /// Todo:
-    pub async fn merge<OtherKind>(
-        self,
-        other: Streams<OtherKind>
-    ) -> Self
-    where
-        Output: FromExt<MarketEvent<OtherKind::Event>> + Send + 'static,
-        OtherKind: SubKind,
-        OtherKind::Event: Send + 'static,
-    {
-        for mut exchange_rx in other.streams.into_values() {
-            let merged_tx = self.merged_tx.clone();
-            tokio::spawn(async move {
-                while let Some(event) = exchange_rx.recv().await {
-                    let _ = merged_tx.send(Output::from(event));
-                }
-            });
-        }
-
-        self
-    }
-}
+// /// Todo:
+// #[derive(Debug)]
+// pub struct MergedStreams<Output> {
+//     pub merged_tx: mpsc::UnboundedSender<Output>,
+//     pub merged_rx: mpsc::UnboundedReceiver<Output>
+// }
+//
+// impl<Output> MergedStreams<Output>
+// {
+//     /// Todo:
+//     pub async fn merge<OtherKind>(
+//         self,
+//         other: Streams<OtherKind>
+//     ) -> Self
+//     where
+//         Output: FromExt<MarketEvent<OtherKind::Event>> + Send + 'static,
+//         OtherKind: SubKind,
+//         OtherKind::Event: Send + 'static,
+//     {
+//         for mut exchange_rx in other.streams.into_values() {
+//             let merged_tx = self.merged_tx.clone();
+//             tokio::spawn(async move {
+//                 while let Some(event) = exchange_rx.recv().await {
+//                     let _ = merged_tx.send(Output::from(event));
+//                 }
+//             });
+//         }
+//
+//         self
+//     }
+// }

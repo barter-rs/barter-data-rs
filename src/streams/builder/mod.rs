@@ -7,7 +7,7 @@ use crate::{
     Identifier,
 };
 use barter_integration::{error::SocketError, Validator};
-use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin};
+use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 use tokio::sync::mpsc;
 
 /// Todo:
@@ -17,15 +17,15 @@ pub mod multi;
 /// [`MarketEvent<T>`](MarketEvent) receiver.
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
-/// Builder to configure and initialise [`Streams`] instances for a specific [`SubKind`].
+/// Builder to configure and initialise [`Streams<MarketEvent<SubKind::Event>`](Streams) instances
+/// for a specific [`SubKind`].
 #[derive(Default)]
 pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
 {
-    pub channels: HashMap<ExchangeId, ExchangeChannel<Kind::Event>>,
+    pub channels: HashMap<ExchangeId, ExchangeChannel<MarketEvent<Kind::Event>>>,
     pub futures: Vec<SubscribeFuture>,
-    phantom: PhantomData<Kind>, // Todo: Try without this later
 }
 
 impl<Kind> Debug for StreamBuilder<Kind>
@@ -33,7 +33,7 @@ where
     Kind: SubKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamBuilder<Kind>")
+        f.debug_struct("StreamBuilder<SubKind>")
             .field("channels", &self.channels)
             .field("num_futures", &self.futures.len())
             .finish()
@@ -49,7 +49,7 @@ where
         Self {
             channels: HashMap::new(),
             futures: Vec::new(),
-            phantom: PhantomData::<Kind>::default(),
+            // phantom: PhantomData::<Kind>::default(),
         }
     }
 
@@ -97,12 +97,13 @@ where
         self
     }
 
-    /// Spawn a [`MarketEvent<T>`](MarketEvent) consumer loop for each collection of [`Subscription`]s
-    /// added to [`StreamBuilder`] via the [`subscribe()`](StreamBuilder::subscribe()) method.
+    /// Spawn a [`MarketEvent<SubKind::Event>`](MarketEvent) consumer loop for each collection of
+    /// [`Subscription`]s added to [`StreamBuilder`] via the
+    /// [`subscribe()`](StreamBuilder::subscribe()) method.
     ///
-    /// Each consumer loop distributes consumed [`MarketEvent<T>s`](MarketEvent) to the [`Streams`]
-    /// `HashMap` returned by this method.
-    pub async fn init(self) -> Result<Streams<Kind>, DataError> {
+    /// Each consumer loop distributes consumed [`MarketEvent<SubKind::Event>s`](MarketEvent) to
+    /// the [`Streams`] `HashMap` returned by this method.
+    pub async fn init(self) -> Result<Streams<MarketEvent<Kind::Event>>, DataError> {
         // Await Stream initialisation futures and ensure success
         futures::future::try_join_all(self.futures).await?;
 
@@ -121,8 +122,8 @@ where
 /// [`MarketEvent<T>`](MarketEvent) channel.
 #[derive(Debug)]
 pub struct ExchangeChannel<T> {
-    tx: mpsc::UnboundedSender<MarketEvent<T>>,
-    rx: mpsc::UnboundedReceiver<MarketEvent<T>>,
+    tx: mpsc::UnboundedSender<T>,
+    rx: mpsc::UnboundedReceiver<T>,
 }
 
 impl<T> ExchangeChannel<T> {
