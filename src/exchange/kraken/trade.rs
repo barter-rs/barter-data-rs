@@ -61,8 +61,7 @@ fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
 impl From<(ExchangeId, Instrument, KrakenTrades)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, KrakenTrades)) -> Self {
         match trades {
-            KrakenTrades::Data(trades) => 
-                trades
+            KrakenTrades::Data(trades) => trades
                 .trades
                 .into_iter()
                 .map(|trade| {
@@ -216,10 +215,8 @@ mod tests {
         use barter_integration::model::{Side, SubscriptionId};
 
         #[test]
-        fn test_trade() {
+        fn test_trade() {}
 
-        }
-        
         #[test]
         fn test_kraken_message() {
             struct TestCase {
@@ -276,7 +273,7 @@ mod tests {
                             },
                         ],
                     })),
-                }, 
+                },
                 TestCase {
                     // TC1: valid KrakenTrades::Event(KrakenEvent::Heartbeat)
                     input: r#"{"event": "heartbeat"}"#,

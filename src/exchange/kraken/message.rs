@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 ///     "XBT/USD"
 /// ]
 /// ```
-/// 
+///
 /// #### Trades
 /// See docs: <https://docs.kraken.com/websockets/#message-trade>
 /// ```json
@@ -74,9 +74,9 @@ pub enum KrakenMessage<T> {
     Event(KrakenEvent),
 }
 
-impl<T> Identifier<Option<SubscriptionId>> for KrakenMessage<T> 
+impl<T> Identifier<Option<SubscriptionId>> for KrakenMessage<T>
 where
-    T: Identifier<Option<SubscriptionId>> 
+    T: Identifier<Option<SubscriptionId>>,
 {
     fn id(&self) -> Option<SubscriptionId> {
         match self {
