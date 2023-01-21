@@ -1,6 +1,6 @@
 use super::Kraken;
 use crate::{
-    subscription::{trade::PublicTrades, Subscription},
+    subscription::{book::OrderBooksL1, trade::PublicTrades, Subscription},
     Identifier,
 };
 use serde::Serialize;
@@ -16,12 +16,23 @@ impl KrakenChannel {
     /// [`Kraken`] real-time trades channel name.
     ///
     /// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
-    const TRADES: Self = Self("trade");
+    pub const TRADES: Self = Self("trade");
+
+    /// [`Kraken`] real-time OrderBook Level1 (top of book) channel name.
+    ///
+    /// See docs: <https://docs.kraken.com/websockets/#message-subscribe>
+    pub const ORDER_BOOK_L1: Self = Self("spread");
 }
 
 impl Identifier<KrakenChannel> for Subscription<Kraken, PublicTrades> {
     fn id(&self) -> KrakenChannel {
         KrakenChannel::TRADES
+    }
+}
+
+impl Identifier<KrakenChannel> for Subscription<Kraken, OrderBooksL1> {
+    fn id(&self) -> KrakenChannel {
+        KrakenChannel::ORDER_BOOK_L1
     }
 }
 

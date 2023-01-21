@@ -1,8 +1,7 @@
 #![warn(
     missing_debug_implementations,
     missing_copy_implementations,
-    rust_2018_idioms,
-    // missing_docs
+    rust_2018_idioms
 )]
 
 //! # Barter-Data
@@ -22,6 +21,8 @@
 //! - Call [`StreamBuilder::init`](streams::builder::StreamBuilder::init) to start streaming!
 //!
 //! ## Examples
+//! For a comprehensive collection of examples, see the /examples directory.
+//!
 //! ### Multi Exchange Public Trades
 //! ```rust,no_run
 //! use barter_data::exchange::gateio::spot::GateioSpot;
@@ -132,11 +133,6 @@ pub mod subscription;
 ///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and
 ///   [`OrderBooksL3`](crate::subscription::book::OrderBooksL3) streams.
 pub mod transformer;
-
-// Todo: Before Release:
-//  - Readme.md, examples, etc. including table of available exchanges & SubKinds
-//  - Release barter-integration & switch toml
-//  - Code Style section in contribution readme.md
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
 /// [`WebSocket`](barter_integration::protocol::websocket::WebSocket).
