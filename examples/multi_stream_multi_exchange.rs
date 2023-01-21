@@ -4,43 +4,16 @@ use barter_data::{
         okx::Okx,
     },
     streams::Streams,
-    event::MarketEvent,
+    event::{MarketEvent, DataKind},
     subscription::{
-        trade::{PublicTrades, PublicTrade},
-        book::{OrderBooksL1, OrderBookL1},
+        trade::{PublicTrades},
+        book::{OrderBooksL1, OrderBooksL2},
     },
 };
 use barter_integration::model::InstrumentKind;
 use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tracing::info;
-use barter_data::streams::builder::multi::MultiStreamBuilder;
-use barter_data::subscription::book::{OrderBook, OrderBooksL2};
-
-// Define custom enum to hold multiple market event kinds
-#[derive(Debug)]
-pub enum DataKind {
-    Trade(PublicTrade),
-    OrderBookL1(OrderBookL1),
-    OrderBook(OrderBook),
-}
-
-// Provide From mappings for each variant to satisfy Streams::merge() trait bounds
-impl From<PublicTrade> for DataKind {
-    fn from(trade: PublicTrade) -> Self {
-        Self::Trade(trade)
-    }
-}
-impl From<OrderBookL1> for DataKind {
-    fn from(book_l1: OrderBookL1) -> Self {
-        Self::OrderBookL1(book_l1)
-    }
-}
-impl From<OrderBook> for DataKind {
-    fn from(book: OrderBook) -> Self {
-        Self::OrderBook(book)
-    }
-}
 
 #[rustfmt::skip]
 #[tokio::main]
@@ -48,12 +21,14 @@ async fn main() {
     // Initialise INFO Tracing log subscriber
     init_logging();
 
-    // Note:
+    // Notes:
+    // - MarketEvent<DataKind> could use a custom enumeration if more flexibility is required.
     // - Each call to StreamBuilder::subscribe() creates a separate WebSocket connection for those
     //   Subscriptions passed.
 
     // Initialise MarketEvent<DataKind> Streams for various exchanges
-    let streams: Streams<MarketEvent<DataKind>> = MultiStreamBuilder::new()
+    let streams: Streams<MarketEvent<DataKind>> = Streams::builder_multi()
+
         // Add PublicTrades Streams for various exchanges
         .add(Streams::<PublicTrades>::builder()
             .subscribe([
