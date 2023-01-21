@@ -1,5 +1,5 @@
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
     subscription::trade::PublicTrade,
 };
@@ -47,12 +47,12 @@ pub struct BitfinexTrade {
 
 impl From<(ExchangeId, Instrument, BitfinexTrade)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BitfinexTrade)) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: PublicTrade {
+            kind: PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
                 amount: trade.amount,

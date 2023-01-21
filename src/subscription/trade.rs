@@ -4,7 +4,7 @@ use barter_macro::{DeSubKind, SerSubKind};
 use serde::{Deserialize, Serialize};
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields [`PublicTrade`]
-/// [`Market`](crate::event::Market) events.
+/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct PublicTrades;
 

@@ -1,28 +1,33 @@
 use super::{consumer::consume, Streams};
 use crate::{
     error::DataError,
-    event::Market,
+    event::MarketEvent,
     exchange::{ExchangeId, StreamSelector},
     subscription::{SubKind, Subscription},
     Identifier,
 };
 use barter_integration::{error::SocketError, Validator};
-use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin};
+use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 use tokio::sync::mpsc;
 
-/// Convenient type alias representing a [`Future`] which yields an exchange
-/// [`Market<Event>`](Market) receiver.
+/// Defines the [`MultiStreamBuilder`](multi::MultiStreamBuilder) API for ergonomically
+/// initialising a common [`Streams<Output>`](Streams) from multiple
+/// [`StreamBuilder<SubKind>`](StreamBuilder)s.
+pub mod multi;
+
+/// Communicative type alias representing the [`Future`] result of a [`Subscription`] [`validate`]
+/// call generated whilst executing [`StreamBuilder::subscribe`].
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
-/// Builder to configure and initialise [`Streams`] instances for a specific [`SubKind`].
+/// Builder to configure and initialise a [`Streams<MarketEvent<SubKind::Event>`](Streams) instance
+/// for a specific [`SubKind`].
 #[derive(Default)]
 pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
 {
-    pub channels: HashMap<ExchangeId, ExchangeChannel<Kind>>,
+    pub channels: HashMap<ExchangeId, ExchangeChannel<MarketEvent<Kind::Event>>>,
     pub futures: Vec<SubscribeFuture>,
-    phantom: PhantomData<Kind>,
 }
 
 impl<Kind> Debug for StreamBuilder<Kind>
@@ -30,7 +35,7 @@ where
     Kind: SubKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamBuilder<Kind>")
+        f.debug_struct("StreamBuilder<SubKind>")
             .field("channels", &self.channels)
             .field("num_futures", &self.futures.len())
             .finish()
@@ -46,14 +51,13 @@ where
         Self {
             channels: HashMap::new(),
             futures: Vec::new(),
-            phantom: PhantomData::<Kind>::default(),
         }
     }
 
-    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be initialised on
+    /// Add a collection of [`Subscription`]s to the [`StreamBuilder`] that will be actioned on
     /// a distinct [`WebSocket`](barter_integration::protocol::websocket::WebSocket) connection.
     ///
-    /// Note that the are [`Subscription`]s are not actioned until the
+    /// Note that [`Subscription`]s are not actioned until the
     /// [`init()`](StreamBuilder::init()) method is invoked.
     pub fn subscribe<SubIter, Sub, Exchange>(mut self, subscriptions: SubIter) -> Self
     where
@@ -89,12 +93,13 @@ where
         self
     }
 
-    /// Spawn a [`Market<Event>`](Market) consumer loop for each collection of [`Subscription`]s
-    /// added to [`StreamBuilder`] via the [`subscribe()`](StreamBuilder::subscribe()) method.
+    /// Spawn a [`MarketEvent<SubKind::Event>`](MarketEvent) consumer loop for each collection of
+    /// [`Subscription`]s added to [`StreamBuilder`] via the
+    /// [`subscribe()`](StreamBuilder::subscribe()) method.
     ///
-    /// Each consumer loop distributes consumed [`Market<Event>s`](Market) to the [`Streams`]
-    /// `HashMap` returned by this method.
-    pub async fn init(self) -> Result<Streams<Kind>, DataError> {
+    /// Each consumer loop distributes consumed [`MarketEvent<SubKind::Event>s`](MarketEvent) to
+    /// the [`Streams`] `HashMap` returned by this method.
+    pub async fn init(self) -> Result<Streams<MarketEvent<Kind::Event>>, DataError> {
         // Await Stream initialisation futures and ensure success
         futures::future::try_join_all(self.futures).await?;
 
@@ -110,20 +115,14 @@ where
 }
 
 /// Convenient type that holds the [`mpsc::UnboundedSender`] and [`mpsc::UnboundedReceiver`] for a
-/// [`Market<Event>`](Market) channel.
+/// [`MarketEvent<T>`](MarketEvent) channel.
 #[derive(Debug)]
-pub struct ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
-    tx: mpsc::UnboundedSender<Market<<Kind as SubKind>::Event>>,
-    rx: mpsc::UnboundedReceiver<Market<<Kind as SubKind>::Event>>,
+pub struct ExchangeChannel<T> {
+    tx: mpsc::UnboundedSender<T>,
+    rx: mpsc::UnboundedReceiver<T>,
 }
 
-impl<Kind> ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
+impl<T> ExchangeChannel<T> {
     /// Construct a new [`Self`].
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
@@ -131,10 +130,7 @@ where
     }
 }
 
-impl<Kind> Default for ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
+impl<T> Default for ExchangeChannel<T> {
     fn default() -> Self {
         Self::new()
     }

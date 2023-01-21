@@ -1,6 +1,6 @@
 use super::super::BinanceChannel;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
     subscription::liquidation::Liquidation,
     Identifier,
@@ -85,12 +85,12 @@ impl From<(ExchangeId, Instrument, BinanceLiquidation)> for MarketIter<Liquidati
     fn from(
         (exchange_id, instrument, liquidation): (ExchangeId, Instrument, BinanceLiquidation),
     ) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: liquidation.order.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: Liquidation {
+            kind: Liquidation {
                 side: liquidation.order.side,
                 price: liquidation.order.price,
                 quantity: liquidation.order.quantity,

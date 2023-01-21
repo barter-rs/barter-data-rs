@@ -1,6 +1,6 @@
 use super::SubKind;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
 };
 use barter_integration::model::{Exchange, Instrument, Side};
@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use tracing::debug;
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
-/// [`Market`](crate::event::Market) events.
+/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 ///
 /// Level 1 refers to the best non-aggregated bid and ask [`Level`] on each side of the
 /// [`OrderBook`].
@@ -31,7 +31,7 @@ pub struct OrderBookL1 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
-/// [`Market`](crate::event::Market) events.
+/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
@@ -42,7 +42,7 @@ impl SubKind for OrderBooksL2 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]
-/// [`Market`](crate::event::Market) events.
+/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 ///
 /// Level 3 refers to the non-aggregated [`OrderBook`]. This is a direct replication of the exchange
 /// [`OrderBook`].
@@ -213,12 +213,12 @@ impl Level {
 
 impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
     fn from((exchange_id, instrument, book): (ExchangeId, Instrument, OrderBook)) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: book.last_update_time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: book,
+            kind: book,
         })])
     }
 }

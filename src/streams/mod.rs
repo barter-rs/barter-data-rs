@@ -1,10 +1,11 @@
-use self::builder::StreamBuilder;
-use crate::{event::Market, exchange::ExchangeId, subscription::SubKind};
+use self::builder::{multi::MultiStreamBuilder, StreamBuilder};
+use crate::{exchange::ExchangeId, subscription::SubKind};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
 
-/// Defines the [`StreamBuilder`](builder::StreamBuilder) API for initialising
+/// Defines the [`StreamBuilder`](builder::StreamBuilder) and
+/// [`MultiStreamBuilder`](builder::multi::MultiStreamBuilder) APIs for ergonomically initialising
 /// [`MarketStream`](super::MarketStream) [`Streams`].
 pub mod builder;
 
@@ -12,58 +13,55 @@ pub mod builder;
 /// to drive a re-connecting [`MarketStream`](super::MarketStream).
 pub mod consumer;
 
-/// Collection of exchange [`Market<Event>`](Market) streams for a specific [`SubKind`].
+/// Ergonomic collection of exchange [`MarketEvent<T>`](crate::event::MarketEvent) receivers.
 #[derive(Debug)]
-pub struct Streams<Kind>
-where
-    Kind: SubKind,
-{
-    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<Market<Kind::Event>>>,
+pub struct Streams<T> {
+    pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<T>>,
 }
 
-impl<Kind> Streams<Kind>
-where
-    Kind: SubKind,
-{
-    /// Construct a [`StreamBuilder`] for configuring new [`Market<Event>`](Market) [`Streams`].
-    pub fn builder() -> StreamBuilder<Kind> {
-        StreamBuilder::new()
+impl<T> Streams<T> {
+    /// Construct a [`StreamBuilder`] for configuring new
+    /// [`MarketEvent<SubKind::Event>`](crate::event::MarketEvent) [`Streams`].
+    pub fn builder<Kind>() -> StreamBuilder<Kind>
+    where
+        Kind: SubKind,
+    {
+        StreamBuilder::<Kind>::new()
     }
 
-    /// Remove an exchange [`Market<Event>`](Market) [`mpsc::UnboundedReceiver`] from the
-    /// [`Streams`] `HashMap`.
-    pub fn select(
-        &mut self,
-        exchange: ExchangeId,
-    ) -> Option<mpsc::UnboundedReceiver<Market<Kind::Event>>> {
+    /// Construct a [`MultiStreamBuilder`] for configuring new
+    /// [`MarketEvent<T>`](crate::event::MarketEvent) [`Streams`].
+    pub fn builder_multi() -> MultiStreamBuilder<T> {
+        MultiStreamBuilder::<T>::new()
+    }
+
+    /// Remove an exchange [`mpsc::UnboundedReceiver`] from the [`Streams`] `HashMap`.
+    pub fn select(&mut self, exchange: ExchangeId) -> Option<mpsc::UnboundedReceiver<T>> {
         self.streams.remove(&exchange)
     }
 
-    /// Join all exchange [`Market<Event>`](Market) [`mpsc::UnboundedReceiver`] streams into a
-    /// unified [`mpsc::UnboundedReceiver`].
-    pub async fn join(self) -> mpsc::UnboundedReceiver<Market<Kind::Event>>
+    /// Join all exchange [`mpsc::UnboundedReceiver`] streams into a unified
+    /// [`mpsc::UnboundedReceiver`].
+    pub async fn join(self) -> mpsc::UnboundedReceiver<T>
     where
-        Kind::Event: Send + 'static,
+        T: Send + 'static,
     {
-        let (output_tx, output_rx) = mpsc::unbounded_channel();
+        let (joined_tx, joined_rx) = mpsc::unbounded_channel();
 
         for mut exchange_rx in self.streams.into_values() {
-            let output_tx = output_tx.clone();
+            let joined_tx = joined_tx.clone();
             tokio::spawn(async move {
                 while let Some(event) = exchange_rx.recv().await {
-                    let _ = output_tx.send(event);
+                    let _ = joined_tx.send(event);
                 }
             });
         }
 
-        output_rx
+        joined_rx
     }
 
-    /// Join all exchange [`Market<Event>`](Market) [`mpsc::UnboundedReceiver`] streams into a
-    /// unified [`StreamMap`].
-    pub async fn join_map(
-        self,
-    ) -> StreamMap<ExchangeId, UnboundedReceiverStream<Market<Kind::Event>>> {
+    /// Join all exchange [`mpsc::UnboundedReceiver`] streams into a unified [`StreamMap`].
+    pub async fn join_map(self) -> StreamMap<ExchangeId, UnboundedReceiverStream<T>> {
         self.streams
             .into_iter()
             .fold(StreamMap::new(), |mut map, (exchange, rx)| {

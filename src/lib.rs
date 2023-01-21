@@ -41,7 +41,7 @@
 //! async fn main() {
 //!     // Initialise PublicTrades Streams for various exchanges
 //!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-//!     let streams = Streams::builder()
+//!     let streams = Streams::<PublicTrades>::builder()
 //!         .subscribe([
 //!             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
 //!             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
@@ -82,7 +82,7 @@
 
 use crate::{
     error::DataError,
-    event::Market,
+    event::MarketEvent,
     exchange::{Connector, ExchangeId, PingInterval},
     subscriber::Subscriber,
     subscription::{SubKind, Subscription},
@@ -100,7 +100,7 @@ use tracing::{debug, error};
 /// All [`Error`](std::error::Error)s generated in Barter-Data.
 pub mod error;
 
-/// Defines the generic [`Market<Event>`](event::Market) used in every [`MarketStream`].
+/// Defines the generic [`MarketEvent<T>`](event::MarketEvent) used in every [`MarketStream`].
 pub mod event;
 
 /// [`Connector`] implementations for each exchange.
@@ -147,12 +147,12 @@ pub trait Identifier<T> {
     fn id(&self) -> T;
 }
 
-/// [`Stream`] that yields [`Market<Kind>`](Market) events. The type of [`Market<Kind>`](Market)
+/// [`Stream`] that yields [`Market<Kind>`](MarketEvent) events. The type of [`Market<Kind>`](MarketEvent)
 /// depends on the provided [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
 pub trait MarketStream<Exchange, Kind>
 where
-    Self: Stream<Item = Result<Market<Kind::Event>, DataError>> + Send + Sized + Unpin,
+    Self: Stream<Item = Result<MarketEvent<Kind::Event>, DataError>> + Send + Sized + Unpin,
     Exchange: Connector,
     Kind: SubKind,
 {

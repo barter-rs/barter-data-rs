@@ -13,8 +13,8 @@ async fn main() {
     init_logging();
 
     // Initialise PublicTrades Streams for BinanceFuturesUsd only
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let mut streams = Streams::builder()
+    // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
+    let mut streams = Streams::<PublicTrades>::builder()
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
@@ -38,12 +38,15 @@ async fn main() {
         .unwrap();
 
     // Select the ExchangeId::BinanceFuturesUsd stream
+    // Notes:
+    //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
     let mut binance_stream = streams
         .select(ExchangeId::BinanceFuturesUsd)
         .unwrap();
 
     while let Some(trade) = binance_stream.recv().await {
-        info!("Market<PublicTrade>: {trade:?}");
+        info!("MarketEvent<PublicTrade>: {trade:?}");
     }
 }
 

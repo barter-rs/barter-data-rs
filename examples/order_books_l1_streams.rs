@@ -13,8 +13,8 @@ async fn main() {
     init_logging();
 
     // Initialise OrderBooksL1 Streams for BinanceSpot only
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let mut streams = Streams::builder()
+    // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
+    let mut streams = Streams::<OrderBooksL1>::builder()
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
@@ -38,12 +38,15 @@ async fn main() {
         .unwrap();
 
     // Select the ExchangeId::BinanceSpot stream
+    // Notes:
+    //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
+    //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
     let mut binance_stream = streams
         .select(ExchangeId::BinanceSpot)
         .unwrap();
 
     while let Some(order_book_l1) = binance_stream.recv().await {
-        info!("Market<OrderBookL1>: {order_book_l1:?}");
+        info!("MarketEvent<OrderBookL1>: {order_book_l1:?}");
     }
 }
 

@@ -1,6 +1,6 @@
 use super::BinanceChannel;
 use crate::{
-    event::{Market, MarketIter},
+    event::{MarketEvent, MarketIter},
     exchange::{ExchangeId, ExchangeSub},
     subscription::trade::PublicTrade,
     Identifier,
@@ -77,12 +77,12 @@ impl Identifier<Option<SubscriptionId>> for BinanceTrade {
 
 impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
-        Self(vec![Ok(Market {
+        Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
-            event: PublicTrade {
+            kind: PublicTrade {
                 id: trade.id.to_string(),
                 price: trade.price,
                 amount: trade.amount,

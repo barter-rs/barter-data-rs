@@ -1,8 +1,8 @@
-use barter_data::exchange::gateio::spot::GateioSpot;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         coinbase::Coinbase,
+        gateio::spot::GateioSpot,
         okx::Okx,
     },
     streams::Streams,
@@ -19,8 +19,8 @@ async fn main() {
     init_logging();
 
     // Initialise PublicTrades Streams for various exchanges
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let streams = Streams::builder()
+    // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
+    let streams = Streams::<PublicTrades>::builder()
         .subscribe([
             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
@@ -54,7 +54,7 @@ async fn main() {
     let mut joined_stream = streams.join_map().await;
 
     while let Some((exchange, trade)) = joined_stream.next().await {
-        info!("Exchange: {exchange}, Market<PublicTrade>: {trade:?}");
+        info!("Exchange: {exchange}, MarketEvent<PublicTrade>: {trade:?}");
     }
 }
 

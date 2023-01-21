@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["JustAStream"]
 edition = "2021"
 license = "MIT"
@@ -16,7 +16,7 @@ tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.5.0"
+barter-integration = "0.5.1"
 barter-macro =  "0.1.1"
 
 # Logging
