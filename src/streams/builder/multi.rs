@@ -48,14 +48,19 @@ impl<Output> MultiStreamBuilder<Output> {
         Kind: SubKind + 'static,
         Kind::Event: Send,
     {
+        // Allocate HashMap to hold the exchange_tx<Output> for each StreamBuilder exchange present
         let mut exchange_txs = HashMap::with_capacity(builder.channels.len());
 
+        // Iterate over each StreamBuilder exchange present
         for exchange in builder.channels.keys().copied() {
+            // Insert ExchangeChannel<Output> Entry to Self for each exchange
             let exchange_tx = self.channels.entry(exchange).or_default().tx.clone();
 
+            // Insert new exchange_tx<Output> into HashMap for each exchange
             exchange_txs.insert(exchange, exchange_tx);
         }
 
+        // Init Streams<Kind::Event> & send mapped Outputs to the associated exchange_tx
         self.futures.push(Box::pin(async move {
             builder
                 .init()
@@ -63,11 +68,13 @@ impl<Output> MultiStreamBuilder<Output> {
                 .streams
                 .into_iter()
                 .for_each(|(exchange, mut exchange_rx)| {
-                    // Remove the matching exchange_tx
+                    // Remove exchange_tx<Output> from HashMap that's associated with this tuple:
+                    // (ExchangeId, exchange_rx<MarketEvent<SubKind::Event>>)
                     let exchange_tx = exchange_txs
                         .remove(&exchange)
                         .expect("all exchange_txs should be present here");
 
+                    // Task to receive MarketEvent<SubKind::Event> and send Outputs via exchange_tx
                     tokio::spawn(async move {
                         while let Some(event) = exchange_rx.recv().await {
                             let _ = exchange_tx.send(Output::from(event));
@@ -77,35 +84,6 @@ impl<Output> MultiStreamBuilder<Output> {
 
             Ok(())
         }));
-
-        // // Each StreamBuilder ExchangeChannel<Kind::Event> sends data to a ExchangeChannel<Output>
-        // for exchange in builder.channels.keys() {
-        //
-        //     // Add ExchangeChannel<Output> Entry for each StreamBuilder exchange present
-        //     let exchange_tx = self.channels
-        //         .entry(*exchange)
-        //         .or_default()
-        //         .tx
-        //         .clone();
-        //
-        //     // Init Streams<Kind::Event> & send mapped Outputs to the new exchange_tx
-        //     self.futures.push(Box::pin(async move {
-        //         builder
-        //             .init()
-        //             .await?
-        //             .streams
-        //             .into_values()
-        //             .for_each(|mut exchange_rx| {
-        //                 tokio::spawn(async move {
-        //                     while let Some(event) = exchange_rx.recv().await {
-        //                         let _ = exchange_tx.send(Output::from(event));
-        //                     }
-        //                 });
-        //             });
-        //
-        //         Ok(())
-        //     }));
-        // }
 
         self
     }

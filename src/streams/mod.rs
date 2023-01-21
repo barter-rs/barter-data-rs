@@ -19,8 +19,6 @@ pub struct Streams<T> {
     pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<T>>,
 }
 
-// Todo: fn Add notes, get rid of ::<PublicTrades>, cargo fmt
-
 impl<T> Streams<T> {
     /// Construct a [`StreamBuilder`] for configuring new
     /// [`MarketEvent<SubKind::Event>`](crate::event::MarketEvent) [`Streams`].
