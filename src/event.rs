@@ -1,6 +1,9 @@
 use crate::{
     error::DataError,
-    subscription::{trade::PublicTrade, book::{OrderBookL1, OrderBook}},
+    subscription::{
+        book::{OrderBook, OrderBookL1},
+        trade::PublicTrade,
+    },
 };
 use barter_integration::model::{Exchange, Instrument};
 use chrono::{DateTime, Utc};
@@ -42,10 +45,12 @@ pub struct MarketEvent<T> {
 ///
 /// ### Notes
 /// - [`Self`] is only used as the [`MarketEvent<DataKind>`](MarketEvent) `Output` when combining
-///   several [`Streams<SubKind::Event>`](Streams) using the
-///   [`MultiStreamBuilder<Output>`](MultiStreamBuilder).
-/// - [`Self`] is purposefully not supported in any [`Subscription`]s directly, it is only used to
-///   make ergonomic [`Streams`] containing many [`MarketEvent<T>`](MarketEvent) kinds.
+///   several [`Streams<SubKind::Event>`](crate::streams::Streams) using the
+///   [`MultiStreamBuilder<Output>`](crate::streams::builder::multi::MultiStreamBuilder).
+/// - [`Self`] is purposefully not supported in any
+///   [`Subscription`](crate::subscription::Subscription)s directly, it is only used to
+///   make ergonomic [`Streams`](crate::streams::Streams) containing many
+///   [`MarketEvent<T>`](MarketEvent) kinds.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
     Trade(PublicTrade),

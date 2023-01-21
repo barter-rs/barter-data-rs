@@ -1,17 +1,16 @@
 use barter_data::{
+    event::{DataKind, MarketEvent},
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         okx::Okx,
     },
     streams::Streams,
-    event::{MarketEvent, DataKind},
     subscription::{
-        trade::{PublicTrades},
         book::{OrderBooksL1, OrderBooksL2},
+        trade::PublicTrades,
     },
 };
 use barter_integration::model::InstrumentKind;
-use tokio::sync::mpsc;
 use tokio_stream::StreamExt;
 use tracing::info;
 
@@ -93,5 +92,3 @@ fn init_logging() {
         // Install this Tracing subscriber as global default
         .init()
 }
-
-

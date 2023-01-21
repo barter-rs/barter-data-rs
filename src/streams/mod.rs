@@ -1,7 +1,5 @@
-use self::builder::{StreamBuilder, multi::MultiStreamBuilder};
-use crate::{
-    exchange::ExchangeId, subscription::SubKind
-};
+use self::builder::{multi::MultiStreamBuilder, StreamBuilder};
+use crate::{exchange::ExchangeId, subscription::SubKind};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
@@ -15,15 +13,17 @@ pub mod builder;
 /// to drive a re-connecting [`MarketStream`](super::MarketStream).
 pub mod consumer;
 
-/// Ergonomic collection of exchange [`MarketEvent<T>`](MarketEvent) receivers.
+/// Ergonomic collection of exchange [`MarketEvent<T>`](crate::event::MarketEvent) receivers.
 #[derive(Debug)]
 pub struct Streams<T> {
     pub streams: HashMap<ExchangeId, mpsc::UnboundedReceiver<T>>,
 }
 
+// Todo: fn Add notes, get rid of ::<PublicTrades>, cargo fmt
+
 impl<T> Streams<T> {
     /// Construct a [`StreamBuilder`] for configuring new
-    /// [`MarketEvent<SubKind::Event>`](MarketEvent) [`Streams`].
+    /// [`MarketEvent<SubKind::Event>`](crate::event::MarketEvent) [`Streams`].
     pub fn builder<Kind>() -> StreamBuilder<Kind>
     where
         Kind: SubKind,
@@ -31,8 +31,8 @@ impl<T> Streams<T> {
         StreamBuilder::<Kind>::new()
     }
 
-    /// Construct a [`MultiStreamBuilder`] for configuring new [`MarketEvent<T>`](MarketEvent)
-    /// [`Streams`].
+    /// Construct a [`MultiStreamBuilder`] for configuring new
+    /// [`MarketEvent<T>`](crate::event::MarketEvent) [`Streams`].
     pub fn builder_multi() -> MultiStreamBuilder<T> {
         MultiStreamBuilder::<T>::new()
     }
@@ -48,10 +48,7 @@ impl<T> Streams<T> {
     where
         T: Send + 'static,
     {
-        let (
-            joined_tx,
-            joined_rx
-        ) = mpsc::unbounded_channel();
+        let (joined_tx, joined_rx) = mpsc::unbounded_channel();
 
         for mut exchange_rx in self.streams.into_values() {
             let joined_tx = joined_tx.clone();

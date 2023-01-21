@@ -1,16 +1,6 @@
-use super::{Streams, StreamBuilder, ExchangeChannel};
-use crate::{
-    error::DataError,
-    event::MarketEvent,
-    exchange::ExchangeId,
-    subscription::SubKind,
-};
-use std::{
-    future::Future,
-    fmt::Debug,
-    pin::Pin,
-    collections::HashMap,
-};
+use super::{ExchangeChannel, StreamBuilder, Streams};
+use crate::{error::DataError, event::MarketEvent, exchange::ExchangeId, subscription::SubKind};
+use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 
 /// Communicative type alias representing the [`Future`] result of a [`StreamBuilder::init`] call
 /// generated whilst executing [`MultiStreamBuilder::add`].
@@ -56,16 +46,12 @@ impl<Output> MultiStreamBuilder<Output> {
     where
         Output: From<MarketEvent<Kind::Event>> + Send + 'static,
         Kind: SubKind + 'static,
-        Kind::Event: Send
+        Kind::Event: Send,
     {
         let mut exchange_txs = HashMap::with_capacity(builder.channels.len());
 
         for exchange in builder.channels.keys().copied() {
-            let exchange_tx = self.channels
-                .entry(exchange)
-                .or_default()
-                .tx
-                .clone();
+            let exchange_tx = self.channels.entry(exchange).or_default().tx.clone();
 
             exchange_txs.insert(exchange, exchange_tx);
         }
@@ -137,7 +123,7 @@ impl<Output> MultiStreamBuilder<Output> {
                 .channels
                 .into_iter()
                 .map(|(exchange, channel)| (exchange, channel.rx))
-                .collect()
+                .collect(),
         })
     }
 }

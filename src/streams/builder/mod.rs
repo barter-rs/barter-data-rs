@@ -73,12 +73,7 @@ where
 
         // Acquire channel Sender to send Market<Kind::Event> from consumer loop to user
         // '--> Add ExchangeChannel Entry if this Exchange <--> SubKind combination is new
-        let exchange_tx = self
-            .channels
-            .entry(Exchange::ID)
-            .or_default()
-            .tx
-            .clone();
+        let exchange_tx = self.channels.entry(Exchange::ID).or_default().tx.clone();
 
         // Add Future that once awaited will yield the Result<(), SocketError> of subscribing
         self.futures.push(Box::pin(async move {

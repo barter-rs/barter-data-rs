@@ -41,7 +41,7 @@
 //! async fn main() {
 //!     // Initialise PublicTrades Streams for various exchanges
 //!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-//!     let streams = Streams::builder()
+//!     let streams = Streams::<PublicTrades>::builder()
 //!         .subscribe([
 //!             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
 //!             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
