@@ -16,18 +16,18 @@ async fn main() {
     // Initialise INFO Tracing log subscriber
     init_logging();
 
-    // Initialise OrderBooksL1 Streams for various exchnages
+    // Initialise OrderBooksL1 Streams for various exchanges
     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let streams = Streams::builder()
+    let streams = Streams::<OrderBooksL1>::builder()
         .subscribe([
             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL1),
             (BinanceSpot::default(), "eth", "usd", InstrumentKind::Spot, OrderBooksL1),
         ])
         .subscribe([
-            (Kraken::default(), "xbt", "usd", InstrumentKind::Spot, OrderBooksL1),
-            (Kraken::default(), "ada", "usd", InstrumentKind::Spot, OrderBooksL1),
-            (Kraken::default(), "matic", "usd", InstrumentKind::Spot, OrderBooksL1),
-            (Kraken::default(), "dot", "usd", InstrumentKind::Spot, OrderBooksL1),
+            (Kraken, "xbt", "usd", InstrumentKind::Spot, OrderBooksL1),
+            (Kraken, "ada", "usd", InstrumentKind::Spot, OrderBooksL1),
+            (Kraken, "matic", "usd", InstrumentKind::Spot, OrderBooksL1),
+            (Kraken, "dot", "usd", InstrumentKind::Spot, OrderBooksL1),
         ])
         .init()
         .await
@@ -40,7 +40,7 @@ async fn main() {
     let mut joined_stream = streams.join_map().await;
 
     while let Some((exchange, order_book_l1)) = joined_stream.next().await {
-        info!("Exchange: {exchange}, Market<OrderBookL1>: {order_book_l1:?}");
+        info!("Exchange: {exchange}, MarketEvent<OrderBookL1>: {order_book_l1:?}");
     }
 }
 
