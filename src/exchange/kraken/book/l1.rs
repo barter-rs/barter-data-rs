@@ -6,7 +6,7 @@ use crate::{
     Identifier,
 };
 use barter_integration::{
-    de::{extract_next, de_str, datetime_utc_from_epoch_duration},
+    de::{datetime_utc_from_epoch_duration, de_str, extract_next},
     model::{Exchange, Instrument, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
@@ -26,7 +26,7 @@ pub struct KrakenOrderBookL1Inner {
     pub spread: KrakenSpread,
 }
 
-/// [`Kraken`](super::super::Kraken) best bid and offer. Is an inner type containing the data for KrakenOrderBookL1. 
+/// [`Kraken`](super::super::Kraken) best bid and offer. Is an inner type containing the data for KrakenOrderBookL1.
 ///
 /// See [`KrakenMessage`](super::super::message::KrakenMessage) for full raw payload examples.
 ///
@@ -63,7 +63,7 @@ impl From<(ExchangeId, Instrument, KrakenOrderBookL1)> for MarketIter<OrderBookL
                     last_update_time: book.spread.time,
                     best_bid: Level::new(book.spread.best_bid_price, book.spread.best_bid_amount),
                     best_ask: Level::new(book.spread.best_ask_price, book.spread.best_ask_amount),
-                }
+                },
             })]),
             KrakenOrderBookL1::Event(_) => MarketIter(vec![]),
         }
@@ -83,8 +83,8 @@ where
 }
 
 impl<'de> serde::de::Deserialize<'de> for KrakenOrderBookL1Inner {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> 
-    where 
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
         D: serde::Deserializer<'de>,
     {
         struct SeqVisitor;
@@ -119,14 +119,13 @@ impl<'de> serde::de::Deserialize<'de> for KrakenOrderBookL1Inner {
                 // Extract pair (eg/ "XBT/USD") & map to SubscriptionId (ie/ "spread|{pair}")
                 let subscription_id = extract_next::<SeqAccessor, String>(&mut seq, "pair")
                     .map(|pair| SubscriptionId::from(format!("spread|{pair}")))?;
-                
 
                 // Ignore any additional elements or SerDe will fail
                 //  '--> Exchange may add fields without warning
                 while seq.next_element::<serde::de::IgnoredAny>()?.is_some() {}
 
-                Ok(KrakenOrderBookL1Inner { 
-                    subscription_id, 
+                Ok(KrakenOrderBookL1Inner {
+                    subscription_id,
                     spread,
                 })
             }
@@ -148,7 +147,7 @@ mod tests {
         use barter_integration::de::datetime_utc_from_epoch_duration;
         use barter_integration::error::SocketError;
         use barter_integration::model::SubscriptionId;
-        
+
         #[test]
         fn test_kraken_message() {
             struct TestCase {
@@ -183,9 +182,9 @@ mod tests {
                             ),
                             best_ask_price: 5700.0,
                             best_ask_amount: 0.98765432,
-                        }
+                        },
                     })),
-                }, 
+                },
                 TestCase {
                     // TC1: valid KrakenOrderBookL1::Event(KrakenEvent::Heartbeat)
                     input: r#"{"event": "heartbeat"}"#,

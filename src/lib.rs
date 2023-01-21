@@ -2,7 +2,7 @@
     missing_debug_implementations,
     missing_copy_implementations,
     rust_2018_idioms,
-    // missing_docs
+    missing_docs
 )]
 
 //! # Barter-Data
@@ -83,7 +83,7 @@
 //! ```rust,no_run
 //! use barter_data::{
 //!     exchange::{
-//!         binance::spot::BinanceSpot, 
+//!         binance::spot::BinanceSpot,
 //!         kraken::Kraken,
 //!     },
 //!     streams::Streams,
@@ -92,13 +92,13 @@
 //! use barter_integration::model::InstrumentKind;
 //! use futures::StreamExt;
 //! use tracing::info;
-//! 
+//!
 //! #[rustfmt::skip]
 //! #[tokio::main]
 //! async fn main() {
 //!     // Initialise INFO Tracing log subscriber
 //!     init_logging();
-//! 
+//!
 //!     // Initialise OrderBooksL1 Streams for various exchnages
 //!     // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
 //!     let streams = Streams::builder()
@@ -115,18 +115,18 @@
 //!         .init()
 //!         .await
 //!         .unwrap();
-//! 
+//!
 //!     // Join all exchange OrderBooksL1 streams into a single tokio_stream::StreamMap
 //!     // Notes:
 //!     //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
 //!     //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
 //!     let mut joined_stream = streams.join_map().await;
-//! 
+//!
 //!     while let Some((exchange, order_book_l1)) = joined_stream.next().await {
 //!         info!("Exchange: {exchange}, Market<OrderBookL1>: {order_book_l1:?}");
 //!     }
 //! }
-//! 
+//!
 //! // Initialise an INFO `Subscriber` for `Tracing` Json logs and install it as the global default.
 //! fn init_logging() {
 //!     tracing_subscriber::fmt()
@@ -144,7 +144,6 @@
 //!         .init()
 //! }
 //! ```
-
 
 use crate::{
     error::DataError,

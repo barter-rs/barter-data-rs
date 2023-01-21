@@ -1,8 +1,6 @@
 use self::{
-    book::l1::KrakenOrderBookL1,
-    channel::KrakenChannel, market::KrakenMarket, message::KrakenMessage,
-    subscription::KrakenSubResponse,
-    trade::KrakenTrades,
+    book::l1::KrakenOrderBookL1, channel::KrakenChannel, market::KrakenMarket,
+    message::KrakenMessage, subscription::KrakenSubResponse, trade::KrakenTrades,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
