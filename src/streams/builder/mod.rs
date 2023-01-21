@@ -10,6 +10,9 @@ use barter_integration::{error::SocketError, Validator};
 use std::{collections::HashMap, fmt::Debug, future::Future, marker::PhantomData, pin::Pin};
 use tokio::sync::mpsc;
 
+/// Todo:
+pub mod multi;
+
 /// Convenient type alias representing a [`Future`] which yields an exchange
 /// [`MarketEvent<T>`](MarketEvent) receiver.
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
@@ -20,9 +23,9 @@ pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
 {
-    pub channels: HashMap<ExchangeId, ExchangeChannel<Kind>>,
+    pub channels: HashMap<ExchangeId, ExchangeChannel<Kind::Event>>,
     pub futures: Vec<SubscribeFuture>,
-    phantom: PhantomData<Kind>,
+    phantom: PhantomData<Kind>, // Todo: Try without this later
 }
 
 impl<Kind> Debug for StreamBuilder<Kind>
@@ -69,7 +72,12 @@ where
 
         // Acquire channel Sender to send Market<Kind::Event> from consumer loop to user
         // '--> Add ExchangeChannel Entry if this Exchange <--> SubKind combination is new
-        let exchange_tx = self.channels.entry(Exchange::ID).or_default().tx.clone();
+        let exchange_tx = self
+            .channels
+            .entry(Exchange::ID)
+            .or_default()
+            .tx
+            .clone();
 
         // Add Future that once awaited will yield the Result<(), SocketError> of subscribing
         self.futures.push(Box::pin(async move {
@@ -112,18 +120,12 @@ where
 /// Convenient type that holds the [`mpsc::UnboundedSender`] and [`mpsc::UnboundedReceiver`] for a
 /// [`MarketEvent<T>`](MarketEvent) channel.
 #[derive(Debug)]
-pub struct ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
-    tx: mpsc::UnboundedSender<MarketEvent<<Kind as SubKind>::Event>>,
-    rx: mpsc::UnboundedReceiver<MarketEvent<<Kind as SubKind>::Event>>,
+pub struct ExchangeChannel<T> {
+    tx: mpsc::UnboundedSender<MarketEvent<T>>,
+    rx: mpsc::UnboundedReceiver<MarketEvent<T>>,
 }
 
-impl<Kind> ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
+impl<T> ExchangeChannel<T> {
     /// Construct a new [`Self`].
     pub fn new() -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
@@ -131,10 +133,7 @@ where
     }
 }
 
-impl<Kind> Default for ExchangeChannel<Kind>
-where
-    Kind: SubKind,
-{
+impl<T> Default for ExchangeChannel<T> {
     fn default() -> Self {
         Self::new()
     }
