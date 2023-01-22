@@ -90,12 +90,12 @@ impl OrderBook {
     /// Calculate the mid price by taking the average of the best bid and ask prices.
     ///
     /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
-    pub fn mid_price(&self) -> f64 {
+    pub fn mid_price(&self) -> Option<f64> {
         match (self.bids.levels.first(), self.asks.levels.first()) {
-            (Some(best_bid), Some(best_ask)) => mid_price(best_bid.price, best_ask.price),
-            (Some(best_bid), None) => best_bid.price,
-            (None, Some(best_bid)) => best_bid.price,
-            (None, None) => 0.0,
+            (Some(best_bid), Some(best_ask)) => Some(mid_price(best_bid.price, best_ask.price)),
+            (Some(best_bid), None) => Some(best_bid.price),
+            (None, Some(best_bid)) => Some(best_bid.price),
+            (None, None) => None,
         }
     }
 
@@ -103,12 +103,14 @@ impl OrderBook {
     /// with their associated amount.
     ///
     /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
-    pub fn volume_weighed_mid_price(&self) -> f64 {
+    pub fn volume_weighed_mid_price(&self) -> Option<f64> {
         match (self.bids.levels.first(), self.asks.levels.first()) {
-            (Some(best_bid), Some(best_ask)) => volume_weighted_mid_price(*best_bid, *best_ask),
-            (Some(best_bid), None) => best_bid.price,
-            (None, Some(best_bid)) => best_bid.price,
-            (None, None) => 0.0,
+            (Some(best_bid), Some(best_ask)) => {
+                Some(volume_weighted_mid_price(*best_bid, *best_ask))
+            }
+            (Some(best_bid), None) => Some(best_bid.price),
+            (None, Some(best_ask)) => Some(best_ask.price),
+            (None, None) => None,
         }
     }
 }
@@ -386,7 +388,7 @@ mod tests {
         fn test_mid_price() {
             struct TestCase {
                 input: OrderBook,
-                expected: f64,
+                expected: Option<f64>,
             }
 
             let tests = vec![
@@ -403,7 +405,7 @@ mod tests {
                             levels: vec![],
                         },
                     },
-                    expected: 0.0,
+                    expected: None,
                 },
                 TestCase {
                     // TC1: no asks in the book so take best bid price
@@ -418,7 +420,7 @@ mod tests {
                             levels: vec![],
                         },
                     },
-                    expected: 100.0,
+                    expected: Some(100.0),
                 },
                 TestCase {
                     // TC2: no bids in the book so take ask price
@@ -433,7 +435,7 @@ mod tests {
                             levels: vec![Level::new(50.0, 100.0), Level::new(100.0, 100.0)],
                         },
                     },
-                    expected: 50.0,
+                    expected: Some(50.0),
                 },
                 TestCase {
                     // TC3: best bid and ask amount is the same, so regular mid-price
@@ -448,7 +450,7 @@ mod tests {
                             levels: vec![Level::new(200.0, 100.0), Level::new(300.0, 100.0)],
                         },
                     },
-                    expected: 150.0,
+                    expected: Some(150.0),
                 },
             ];
 
@@ -461,7 +463,7 @@ mod tests {
         fn test_volume_weighted_mid_price() {
             struct TestCase {
                 input: OrderBook,
-                expected: f64,
+                expected: Option<f64>,
             }
 
             let tests = vec![
@@ -478,7 +480,7 @@ mod tests {
                             levels: vec![],
                         },
                     },
-                    expected: 0.0,
+                    expected: None,
                 },
                 TestCase {
                     // TC1: no asks in the book so take best bid price
@@ -493,7 +495,7 @@ mod tests {
                             levels: vec![],
                         },
                     },
-                    expected: 100.0,
+                    expected: Some(100.0),
                 },
                 TestCase {
                     // TC2: no bids in the book so take ask price
@@ -508,7 +510,7 @@ mod tests {
                             levels: vec![Level::new(50.0, 100.0), Level::new(100.0, 100.0)],
                         },
                     },
-                    expected: 50.0,
+                    expected: Some(50.0),
                 },
                 TestCase {
                     // TC3: best bid and ask amount is the same, so regular mid-price
@@ -523,7 +525,7 @@ mod tests {
                             levels: vec![Level::new(200.0, 100.0), Level::new(300.0, 100.0)],
                         },
                     },
-                    expected: 150.0,
+                    expected: Some(150.0),
                 },
                 TestCase {
                     // TC4: valid volume weighted mid-price
@@ -538,7 +540,7 @@ mod tests {
                             levels: vec![Level::new(200.0, 1000.0), Level::new(300.0, 100.0)],
                         },
                     },
-                    expected: 175.0,
+                    expected: Some(175.0),
                 },
             ];
 
