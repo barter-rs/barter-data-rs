@@ -1,3 +1,4 @@
+use crate::subscription::liquidation::Liquidation;
 use crate::{
     error::DataError,
     subscription::{
@@ -54,22 +55,11 @@ pub struct MarketEvent<T> {
 ///   [`MarketEvent<T>`](MarketEvent) kinds.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
-    Candle(Candle),
+    Trade(PublicTrade),
     OrderBookL1(OrderBookL1),
     OrderBook(OrderBook),
-    Trade(PublicTrade),
-}
-
-impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<Candle>) -> Self {
-        Self {
-            exchange_time: event.exchange_time,
-            received_time: event.received_time,
-            exchange: event.exchange,
-            instrument: event.instrument,
-            kind: DataKind::Candle(event.kind),
-        }
-    }
+    Candle(Candle),
+    Liquidation(Liquidation),
 }
 
 impl From<MarketEvent<PublicTrade>> for MarketEvent<DataKind> {
@@ -104,6 +94,30 @@ impl From<MarketEvent<OrderBook>> for MarketEvent<DataKind> {
             exchange: event.exchange,
             instrument: event.instrument,
             kind: DataKind::OrderBook(event.kind),
+        }
+    }
+}
+
+impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
+    fn from(event: MarketEvent<Candle>) -> Self {
+        Self {
+            exchange_time: event.exchange_time,
+            received_time: event.received_time,
+            exchange: event.exchange,
+            instrument: event.instrument,
+            kind: DataKind::Candle(event.kind),
+        }
+    }
+}
+
+impl From<MarketEvent<Liquidation>> for MarketEvent<DataKind> {
+    fn from(event: MarketEvent<Liquidation>) -> Self {
+        Self {
+            exchange_time: event.exchange_time,
+            received_time: event.received_time,
+            exchange: event.exchange,
+            instrument: event.instrument,
+            kind: DataKind::Liquidation(event.kind),
         }
     }
 }
