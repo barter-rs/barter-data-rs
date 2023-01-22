@@ -30,6 +30,23 @@ pub struct OrderBookL1 {
     pub best_ask: Level,
 }
 
+impl OrderBookL1 {
+    /// Calculate the mid price by taking the average of the best bid and ask prices.
+    ///
+    /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+    pub fn mid_price(&self) -> f64 {
+        mid_price(self.best_bid.price, self.best_ask.price)
+    }
+
+    /// Calculate the volume weighted mid price (micro-price), weighing the best bid and ask prices
+    /// with their associated amount.
+    ///
+    /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+    pub fn volume_weighed_mid_price(&self) -> f64 {
+        volume_weighted_mid_price(self.best_bid, self.best_ask)
+    }
+}
+
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
 /// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 ///
@@ -68,6 +85,31 @@ impl OrderBook {
         self.bids.sort();
         self.asks.sort();
         self.clone()
+    }
+
+    /// Calculate the mid price by taking the average of the best bid and ask prices.
+    ///
+    /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+    pub fn mid_price(&self) -> f64 {
+        match (self.bids.levels.first(), self.asks.levels.first()) {
+            (Some(best_bid), Some(best_ask)) => mid_price(best_bid.price, best_ask.price),
+            (Some(best_bid), None) => best_bid.price,
+            (None, Some(best_bid)) => best_bid.price,
+            (None, None) => 0.0,
+        }
+    }
+
+    /// Calculate the volume weighted mid price (micro-price), weighing the best bid and ask prices
+    /// with their associated amount.
+    ///
+    /// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+    pub fn volume_weighed_mid_price(&self) -> f64 {
+        match (self.bids.levels.first(), self.asks.levels.first()) {
+            (Some(best_bid), Some(best_ask)) => volume_weighted_mid_price(*best_bid, *best_ask),
+            (Some(best_bid), None) => best_bid.price,
+            (None, Some(best_bid)) => best_bid.price,
+            (None, None) => 0.0,
+        }
     }
 }
 
@@ -211,6 +253,24 @@ impl Level {
     }
 }
 
+// Todo: Add tests
+
+/// Calculate the mid price by taking the average of the best bid and ask prices.
+///
+/// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+pub fn mid_price(best_bid_price: f64, best_ask_price: f64) -> f64 {
+    (best_bid_price + best_ask_price) / 2.0
+}
+
+/// Calculate the volume weighted mid price (micro-price), weighing the best bid and ask prices
+/// with their associated amount.
+///
+/// See Docs: <https://www.quantstart.com/articles/high-frequency-trading-ii-limit-order-book>
+pub fn volume_weighted_mid_price(best_bid: Level, best_ask: Level) -> f64 {
+    ((best_bid.price * best_ask.amount) + (best_ask.price * best_bid.amount))
+        / (best_bid.amount + best_ask.amount)
+}
+
 impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
     fn from((exchange_id, instrument, book): (ExchangeId, Instrument, OrderBook)) -> Self {
         Self(vec![Ok(MarketEvent {
@@ -226,6 +286,271 @@ impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod order_book_l1 {
+        use super::*;
+
+        #[test]
+        fn test_mid_price() {
+            struct TestCase {
+                input: OrderBookL1,
+                expected: f64,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(100, 999999),
+                        best_ask: Level::new(200, 1),
+                    },
+                    expected: 150.0,
+                },
+                TestCase {
+                    // TC1
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(50, 1),
+                        best_ask: Level::new(250, 999999),
+                    },
+                    expected: 150.0,
+                },
+                TestCase {
+                    // TC2
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(10, 999999),
+                        best_ask: Level::new(250, 999999),
+                    },
+                    expected: 130.0,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(test.input.mid_price(), test.expected, "TC{index} failed")
+            }
+        }
+
+        #[test]
+        fn test_volume_weighted_mid_price() {
+            struct TestCase {
+                input: OrderBookL1,
+                expected: f64,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: volume the same so should be equal to non-weighted mid price
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(100, 100),
+                        best_ask: Level::new(200, 100),
+                    },
+                    expected: 150.0,
+                },
+                TestCase {
+                    // TC1: volume affects mid-price
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(100, 600),
+                        best_ask: Level::new(200, 1000),
+                    },
+                    expected: 137.5,
+                },
+                TestCase {
+                    // TC2: volume the same and price the same
+                    input: OrderBookL1 {
+                        last_update_time: Default::default(),
+                        best_bid: Level::new(1000, 999999),
+                        best_ask: Level::new(1000, 999999),
+                    },
+                    expected: 1000.0,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(
+                    test.input.volume_weighed_mid_price(),
+                    test.expected,
+                    "TC{index} failed"
+                )
+            }
+        }
+    }
+
+    mod order_book {
+        use super::*;
+
+        #[test]
+        fn test_mid_price() {
+            struct TestCase {
+                input: OrderBook,
+                expected: f64,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: no levels so 0.0 mid-price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![],
+                        },
+                    },
+                    expected: 0.0,
+                },
+                TestCase {
+                    // TC1: no asks in the book so take best bid price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![Level::new(100.0, 100.0), Level::new(50.0, 100.0)],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![],
+                        },
+                    },
+                    expected: 100.0,
+                },
+                TestCase {
+                    // TC2: no bids in the book so take ask price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![Level::new(50.0, 100.0), Level::new(100.0, 100.0)],
+                        },
+                    },
+                    expected: 50.0,
+                },
+                TestCase {
+                    // TC3: best bid and ask amount is the same, so regular mid-price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![Level::new(100.0, 100.0), Level::new(50.0, 100.0)],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![Level::new(200.0, 100.0), Level::new(300.0, 100.0)],
+                        },
+                    },
+                    expected: 150.0,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(test.input.mid_price(), test.expected, "TC{index} failed")
+            }
+        }
+
+        #[test]
+        fn test_volume_weighted_mid_price() {
+            struct TestCase {
+                input: OrderBook,
+                expected: f64,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: no levels so 0.0 mid-price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![],
+                        },
+                    },
+                    expected: 0.0,
+                },
+                TestCase {
+                    // TC1: no asks in the book so take best bid price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![Level::new(100.0, 100.0), Level::new(50.0, 100.0)],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![],
+                        },
+                    },
+                    expected: 100.0,
+                },
+                TestCase {
+                    // TC2: no bids in the book so take ask price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![Level::new(50.0, 100.0), Level::new(100.0, 100.0)],
+                        },
+                    },
+                    expected: 50.0,
+                },
+                TestCase {
+                    // TC3: best bid and ask amount is the same, so regular mid-price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![Level::new(100.0, 100.0), Level::new(50.0, 100.0)],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![Level::new(200.0, 100.0), Level::new(300.0, 100.0)],
+                        },
+                    },
+                    expected: 150.0,
+                },
+                TestCase {
+                    // TC4: valid volume weighted mid-price
+                    input: OrderBook {
+                        last_update_time: Default::default(),
+                        bids: OrderBookSide {
+                            side: Side::Buy,
+                            levels: vec![Level::new(100.0, 3000.0), Level::new(50.0, 100.0)],
+                        },
+                        asks: OrderBookSide {
+                            side: Side::Sell,
+                            levels: vec![Level::new(200.0, 1000.0), Level::new(300.0, 100.0)],
+                        },
+                    },
+                    expected: 175.0,
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                assert_eq!(
+                    test.input.volume_weighed_mid_price(),
+                    test.expected,
+                    "TC{index} failed"
+                )
+            }
+        }
+    }
 
     mod order_book_side {
         use super::*;
