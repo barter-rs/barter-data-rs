@@ -94,7 +94,7 @@ impl OrderBook {
         match (self.bids.levels.first(), self.asks.levels.first()) {
             (Some(best_bid), Some(best_ask)) => Some(mid_price(best_bid.price, best_ask.price)),
             (Some(best_bid), None) => Some(best_bid.price),
-            (None, Some(best_bid)) => Some(best_bid.price),
+            (None, Some(best_ask)) => Some(best_ask.price),
             (None, None) => None,
         }
     }
