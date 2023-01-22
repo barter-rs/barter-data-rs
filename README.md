@@ -40,7 +40,7 @@ exchanges - batteries included. It is:
 Barter-Data is a high-performance WebSocket integration library for streaming public market data from leading cryptocurrency 
 exchanges. It presents an easy-to-use and extensible set of interfaces that can deliver normalised exchange data in real-time.
 
-From a user perspective, it's major component is the `StreamBuilder` structures that assists in initialising an 
+From a user perspective, the major component is the `StreamBuilder` structures that assists in initialising an 
 arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply build your dream set of 
 `MarketStreams` and `Barter-Data` will do the rest!
 
@@ -64,11 +64,11 @@ See barter-data-rs/examples for a more comprehensive selection of examples!
 
 ### Multi Exchange Public Trades
 ```rust,no_run
-use barter_data::exchange::gateio::spot::GateioSpot;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         coinbase::Coinbase,
+        gateio::spot::GateioSpot,
         okx::Okx,
     },
     streams::Streams,
