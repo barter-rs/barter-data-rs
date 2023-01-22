@@ -2,6 +2,7 @@ use crate::{
     error::DataError,
     subscription::{
         book::{OrderBook, OrderBookL1},
+        candle::Candle,
         trade::PublicTrade,
     },
 };
@@ -53,9 +54,22 @@ pub struct MarketEvent<T> {
 ///   [`MarketEvent<T>`](MarketEvent) kinds.
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub enum DataKind {
-    Trade(PublicTrade),
+    Candle(Candle),
     OrderBookL1(OrderBookL1),
     OrderBook(OrderBook),
+    Trade(PublicTrade),
+}
+
+impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
+    fn from(event: MarketEvent<Candle>) -> Self {
+        Self {
+            exchange_time: event.exchange_time,
+            received_time: event.received_time,
+            exchange: event.exchange,
+            instrument: event.instrument,
+            kind: DataKind::Candle(event.kind),
+        }
+    }
 }
 
 impl From<MarketEvent<PublicTrade>> for MarketEvent<DataKind> {
