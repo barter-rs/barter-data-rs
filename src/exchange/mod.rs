@@ -18,6 +18,9 @@ use url::Url;
 /// `BinanceSpot` & `BinanceFuturesUsd` [`Connector`] and [`StreamSelector`] implementations.
 pub mod binance;
 
+/// `BinanceSpot` & `BinanceFuturesUsd` [`Connector`] and [`StreamSelector`] implementations.
+pub mod binance_paper;
+
 /// `Bitfinex` [`Connector`] and [`StreamSelector`] implementations.
 pub mod bitfinex;
 
