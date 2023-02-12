@@ -9,8 +9,7 @@ pub struct BybitMarket(pub String);
 impl<Server, Kind> Identifier<BybitMarket> for Subscription<Bybit<Server>, Kind> {
     fn id(&self) -> BybitMarket {
         // Notes:
-        // - Must be lowercase when subscribing (transformed to lowercase by Binance fn requests).
-        // - Must be uppercase since Binance sends message with uppercase MARKET (eg/ BTCUSDT).
+        // - Must be uppercase since Bybit sends message with uppercase MARKET (eg/ BTCUSDT).
         BybitMarket(format!("{}{}", self.instrument.base, self.instrument.quote).to_uppercase())
     }
 }
