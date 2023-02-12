@@ -1,6 +1,6 @@
 use barter_integration::model::InstrumentKind;
-use barter_data::exchange::ExchangeId;
-use barter_data::exchange::bybit::spot::BybitSpot;
+use futures::StreamExt;
+use barter_data::exchange::bybit::{spot::BybitSpot, futures::BybitFuturePerpetual};
 use barter_data::streams::Streams;
 use barter_data::subscription::trade::PublicTrades;
 use tracing::info;
@@ -10,19 +10,22 @@ use tracing::info;
 async fn main() {
     init_logging();
 
-    let mut streams = Streams::<PublicTrades>::builder()
+    let streams = Streams::<PublicTrades>::builder()
         .subscribe([
             (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-        ]).init()
+            (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (BybitFuturePerpetual::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .init()
         .await
         .unwrap();
 
-    let mut bybit_stream = streams
-        .select(ExchangeId::BybitSpot)
-        .unwrap();
+    let mut joined_stream = streams.join_map().await;
 
-    while let Some(trade) = bybit_stream.recv().await {
-        info!("MarketEvent<PublicTrade>: {trade:?}");
+    while let Some((exchange, trade)) = joined_stream.next().await {
+        info!("Exchange: {exchange}, MarketEvent<PublicTrade>: {trade:?}");
     }
 
 }
@@ -32,7 +35,7 @@ fn init_logging() {
         // Filter messages based on the INFO
         .with_env_filter(
             tracing_subscriber::filter::EnvFilter::builder()
-                .with_default_directive(tracing_subscriber::filter::LevelFilter::INFO.into())
+                .with_default_directive(tracing_subscriber::filter::LevelFilter::DEBUG.into())
                 .from_env_lossy(),
         )
         .with_ansi(cfg!(debug_assertions))

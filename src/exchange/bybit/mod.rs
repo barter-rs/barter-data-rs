@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use barter_integration::error::SocketError;
+use barter_integration::model::Instrument;
 use barter_integration::protocol::websocket::WsMessage;
 use url::Url;
 use crate::exchange::{Connector, ExchangeId, ExchangeServer, StreamSelector};
@@ -12,10 +13,15 @@ use crate::exchange::subscription::ExchangeSub;
 use crate::ExchangeWsStream;
 use crate::subscriber::validator::WebSocketSubValidator;
 use crate::subscriber::WebSocketSubscriber;
+use crate::subscription::Map;
 use crate::subscription::trade::PublicTrades;
 use crate::transformer::stateless::StatelessTransformer;
 
 pub mod channel;
+
+/// [`ExchangeServer`] and [`StreamSelector`] implementations for
+/// [`BybitLinear`](futures::BybitFuturePerpetual).
+pub mod futures;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
 /// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
@@ -69,6 +75,10 @@ impl<Server> Connector for Bybit<Server> where Server: ExchangeServer, {
                 "args": stream_names
             }).to_string()
         )]
+    }
+
+    fn expected_responses(_: &Map<Instrument>) -> usize {
+        1
     }
 }
 

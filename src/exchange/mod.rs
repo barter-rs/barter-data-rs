@@ -169,6 +169,7 @@ pub enum ExchangeId {
     BinanceSpot,
     Bitfinex,
     BybitSpot,
+    BybitFuturesUsd,
     Coinbase,
     GateioFuturesBtc,
     GateioFuturesUsd,
@@ -197,6 +198,7 @@ impl ExchangeId {
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::Bitfinex => "bitfinex",
             ExchangeId::BybitSpot => "bybit_spot",
+            ExchangeId::BybitFuturesUsd => "bybit_futures_usd",
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::GateioSpot => "gateio_spot",
             ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
@@ -212,6 +214,7 @@ impl ExchangeId {
     pub fn supports_spot(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => false,
+            ExchangeId::BybitFuturesUsd => false,
             _ => true,
         }
     }
@@ -223,6 +226,7 @@ impl ExchangeId {
     pub fn supports_futures(&self) -> bool {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
+            ExchangeId::BybitFuturesUsd => true,
             ExchangeId::Okx => true,
             _ => false,
         }
