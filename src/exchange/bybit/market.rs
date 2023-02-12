@@ -3,6 +3,10 @@ use crate::exchange::bybit::Bybit;
 use crate::Identifier;
 use crate::subscription::Subscription;
 
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Bybit`](super::Bybit)
+/// market that can be subscribed to.
+///
+/// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BybitMarket(pub String);
 
