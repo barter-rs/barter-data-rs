@@ -42,8 +42,8 @@ pub struct BybitTrade {
     #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
 
-    #[serde(rename = "L")]
-    pub direction: String,
+    #[serde(alias = "L", skip_serializing_if = "Option::is_none")]
+    pub direction: Option<String>,
 
     #[serde(rename = "i")]
     pub id: String,
@@ -70,8 +70,10 @@ pub fn de_side_side<'de, D>(deserializer: D) -> Result<Side, D::Error>
     })
 }
 
-impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BybitMessage)) -> Self {
+pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
+
+impl From<(ExchangeId, Instrument, BybitTradePayload)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTradePayload)) -> Self {
         let mut market_events = vec![];
         for trade in trades.data {
             let i = instrument.clone();
@@ -133,7 +135,7 @@ mod tests {
                             side: Side::Buy,
                             amount: 0.001,
                             price: 16578.50,
-                            direction: String::from("PlusTick"),
+                            direction: Some(String::from("PlusTick")),
                             id: String::from("20f43950-d8dd-5b31-9112-a178eb6023af"),
                             bt: false,
                         }
@@ -147,7 +149,6 @@ mod tests {
                             "S": "Sell",
                             "v": "0.001",
                             "p": "16578.50",
-                            "L": "PlusTick",
                             "i": "20f43950-d8dd-5b31-9112-a178eb6023af",
                             "BT": false
                         }
@@ -161,7 +162,7 @@ mod tests {
                             side: Side::Sell,
                             amount: 0.001,
                             price: 16578.50,
-                            direction: String::from("PlusTick"),
+                            direction: None,
                             id: String::from("20f43950-d8dd-5b31-9112-a178eb6023af"),
                             bt: false,
                         }

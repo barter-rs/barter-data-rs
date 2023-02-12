@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
 use crate::exchange::bybit::channel::BybitChannel;
-use crate::exchange::bybit::trade::BybitTrade;
 use crate::Identifier;
 
 
@@ -30,7 +29,7 @@ use crate::Identifier;
 /// ```
 
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct BybitMessage {
+pub struct BybitMessage<T> {
     #[serde(alias = "topic", deserialize_with = "de_message_subscription_id")]
     pub subscription_id: SubscriptionId,
 
@@ -42,7 +41,7 @@ pub struct BybitMessage {
         deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
     )]
     pub time: DateTime<Utc>,
-    pub data: Vec<BybitTrade>,
+    pub data: T,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cs: Option<i32>
@@ -66,7 +65,7 @@ pub fn de_message_subscription_id<'de, D>(deserializer: D) -> Result<Subscriptio
     })
 }
 
-impl Identifier<Option<SubscriptionId>> for BybitMessage {
+impl<T> Identifier<Option<SubscriptionId>> for BybitMessage<T> {
     fn id(&self) -> Option<SubscriptionId> {
         Some(self.subscription_id.clone())
     }

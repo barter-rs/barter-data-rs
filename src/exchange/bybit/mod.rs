@@ -7,7 +7,7 @@ use crate::exchange::{Connector, ExchangeId, ExchangeServer, StreamSelector};
 use crate::exchange::bybit::channel::BybitChannel;
 use crate::exchange::bybit::market::BybitMarket;
 use crate::exchange::bybit::subscription::BybitSubResponse;
-use message::BybitMessage;
+use crate::exchange::bybit::trade::BybitTradePayload;
 use crate::exchange::subscription::ExchangeSub;
 use crate::ExchangeWsStream;
 use crate::subscriber::validator::WebSocketSubValidator;
@@ -15,12 +15,24 @@ use crate::subscriber::WebSocketSubscriber;
 use crate::subscription::trade::PublicTrades;
 use crate::transformer::stateless::StatelessTransformer;
 
-pub mod spot;
-pub mod trade;
 pub mod channel;
+
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
+
+/// Generic [`BybitMessage<T>`](message::BybitMessage) type common to
+/// [`BybitSpot`](spot::BybitSpot)
+pub mod message;
+
 pub mod subscription;
-mod message;
+/// [`ExchangeServer`] and [`StreamSelector`] implementations for
+/// [`BybitSpot`](spot::BybitSpot).
+pub mod spot;
+
+/// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
+/// [`BybitPerpetual`](futures::BybitPerpetual).
+pub mod trade;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bybit<Server> {
@@ -64,7 +76,7 @@ impl<Server> StreamSelector<PublicTrades> for Bybit<Server>
     where
         Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitMessage>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitTradePayload>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>
