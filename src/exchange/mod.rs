@@ -21,6 +21,9 @@ pub mod binance;
 /// `Bitfinex` [`Connector`] and [`StreamSelector`] implementations.
 pub mod bitfinex;
 
+/// `Bitmex [`Connector`] and [`StreamSelector`] implementations.
+pub mod bitmex;
+
 /// `Coinbase` [`Connector`] and [`StreamSelector`] implementations.
 pub mod coinbase;
 
