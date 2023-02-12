@@ -47,10 +47,10 @@ pub struct BybitMessage<T> {
     pub cs: Option<i32>
 }
 
-/// Deserialize a [`BinanceLiquidationOrder`] "s" (eg/ "BTCUSDT") as the associated
+/// Deserialize a [`BybitMessage`] "s" (eg/ "publicTrade.BTCUSDT") as the associated
 /// [`SubscriptionId`].
 ///
-/// eg/ "forceOrder|BTCUSDT"
+/// eg/ "publicTrade|BTCUSDT"
 pub fn de_message_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
     where
         D: serde::de::Deserializer<'de>,

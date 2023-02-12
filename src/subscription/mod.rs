@@ -214,7 +214,7 @@ mod tests {
                     "exchange": "binance_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "futures",
+                    "instrument_type": "future_perpetual",
                     "kind": "order_books_l2"
                 }
                 "#;
@@ -230,7 +230,7 @@ mod tests {
                     "exchange": "gateio_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "futures",
+                    "instrument_type": "future_perpetual",
                     "kind": "public_trades"
                 }
                 "#;
