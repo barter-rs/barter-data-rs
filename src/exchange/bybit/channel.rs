@@ -13,7 +13,7 @@ use crate::subscription::trade::PublicTrades;
 pub struct BybitChannel(pub &'static str);
 
 impl BybitChannel {
-    /// [`Binance`](super::Bybit) real-time trades channel name.
+    /// [`Bybit`](super::Bybit) real-time trades channel name.
     ///
     /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
     pub const TRADES: Self = Self("publicTrade");

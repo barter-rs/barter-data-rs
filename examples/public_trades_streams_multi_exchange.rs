@@ -11,6 +11,8 @@ use barter_data::{
 use barter_integration::model::InstrumentKind;
 use futures::StreamExt;
 use tracing::info;
+use barter_data::exchange::bybit::futures::BybitFuturePerpetual;
+use barter_data::exchange::bybit::spot::BybitSpot;
 
 #[rustfmt::skip]
 #[tokio::main]
@@ -42,6 +44,13 @@ async fn main() {
             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
             (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .subscribe([
+            (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (BybitFuturePerpetual::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
         ])
         .init()
         .await
