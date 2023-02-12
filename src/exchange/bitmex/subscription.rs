@@ -43,7 +43,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn test_coinbase_sub_response() {
+        fn test_bitmex_sub_response() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<BitmexSubResponse, SocketError>,
@@ -74,8 +74,8 @@ mod tests {
                     // TC1: input response is failed subscription
                     input: r#"
                     {
-                        "success":"false",
-                        "subscribe": "orderBookL2_25:XBTUSD",
+                        "success": false,
+                        "subscribe": "orderBookL2_25:XBTUSD"
                     }
                     "#,
                     expected: Ok(BitmexSubResponse {
@@ -105,7 +105,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_coinbase_sub_response() {
+    fn test_validate_bitmex_sub_response() {
         struct TestCase {
             input_response: BitmexSubResponse,
             is_valid: bool,
