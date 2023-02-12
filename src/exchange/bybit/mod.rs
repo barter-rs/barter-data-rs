@@ -17,6 +17,8 @@ use crate::subscription::Map;
 use crate::subscription::trade::PublicTrades;
 use crate::transformer::stateless::StatelessTransformer;
 
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
 pub mod channel;
 
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
@@ -40,6 +42,11 @@ pub mod spot;
 /// [`BybitPerpetual`](futures::BybitPerpetual).
 pub mod trade;
 
+/// Generic [`Bybit<Server>`](Bybit) exchange.
+///
+/// ### Notes
+/// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
+/// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturePerpetual`](futures::BybitFuturePerpetual).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bybit<Server> {
     server: PhantomData<Server>
