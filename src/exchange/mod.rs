@@ -21,6 +21,9 @@ pub mod binance;
 /// `Bitfinex` [`Connector`] and [`StreamSelector`] implementations.
 pub mod bitfinex;
 
+/// `Bybit` ['Connector'] and ['StreamSelector'] implementation
+pub mod bybit;
+
 /// `Coinbase` [`Connector`] and [`StreamSelector`] implementations.
 pub mod coinbase;
 
@@ -165,6 +168,7 @@ pub enum ExchangeId {
     BinanceFuturesUsd,
     BinanceSpot,
     Bitfinex,
+    BybitSpot,
     Coinbase,
     GateioFuturesBtc,
     GateioFuturesUsd,
@@ -192,6 +196,7 @@ impl ExchangeId {
             ExchangeId::BinanceSpot => "binance_spot",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::BybitSpot => "bybit_spot",
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::GateioSpot => "gateio_spot",
             ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
