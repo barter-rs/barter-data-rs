@@ -42,8 +42,8 @@ pub struct BybitTrade {
     #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
 
-    #[serde(alias = "L", default)]
-    pub direction: Option<String>,
+    #[serde(alias = "L")]
+    pub direction: String,
 
     #[serde(rename = "i")]
     pub id: String,
@@ -135,7 +135,7 @@ mod tests {
                             side: Side::Buy,
                             amount: 0.001,
                             price: 16578.50,
-                            direction: Some("PlusTick".to_string()),
+                            direction: "PlusTick".to_string(),
                             id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                             bt: false,
                         }
@@ -149,6 +149,7 @@ mod tests {
                             "S": "Sell",
                             "v": "0.001",
                             "p": "16578.50",
+                            "L": "PlusTick",
                             "i": "20f43950-d8dd-5b31-9112-a178eb6023af",
                             "BT": false
                         }
@@ -162,7 +163,7 @@ mod tests {
                             side: Side::Sell,
                             amount: 0.001,
                             price: 16578.50,
-                            direction: None,
+                            direction: "PlusTick".to_string(),
                             id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                             bt: false,
                         }
