@@ -42,7 +42,7 @@ pub struct BybitTrade {
     #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
 
-    #[serde(alias = "L", skip_serializing_if = "Option::is_none")]
+    #[serde(alias = "L", default)]
     pub direction: Option<String>,
 
     #[serde(rename = "i")]
@@ -131,12 +131,12 @@ mod tests {
                             time: datetime_utc_from_epoch_duration(Duration::from_millis(
                                 1672304486865,
                             )),
-                            market: String::from("BTCUSDT"),
+                            market: "BTCUSDT".to_string(),
                             side: Side::Buy,
                             amount: 0.001,
                             price: 16578.50,
-                            direction: Some(String::from("PlusTick")),
-                            id: String::from("20f43950-d8dd-5b31-9112-a178eb6023af"),
+                            direction: Some("PlusTick".to_string()),
+                            id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                             bt: false,
                         }
                     )
@@ -158,12 +158,12 @@ mod tests {
                             time: datetime_utc_from_epoch_duration(Duration::from_millis(
                                 1672304486865,
                             )),
-                            market: String::from("BTCUSDT"),
+                            market: "BTCUSDT".to_string(),
                             side: Side::Sell,
                             amount: 0.001,
                             price: 16578.50,
                             direction: None,
-                            id: String::from("20f43950-d8dd-5b31-9112-a178eb6023af"),
+                            id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                             bt: false,
                         }
                     )

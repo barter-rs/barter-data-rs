@@ -15,8 +15,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BybitSubResponse {
     success: bool,
-    ret_msg: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    ret_msg: Option<String>,
+    #[serde(default)]
     req_id: Option<String>,
     op: String,
     conn_id: String,
@@ -65,10 +66,10 @@ mod tests {
                     "#,
                     expected: Ok(BybitSubResponse {
                         success: true,
-                        ret_msg: String::from("subscribe"),
-                        req_id: Some(String::from("10001")),
-                        op: String::from("subscribe"),
-                        conn_id: String::from("2324d924-aa4d-45b0-a858-7b8be29ab52b"),
+                        ret_msg: Some("subscribe".to_string()),
+                        req_id: Some("10001".to_string()),
+                        op: "subscribe".to_string(),
+                        conn_id: "2324d924-aa4d-45b0-a858-7b8be29ab52b".to_string(),
                     }),
                 },
                 TestCase {
@@ -76,36 +77,34 @@ mod tests {
                     input: r#"
                         {
                             "success": false,
-                            "ret_msg": "",
-                            "conn_id": "",
-                            "req_id": "10001",
-                            "op": ""
-                        }
-                    "#,
-                    expected: Ok(BybitSubResponse {
-                        success: false,
-                        ret_msg: String::from(""),
-                        req_id: Some(String::from("10001")),
-                        op: String::from(""),
-                        conn_id: String::from(""),
-                    }),
-                },
-                TestCase {
-                    // TC1: input response is failed subscription
-                    input: r#"
-                        {
-                            "success": false,
-                            "ret_msg": "",
                             "conn_id": "",
                             "op": ""
                         }
                     "#,
                     expected: Ok(BybitSubResponse {
                         success: false,
-                        ret_msg: String::from(""),
+                        ret_msg: None,
                         req_id: None,
-                        op: String::from(""),
-                        conn_id: String::from(""),
+                        op: "".to_string(),
+                        conn_id: "".to_string(),
+                    }),
+                },
+                TestCase {
+                    // TC1: input response is failed subscription
+                    input: r#"
+                        {
+                            "success": false,
+                            "ret_msg": "",
+                            "conn_id": "",
+                            "op": ""
+                        }
+                    "#,
+                    expected: Ok(BybitSubResponse {
+                        success: false,
+                        ret_msg: Some("".to_string()),
+                        req_id: None,
+                        op: "".to_string(),
+                        conn_id: "".to_string(),
                     }),
                 },
             ];
@@ -140,7 +139,7 @@ mod tests {
                 // TC0: input response is successful subscription
                 input_response: BybitSubResponse {
                     success: true,
-                    ret_msg: "".to_string(),
+                    ret_msg: Some("".to_string()),
                     req_id: None,
                     op: "".to_string(),
                     conn_id: "".to_string(),
@@ -151,7 +150,7 @@ mod tests {
                 // TC1: input response is failed subscription
                 input_response: BybitSubResponse {
                     success: false,
-                    ret_msg: "".to_string(),
+                    ret_msg: Some("".to_string()),
                     req_id: None,
                     op: "".to_string(),
                     conn_id: "".to_string(),
