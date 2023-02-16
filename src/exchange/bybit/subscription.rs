@@ -24,7 +24,6 @@ use serde::{Deserialize, Serialize};
 ///     "op": "subscribe"
 /// }
 ///
-
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BybitSubResponse {
     success: bool,
