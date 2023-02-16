@@ -101,10 +101,10 @@ where
     where
         D: serde::de::Deserializer<'de>,
     {
-        let input = <String as serde::Deserialize>::deserialize(deserializer)?;
+        let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
         let expected = Self::ID.as_str();
 
-        if input.as_str() == Self::ID.as_str() {
+        if input == Self::ID.as_str() {
             Ok(Self::default())
         } else {
             Err(serde::de::Error::invalid_value(
