@@ -1,9 +1,8 @@
-use serde::{Deserialize, Serialize};
-use barter_integration::model::SubscriptionId;
-use chrono::{DateTime, Utc};
 use crate::exchange::bybit::channel::BybitChannel;
 use crate::Identifier;
-
+use barter_integration::model::SubscriptionId;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -44,7 +43,7 @@ pub struct BybitMessage<T> {
     pub data: T,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cs: Option<i32>
+    pub cs: Option<i32>,
 }
 
 /// Deserialize a [`BybitMessage`] "s" (eg/ "publicTrade.BTCUSDT") as the associated
@@ -52,16 +51,14 @@ pub struct BybitMessage<T> {
 ///
 /// eg/ "publicTrade|BTCUSDT"
 pub fn de_message_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
+where
+    D: serde::de::Deserializer<'de>,
 {
-    Deserialize::deserialize(deserializer).map(|market: String| {
-        match market {
-            m if m.starts_with(BybitChannel::TRADES.0) => {
-                SubscriptionId::from(format!("{}|{}", BybitChannel::TRADES.0, &m[12..]))
-            },
-            _ => SubscriptionId::from("unknown")
+    Deserialize::deserialize(deserializer).map(|market: String| match market {
+        m if m.starts_with(BybitChannel::TRADES.0) => {
+            SubscriptionId::from(format!("{}|{}", BybitChannel::TRADES.0, &m[12..]))
         }
+        _ => SubscriptionId::from("unknown"),
     })
 }
 

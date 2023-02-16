@@ -25,8 +25,8 @@ pub struct BybitSubResponse {
 
 impl Validator for BybitSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         if self.success {
             Ok(self)

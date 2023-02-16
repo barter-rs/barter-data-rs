@@ -1,10 +1,10 @@
-use barter_integration::model::{Exchange, Instrument, Side, Symbol};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use crate::event::{MarketEvent, MarketIter};
 use crate::exchange::bybit::message::BybitMessage;
 use crate::exchange::ExchangeId;
 use crate::subscription::trade::PublicTrade;
+use barter_integration::model::{Exchange, Instrument, Side, Symbol};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -58,8 +58,8 @@ pub struct BybitTrade {
 /// String("Sell") => Side::Sell
 /// String("Buy") => Side::Buy
 pub fn de_side_side<'de, D>(deserializer: D) -> Result<Side, D::Error>
-    where
-        D: serde::de::Deserializer<'de>,
+where
+    D: serde::de::Deserializer<'de>,
 {
     <Symbol as Deserialize>::deserialize(deserializer).map(|side| {
         if side == "Sell".into() {
@@ -73,7 +73,9 @@ pub fn de_side_side<'de, D>(deserializer: D) -> Result<Side, D::Error>
 pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
 
 impl From<(ExchangeId, Instrument, BybitTradePayload)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTradePayload)) -> Self {
+    fn from(
+        (exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTradePayload),
+    ) -> Self {
         let mut market_events = vec![];
         for trade in trades.data {
             let i = instrument.clone();
@@ -126,20 +128,18 @@ mod tests {
                             "BT": false
                         }
                     "#,
-                    expected: Ok(
-                        BybitTrade {
-                            time: datetime_utc_from_epoch_duration(Duration::from_millis(
-                                1672304486865,
-                            )),
-                            market: "BTCUSDT".to_string(),
-                            side: Side::Buy,
-                            amount: 0.001,
-                            price: 16578.50,
-                            direction: "PlusTick".to_string(),
-                            id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                            bt: false,
-                        }
-                    )
+                    expected: Ok(BybitTrade {
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1672304486865,
+                        )),
+                        market: "BTCUSDT".to_string(),
+                        side: Side::Buy,
+                        amount: 0.001,
+                        price: 16578.50,
+                        direction: "PlusTick".to_string(),
+                        id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
+                        bt: false,
+                    }),
                 },
                 TestCase {
                     input: r#"
@@ -154,21 +154,19 @@ mod tests {
                             "BT": false
                         }
                     "#,
-                    expected: Ok(
-                        BybitTrade {
-                            time: datetime_utc_from_epoch_duration(Duration::from_millis(
-                                1672304486865,
-                            )),
-                            market: "BTCUSDT".to_string(),
-                            side: Side::Sell,
-                            amount: 0.001,
-                            price: 16578.50,
-                            direction: "PlusTick".to_string(),
-                            id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                            bt: false,
-                        }
-                    )
-                }
+                    expected: Ok(BybitTrade {
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(
+                            1672304486865,
+                        )),
+                        market: "BTCUSDT".to_string(),
+                        side: Side::Sell,
+                        amount: 0.001,
+                        price: 16578.50,
+                        direction: "PlusTick".to_string(),
+                        id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
+                        bt: false,
+                    }),
+                },
             ];
 
             for (index, test) in tests.into_iter().enumerate() {

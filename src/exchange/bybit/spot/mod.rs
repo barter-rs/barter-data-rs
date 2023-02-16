@@ -1,5 +1,5 @@
-use crate::exchange::ExchangeId;
 use super::{Bybit, ExchangeServer};
+use crate::exchange::ExchangeId;
 
 /// [`BybitSpot`] WebSocket server base url.
 ///
@@ -16,5 +16,7 @@ pub struct BybitServerSpot;
 impl ExchangeServer for BybitServerSpot {
     const ID: ExchangeId = ExchangeId::BybitSpot;
 
-    fn websocket_url() -> &'static str { WEBSOCKET_BASE_URL_BYBIT_SPOT }
+    fn websocket_url() -> &'static str {
+        WEBSOCKET_BASE_URL_BYBIT_SPOT
+    }
 }

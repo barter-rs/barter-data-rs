@@ -5,10 +5,10 @@ use tracing::info;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        bybit::{futures::BybitFuturePerpetual, spot::BybitSpot},
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
-        bybit::{futures::BybitFuturePerpetual, spot::BybitSpot}
     },
     streams::Streams,
     subscription::trade::PublicTrades,

@@ -1,8 +1,8 @@
-use serde::Serialize;
 use crate::exchange::bybit::Bybit;
-use crate::Identifier;
-use crate::subscription::Subscription;
 use crate::subscription::trade::PublicTrades;
+use crate::subscription::Subscription;
+use crate::Identifier;
+use serde::Serialize;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 
