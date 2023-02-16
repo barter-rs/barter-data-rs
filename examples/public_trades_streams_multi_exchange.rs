@@ -1,18 +1,18 @@
+use barter_integration::model::InstrumentKind;
+use futures::StreamExt;
+use tracing::info;
+
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
+        bybit::{futures::BybitFuturePerpetual, spot::BybitSpot}
     },
     streams::Streams,
     subscription::trade::PublicTrades,
 };
-use barter_integration::model::InstrumentKind;
-use futures::StreamExt;
-use tracing::info;
-use barter_data::exchange::bybit::futures::BybitFuturePerpetual;
-use barter_data::exchange::bybit::spot::BybitSpot;
 
 #[rustfmt::skip]
 #[tokio::main]
