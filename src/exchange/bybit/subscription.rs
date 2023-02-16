@@ -14,11 +14,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BybitSubResponse {
     success: bool,
-    #[serde(default)]
-    ret_msg: Option<String>,
-    #[serde(default)]
-    req_id: Option<String>,
+    #[serde(skip)]
+    ret_msg: String,
+    #[serde(skip)]
+    req_id: String,
+    #[serde(skip)]
     op: String,
+    #[serde(skip)]
     conn_id: String,
 }
 
@@ -65,25 +67,8 @@ mod tests {
                     "#,
                     expected: Ok(BybitSubResponse {
                         success: true,
-                        ret_msg: Some("subscribe".to_string()),
-                        req_id: Some("10001".to_string()),
-                        op: "subscribe".to_string(),
-                        conn_id: "2324d924-aa4d-45b0-a858-7b8be29ab52b".to_string(),
-                    }),
-                },
-                TestCase {
-                    // TC1: input response is failed subscription
-                    input: r#"
-                        {
-                            "success": false,
-                            "conn_id": "",
-                            "op": ""
-                        }
-                    "#,
-                    expected: Ok(BybitSubResponse {
-                        success: false,
-                        ret_msg: None,
-                        req_id: None,
+                        ret_msg: "".to_string(),
+                        req_id: "".to_string(),
                         op: "".to_string(),
                         conn_id: "".to_string(),
                     }),
@@ -93,15 +78,14 @@ mod tests {
                     input: r#"
                         {
                             "success": false,
-                            "ret_msg": "",
                             "conn_id": "",
                             "op": ""
                         }
                     "#,
                     expected: Ok(BybitSubResponse {
                         success: false,
-                        ret_msg: Some("".to_string()),
-                        req_id: None,
+                        ret_msg: "".to_string(),
+                        req_id: "".to_string(),
                         op: "".to_string(),
                         conn_id: "".to_string(),
                     }),
@@ -138,8 +122,8 @@ mod tests {
                 // TC0: input response is successful subscription
                 input_response: BybitSubResponse {
                     success: true,
-                    ret_msg: Some("".to_string()),
-                    req_id: None,
+                    ret_msg: "".to_string(),
+                    req_id: "".to_string(),
                     op: "".to_string(),
                     conn_id: "".to_string(),
                 },
@@ -149,8 +133,8 @@ mod tests {
                 // TC1: input response is failed subscription
                 input_response: BybitSubResponse {
                     success: false,
-                    ret_msg: Some("".to_string()),
-                    req_id: None,
+                    ret_msg: "".to_string(),
+                    req_id: "".to_string(),
                     op: "".to_string(),
                     conn_id: "".to_string(),
                 },

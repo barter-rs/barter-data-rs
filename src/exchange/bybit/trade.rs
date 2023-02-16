@@ -124,6 +124,7 @@ mod tests {
             }
 
             let tests = vec![
+                // TC0: input BybitTrade is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -150,6 +151,7 @@ mod tests {
                         block_trade: false,
                     }),
                 },
+                // TC1: input BybitTrade is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -176,6 +178,7 @@ mod tests {
                         block_trade: false,
                     }),
                 },
+                // TC2: input BybitTrade is unable to be deserialised
                 TestCase {
                     input: r#"
                         {
@@ -221,6 +224,7 @@ mod tests {
             }
 
             let tests = vec![
+                // TC0: input BybitTradePayload is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -286,6 +290,7 @@ mod tests {
                         cs: None,
                     }),
                 },
+                // TC1: input BybitTradePayload is unable to be deserialised
                 TestCase {
                     input: r#"
                         {
