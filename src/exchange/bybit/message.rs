@@ -58,8 +58,7 @@ where
 
     match input.split('.').collect::<Vec<&str>>().as_slice() {
         [first_slice, second_slice] => Ok(SubscriptionId::from(format!(
-            "{}|{}",
-            first_slice, second_slice
+            "{first_slice}|{second_slice}"
         ))),
         _ => Err(Error::invalid_value(
             Unexpected::Str(input),
