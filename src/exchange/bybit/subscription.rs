@@ -1,13 +1,27 @@
 use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
-///```json
+/// [`Bybit`](super::Bybit) subscription response message.
+///
+///  ### Raw Payload Examples
+///  See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect#understanding-the-subscription-response>
+///  #### Subscription Success
+/// ```json
 /// {
 ///     "success": true,
-///     "ret_msg": "",
-///     "req_id": "123",
-///     "op": "subscribe",
-///     "conn_id": "cejreassvfrsfvb9v1a0-2m"
+///     "ret_msg": "subscribe",
+///     "conn_id": "2324d924-aa4d-45b0-a858-7b8be29ab52b",
+///     "req_id": "10001",
+///     "op": "subscribe"
+/// }
+/// #### Subscription Failure
+/// ```json
+/// {
+///     "success": false,
+///     "ret_msg": "subscribe",
+///     "conn_id": "2324d924-aa4d-45b0-a858-7b8be29ab52b",
+///     "req_id": "10001",
+///     "op": "subscribe"
 /// }
 ///
 
