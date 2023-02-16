@@ -8,7 +8,7 @@ use serde::{
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
-/// Spot Side::Buy Trade
+/// #### Spot Side::Buy Trade
 ///```json
 /// {
 ///     "topic": "publicTrade.BTCUSDT",
