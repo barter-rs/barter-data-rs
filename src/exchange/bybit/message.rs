@@ -1,5 +1,4 @@
-use crate::exchange::bybit::channel::BybitChannel;
-use crate::Identifier;
+use crate::{exchange::bybit::channel::BybitChannel, Identifier};
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

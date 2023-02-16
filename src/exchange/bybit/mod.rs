@@ -1,20 +1,19 @@
-use crate::exchange::bybit::channel::BybitChannel;
-use crate::exchange::bybit::market::BybitMarket;
-use crate::exchange::bybit::subscription::BybitSubResponse;
-use crate::exchange::bybit::trade::BybitTradePayload;
-use crate::exchange::subscription::ExchangeSub;
-use crate::exchange::{Connector, ExchangeId, ExchangeServer, StreamSelector};
-use crate::subscriber::validator::WebSocketSubValidator;
-use crate::subscriber::WebSocketSubscriber;
-use crate::subscription::trade::PublicTrades;
-use crate::subscription::Map;
-use crate::transformer::stateless::StatelessTransformer;
-use crate::ExchangeWsStream;
-use barter_integration::error::SocketError;
-use barter_integration::model::Instrument;
-use barter_integration::protocol::websocket::WsMessage;
-use std::fmt::Debug;
-use std::marker::PhantomData;
+use crate::{
+    exchange::{
+        bybit::{
+            channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse,
+            trade::BybitTradePayload,
+        },
+        subscription::ExchangeSub,
+        Connector, ExchangeId, ExchangeServer, StreamSelector,
+    },
+    subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
+    subscription::{trade::PublicTrades, Map},
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream,
+};
+use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
+use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)

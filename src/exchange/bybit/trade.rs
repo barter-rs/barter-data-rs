@@ -1,7 +1,8 @@
-use crate::event::{MarketEvent, MarketIter};
-use crate::exchange::bybit::message::BybitMessage;
-use crate::exchange::ExchangeId;
-use crate::subscription::trade::PublicTrade;
+use crate::{
+    event::{MarketEvent, MarketIter},
+    exchange::{bybit::message::BybitMessage, ExchangeId},
+    subscription::trade::PublicTrade,
+};
 use barter_integration::model::{Exchange, Instrument, Side, Symbol};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -103,8 +104,7 @@ mod tests {
 
     mod de {
         use super::*;
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
+        use barter_integration::{de::datetime_utc_from_epoch_duration, error::SocketError};
         use std::time::Duration;
 
         #[test]
