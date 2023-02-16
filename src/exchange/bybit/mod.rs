@@ -13,6 +13,7 @@ use crate::{
     ExchangeWsStream,
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
+use serde::de::{Error, Unexpected};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
@@ -107,10 +108,7 @@ where
         if input == Self::ID.as_str() {
             Ok(Self::default())
         } else {
-            Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(input.as_str()),
-                &expected,
-            ))
+            Err(Error::invalid_value(Unexpected::Str(input), &expected))
         }
     }
 }

@@ -1,7 +1,10 @@
-use crate::{exchange::bybit::channel::BybitChannel, Identifier};
+use crate::Identifier;
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{
+    de::{Error, Unexpected},
+    Deserialize, Serialize,
+};
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -53,12 +56,18 @@ pub fn de_message_subscription_id<'de, D>(deserializer: D) -> Result<Subscriptio
 where
     D: serde::de::Deserializer<'de>,
 {
-    Deserialize::deserialize(deserializer).map(|market: String| match market {
-        m if m.starts_with(BybitChannel::TRADES.0) => {
-            SubscriptionId::from(format!("{}|{}", BybitChannel::TRADES.0, &m[12..]))
-        }
-        _ => SubscriptionId::from("unknown"),
-    })
+    let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
+
+    match input.split('.').collect::<Vec<&str>>().as_slice() {
+        [first_slice, second_slice] => Ok(SubscriptionId::from(format!(
+            "{}|{}",
+            first_slice, second_slice
+        ))),
+        _ => Err(Error::invalid_value(
+            Unexpected::Str(input),
+            &"invalid message type expected pattern: <type>.<symbol>",
+        )),
+    }
 }
 
 impl<T> Identifier<Option<SubscriptionId>> for BybitMessage<T> {
