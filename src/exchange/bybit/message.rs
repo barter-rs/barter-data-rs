@@ -28,7 +28,6 @@ use serde::{
 ///     ]
 /// }
 /// ```
-
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BybitMessage<T> {
     #[serde(alias = "topic", deserialize_with = "de_message_subscription_id")]
