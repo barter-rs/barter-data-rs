@@ -5,7 +5,6 @@ use serde::{
     de::{Error, Unexpected},
     Deserialize, Serialize,
 };
-
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
 /// #### Spot Side::Buy Trade
@@ -43,8 +42,8 @@ pub struct BybitMessage<T> {
     pub time: DateTime<Utc>,
     pub data: T,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cs: Option<i32>,
+    #[serde(skip)]
+    pub cs: i32,
 }
 
 /// Deserialize a [`BybitMessage`] "s" (eg/ "publicTrade.BTCUSDT") as the associated
