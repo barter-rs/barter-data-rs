@@ -39,7 +39,7 @@ pub mod spot;
 pub mod subscription;
 
 /// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
-/// [`BybitPerpetual`](futures::BybitPerpetual).
+/// [`BybitFuturePerpetual`](futures::BybitFuturePerpetual).
 pub mod trade;
 
 /// Generic [`Bybit<Server>`](Bybit) exchange.
