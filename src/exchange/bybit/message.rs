@@ -1,3 +1,4 @@
+use crate::exchange::bybit::channel::BybitChannel;
 use crate::Identifier;
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
@@ -58,8 +59,9 @@ where
     let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
 
     match input.split('.').collect::<Vec<&str>>().as_slice() {
-        [first_slice, second_slice] => Ok(SubscriptionId::from(format!(
-            "{first_slice}|{second_slice}"
+        ["publicTrade", market] => Ok(SubscriptionId::from(format!(
+            "{}|{market}",
+            BybitChannel::TRADES.0
         ))),
         _ => Err(Error::invalid_value(
             Unexpected::Str(input),
