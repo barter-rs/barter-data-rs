@@ -1,5 +1,4 @@
-use crate::exchange::bybit::channel::BybitChannel;
-use crate::Identifier;
+use crate::{exchange::bybit::channel::BybitChannel, Identifier};
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
 use serde::{
@@ -29,7 +28,7 @@ use serde::{
 ///     ]
 /// }
 /// ```
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct BybitMessage<T> {
     #[serde(alias = "topic", deserialize_with = "de_message_subscription_id")]
     pub subscription_id: SubscriptionId,
@@ -43,9 +42,6 @@ pub struct BybitMessage<T> {
     )]
     pub time: DateTime<Utc>,
     pub data: T,
-
-    #[serde(skip)]
-    pub cs: i32,
 }
 
 /// Deserialize a [`BybitMessage`] "s" (eg/ "publicTrade.BTCUSDT") as the associated
@@ -57,9 +53,10 @@ where
     D: serde::de::Deserializer<'de>,
 {
     let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
+    let mut tokens = input.split('.');
 
-    match input.split('.').collect::<Vec<&str>>().as_slice() {
-        ["publicTrade", market] => Ok(SubscriptionId::from(format!(
+    match (tokens.next(), tokens.next(), tokens.next()) {
+        (Some("publicTrade"), Some(market), None) => Ok(SubscriptionId::from(format!(
             "{}|{market}",
             BybitChannel::TRADES.0
         ))),
