@@ -45,7 +45,7 @@ where
 
 /// [`OrderBook`] for an [`Instrument`] with an exchange specific [`OrderBookUpdater`] to define
 /// how to update it.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct InstrumentOrderBook<Updater> {
     pub instrument: Instrument,
     pub updater: Updater,
@@ -55,7 +55,7 @@ pub struct InstrumentOrderBook<Updater> {
 /// Standard generic [`ExchangeTransformer`] to translate exchange specific OrderBook types into
 /// normalised Barter OrderBook types. Requires an exchange specific [`OrderBookUpdater`]
 /// implementation.
-#[derive(Clone, PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
 pub struct MultiBookTransformer<Exchange, Kind, Updater> {
     pub book_map: Map<InstrumentOrderBook<Updater>>,
     phantom: PhantomData<(Exchange, Kind)>,

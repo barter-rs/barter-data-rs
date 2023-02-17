@@ -69,7 +69,7 @@ use serde::{Deserialize, Serialize};
 ///     "event": "error"
 /// }
 /// ```
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 #[serde(untagged, rename_all = "snake_case")]
 pub enum KrakenMessage<T> {
     Data(T),
