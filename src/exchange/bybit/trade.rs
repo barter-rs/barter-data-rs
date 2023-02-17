@@ -45,14 +45,8 @@ pub struct BybitTrade {
     #[serde(alias = "p", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
 
-    #[serde(rename = "L", skip)]
-    pub direction: String,
-
     #[serde(rename = "i")]
     pub id: String,
-
-    #[serde(rename = "BT", skip)]
-    pub block_trade: bool,
 }
 
 /// Terse type alias for an [`BybitTrade`](BybitTrade) real-time trades WebSocket message.
@@ -81,27 +75,26 @@ impl From<(ExchangeId, Instrument, BybitTradePayload)> for MarketIter<PublicTrad
     fn from(
         (exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTradePayload),
     ) -> Self {
-        let market_events = trades
-            .data
-            .into_iter()
-            .map(|trade| {
-                let i = instrument.clone();
-                Ok(MarketEvent {
-                    exchange_time: trade.time,
-                    received_time: Utc::now(),
-                    exchange: Exchange::from(exchange_id),
-                    instrument: i,
-                    kind: PublicTrade {
-                        id: trade.id,
-                        price: trade.price,
-                        amount: trade.amount,
-                        side: trade.side,
-                    },
+        Self(
+            trades
+                .data
+                .into_iter()
+                .map(|trade| {
+                    Ok(MarketEvent {
+                        exchange_time: trade.time,
+                        received_time: Utc::now(),
+                        exchange: Exchange::from(exchange_id),
+                        instrument: instrument.clone(),
+                        kind: PublicTrade {
+                            id: trade.id,
+                            price: trade.price,
+                            amount: trade.amount,
+                            side: trade.side,
+                        },
+                    })
                 })
-            })
-            .collect();
-
-        Self(market_events)
+                .collect(),
+        )
     }
 }
 
@@ -147,8 +140,6 @@ mod tests {
                         amount: 0.001,
                         price: 16578.50,
                         id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                        direction: "".to_string(),
-                        block_trade: false,
                     }),
                 },
                 // TC1: input BybitTrade is deserialised
@@ -174,8 +165,6 @@ mod tests {
                         amount: 0.001,
                         price: 16578.50,
                         id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                        direction: "".to_string(),
-                        block_trade: false,
                     }),
                 },
                 // TC2: input BybitTrade is unable to be deserialised
@@ -271,8 +260,6 @@ mod tests {
                                 amount: 0.001,
                                 price: 16578.50,
                                 id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                                direction: "".to_string(),
-                                block_trade: false,
                             },
                             BybitTrade {
                                 time: datetime_utc_from_epoch_duration(Duration::from_millis(
@@ -283,14 +270,11 @@ mod tests {
                                 amount: 0.001,
                                 price: 16578.50,
                                 id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
-                                direction: "".to_string(),
-                                block_trade: false,
                             },
                         ],
-                        cs: None,
                     }),
                 },
-                // TC1: input BybitTradePayload is unable to be deserialised
+                // TC1: input BybitTradePayload is invalid w/ no subscription_id
                 TestCase {
                     input: r#"
                         {
@@ -299,6 +283,42 @@ mod tests {
                                     "T": 1672304486865,
                                     "s": "BTCUSDT",
                                     "S": "Unknown",
+                                    "v": "0.001",
+                                    "p": "16578.50",
+                                    "L": "PlusTick",
+                                    "i": "20f43950-d8dd-5b31-9112-a178eb6023af",
+                                    "BT": false
+                                }
+                            ]
+                        }
+                    "#,
+                    expected: Err(SocketError::Unsupported {
+                        entity: "",
+                        item: "".to_string(),
+                    }),
+                },
+                // TC1: input BybitTradePayload is invalid w/ invalid subscription_id format
+                TestCase {
+                    input: r#"
+                        {
+                        "topic": "publicTrade.BTCUSDT.should_not_be_present",
+                        "type": "snapshot",
+                        "ts": 1672304486868,
+                            "data": [
+                                {
+                                    "T": 1672304486865,
+                                    "s": "BTCUSDT",
+                                    "S": "Buy",
+                                    "v": "0.001",
+                                    "p": "16578.50",
+                                    "L": "PlusTick",
+                                    "i": "20f43950-d8dd-5b31-9112-a178eb6023af",
+                                    "BT": false
+                                },
+                                {
+                                    "T": 1672304486865,
+                                    "s": "BTCUSDT",
+                                    "S": "Sell",
                                     "v": "0.001",
                                     "p": "16578.50",
                                     "L": "PlusTick",
