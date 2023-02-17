@@ -22,7 +22,7 @@ use url::Url;
 pub mod channel;
 
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
-/// [`BybitLinear`](futures::BybitFuturePerpetual).
+/// [`BybitFuturesUsd`](futures::BybitFuturesUsd).
 pub mod futures;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -36,17 +36,21 @@ pub mod message;
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
 /// [`BybitSpot`](spot::BybitSpot).
 pub mod spot;
+
+/// [`Subscription`](crate::subscription::Subscription) response type and response
+/// [`Validator`](barter_integration::Validator) common to both [`BybitSpot`](spot::BybitSpot)
+/// and [`BybitFuturesUsd`](futures::BybitFuturesUsd).
 pub mod subscription;
 
 /// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
-/// [`BybitFuturePerpetual`](futures::BybitFuturePerpetual).
+/// [`BybitFuturesUsd`](futures::BybitFuturesUsd).
 pub mod trade;
 
 /// Generic [`Bybit<Server>`](Bybit) exchange.
 ///
 /// ### Notes
 /// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
-/// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturePerpetual`](futures::BybitFuturePerpetual).
+/// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturesUsd`](futures::BybitFuturesUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bybit<Server> {
     server: PhantomData<Server>,

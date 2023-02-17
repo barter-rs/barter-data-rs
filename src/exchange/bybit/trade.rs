@@ -5,10 +5,10 @@ use crate::{
 };
 use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
-use serde::{
-    de::{Error, Unexpected},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
+
+/// Terse type alias for an [`BybitTrade`](BybitTrade) real-time trades WebSocket message.
+pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -36,7 +36,7 @@ pub struct BybitTrade {
     #[serde(rename = "s")]
     pub market: String,
 
-    #[serde(rename = "S", deserialize_with = "de_side")]
+    #[serde(rename = "S")]
     pub side: Side,
 
     #[serde(alias = "v", deserialize_with = "barter_integration::de::de_str")]
@@ -47,28 +47,6 @@ pub struct BybitTrade {
 
     #[serde(rename = "i")]
     pub id: String,
-}
-
-/// Terse type alias for an [`BybitTrade`](BybitTrade) real-time trades WebSocket message.
-pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
-
-/// Deserialize a [`BybitTrade`] "side" string field to a Barter [`Side`].
-///
-/// Variants:
-/// String("Sell") => Side::Sell
-/// String("Buy") => Side::Buy
-pub fn de_side<'de, D>(deserializer: D) -> Result<Side, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
-    let expected = "Buy | Sell";
-
-    match input {
-        "Buy" => Ok(Side::Buy),
-        "Sell" => Ok(Side::Sell),
-        _ => Err(Error::invalid_value(Unexpected::Str(input), &expected)),
-    }
 }
 
 impl From<(ExchangeId, Instrument, BybitTradePayload)> for MarketIter<PublicTrade> {

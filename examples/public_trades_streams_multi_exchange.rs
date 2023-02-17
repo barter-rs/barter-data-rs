@@ -5,7 +5,7 @@ use tracing::info;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
-        bybit::{futures::BybitFuturePerpetual, spot::BybitSpot},
+        bybit::{futures::BybitFuturesUsd, spot::BybitSpot},
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
@@ -50,7 +50,7 @@ async fn main() {
             (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
         ])
         .subscribe([
-            (BybitFuturePerpetual::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BybitFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
         ])
         .init()
         .await
