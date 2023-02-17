@@ -23,7 +23,7 @@ impl SubKind for OrderBooksL1 {
 }
 
 /// Normalised Barter [`OrderBookL1`] snapshot containing the latest best bid and ask.
-#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBookL1 {
     pub last_update_time: DateTime<Utc>,
     pub best_bid: Level,
@@ -71,7 +71,7 @@ impl SubKind for OrderBooksL3 {
 }
 
 /// Normalised Barter [`OrderBook`] snapshot.
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
     pub last_update_time: DateTime<Utc>,
     pub bids: OrderBookSide,
@@ -116,7 +116,7 @@ impl OrderBook {
 }
 
 /// Normalised Barter [`Level`]s for one [`Side`] of the [`OrderBook`].
-#[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBookSide {
     side: Side,
     levels: Vec<Level>,

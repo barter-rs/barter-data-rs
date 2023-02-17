@@ -1,6 +1,11 @@
+use barter_integration::model::InstrumentKind;
+use futures::StreamExt;
+use tracing::info;
+
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        bybit::{futures::BybitFuturesUsd, spot::BybitSpot},
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
@@ -8,9 +13,6 @@ use barter_data::{
     streams::Streams,
     subscription::trade::PublicTrades,
 };
-use barter_integration::model::InstrumentKind;
-use futures::StreamExt;
-use tracing::info;
 
 #[rustfmt::skip]
 #[tokio::main]
@@ -42,6 +44,13 @@ async fn main() {
             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
             (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .subscribe([
+            (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (BybitFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
         ])
         .init()
         .await
