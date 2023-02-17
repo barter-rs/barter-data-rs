@@ -5,6 +5,7 @@ use serde::{
     de::{Error, Unexpected},
     Deserialize, Serialize,
 };
+
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
 /// #### Spot Side::Buy Trade
