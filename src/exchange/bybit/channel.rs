@@ -9,7 +9,6 @@ use serde::Serialize;
 /// channel to be subscribed to.
 ///
 /// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct BybitChannel(pub &'static str);
 
