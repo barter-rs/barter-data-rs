@@ -39,7 +39,6 @@ pub type BitmexTradePayload = BitmexMessage<BitmexTrade>;
 ///```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct BitmexTrade {
-    #[serde(deserialize_with = "de_str_datetime_as_datetime_utc")]
     pub timestamp: DateTime<Utc>,
 
     pub symbol: String,
@@ -62,25 +61,6 @@ pub struct BitmexTrade {
     pub foreign_notional: i64,
     #[serde(rename = "trdType", skip)]
     pub trd_type: String,
-}
-
-/// Deserialize a [`BitmexTrade`] "timestamp" (eg/ "2023-02-18T09:27:59.701Z") as [`DateTime<Utc>`].
-pub fn de_str_datetime_as_datetime_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
-where
-    D: serde::de::Deserializer<'de>,
-{
-    let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
-    let ts_from_rfc3339 = DateTime::parse_from_rfc3339(input);
-    match ts_from_rfc3339 {
-        Ok(fixed_offset_dt) => {
-            let utc: DateTime<Utc> = fixed_offset_dt.into();
-            Ok(utc)
-        }
-        _ => Err(Error::invalid_value(
-            Unexpected::Str(input),
-            &"invalid message type expected pattern: <type>.<symbol>",
-        )),
-    }
 }
 
 impl From<(ExchangeId, Instrument, BitmexTradePayload)> for MarketIter<PublicTrade> {
