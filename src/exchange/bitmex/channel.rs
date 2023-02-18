@@ -5,7 +5,7 @@ use crate::{
 };
 use serde::Serialize;
 
-/// Type that defines how to translate a Barter [`Subscription`] into a [`Bybit`](super::Bybit)
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`](super::Bitmex)
 /// channel to be subscribed to.
 ///
 /// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
@@ -13,9 +13,9 @@ use serde::Serialize;
 pub struct BitmexChannel(pub &'static str);
 
 impl BitmexChannel {
-    /// [`Bybit`](super::Bybit) real-time trades channel name.
+    /// [`Bitmex`](super::Bitmex) real-time trades channel name.
     ///
-    /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
+    /// See docs: <https://www.bitmex.com/app/wsAPI>
     pub const TRADES: Self = Self("trade");
 }
 
