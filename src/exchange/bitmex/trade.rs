@@ -5,10 +5,7 @@ use crate::{
 };
 use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
-use serde::{
-    de::{Error, Unexpected},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 /// Terse type alias for an [`BitmexTrade`](BitmexTrade) real-time trades WebSocket message.
 pub type BitmexTradePayload = BitmexMessage<BitmexTrade>;
