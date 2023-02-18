@@ -1,8 +1,7 @@
 use self::subscription::ExchangeSub;
-use crate::subscription::SubKind;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
-    subscription::Map,
+    subscription::{Map, SubKind},
     MarketStream,
 };
 use barter_integration::{
@@ -171,6 +170,7 @@ pub enum ExchangeId {
     BinanceFuturesUsd,
     BinanceSpot,
     Bitfinex,
+    Bitmex,
     BybitSpot,
     BybitFuturesUsd,
     Coinbase,
@@ -200,6 +200,7 @@ impl ExchangeId {
             ExchangeId::BinanceSpot => "binance_spot",
             ExchangeId::BinanceFuturesUsd => "binance_futures_usd",
             ExchangeId::Bitfinex => "bitfinex",
+            ExchangeId::Bitmex => "bitmex",
             ExchangeId::BybitSpot => "bybit_spot",
             ExchangeId::BybitFuturesUsd => "bybit_futures_usd",
             ExchangeId::Coinbase => "coinbase",
@@ -230,6 +231,7 @@ impl ExchangeId {
         match self {
             ExchangeId::BinanceFuturesUsd => true,
             ExchangeId::BybitFuturesUsd => true,
+            ExchangeId::Bitmex => true,
             ExchangeId::Okx => true,
             _ => false,
         }
