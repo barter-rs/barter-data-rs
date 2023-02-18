@@ -1,14 +1,16 @@
 use barter_integration::{error::SocketError, Validator};
 use serde::{Deserialize, Serialize};
 
-///```json
+/// ### Raw Payload Examples
+/// See docs: <https://www.bitmex.com/app/wsAPI#Response-Format>
+/// ```json
 /// {
 ///     "success": true,
-///     "subscribe": "orderBookL2_25:XBTUSD",
+///     "subscribe": "trade:XBTUSD",
 ///     "request": {
 ///         "op":"subscribe",
 ///         "args":[
-///             "orderBookL2_25:XBTUSD"
+///             "trade:XBTUSD"
 ///         ]
 ///     }
 /// }
