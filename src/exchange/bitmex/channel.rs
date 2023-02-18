@@ -8,7 +8,7 @@ use serde::Serialize;
 /// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`](super::Bitmex)
 /// channel to be subscribed to.
 ///
-/// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
+/// See docs: <https://www.bitmex.com/app/wsAPI>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
 pub struct BitmexChannel(pub &'static str);
 
