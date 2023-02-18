@@ -17,20 +17,23 @@ use serde::de::{Error, Unexpected};
 use std::fmt::Debug;
 use url::Url;
 
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific channel used for generating [`Connector::requests`].
 pub mod channel;
+
+/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
+/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
+pub mod market;
+
+/// Generic [`BitmexMessage<T>`](message::BitmexMessage)
+pub mod message;
 
 /// [`Subscription`](crate::subscription::Subscription) response type and response
 /// [`Validator`](barter_integration::Validator) for [`Bitmex`].
 pub mod subscription;
 
-/// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
-/// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
-mod market;
-
-/// Generic [`BitmexMessage<T>`](message::BitmexMessage) type common to
-/// [`BybitSpot`](spot::BybitSpot)
-mod message;
-mod trade;
+/// Public trade types for [`Bitmex`](Bitmex)
+pub mod trade;
 
 /// [`Bitmex`] server base url.
 ///
