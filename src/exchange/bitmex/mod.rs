@@ -5,7 +5,7 @@ use crate::{
             trade::BitmexTradePayload,
         },
         subscription::ExchangeSub,
-        Connector, ExchangeId, ExchangeServer, StreamSelector,
+        Connector, ExchangeId, StreamSelector,
     },
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::{trade::PublicTrades, Map},
@@ -14,7 +14,7 @@ use crate::{
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
-use std::{fmt::Debug, marker::PhantomData};
+use std::fmt::Debug;
 use url::Url;
 
 pub mod channel;
@@ -32,16 +32,16 @@ mod market;
 mod message;
 mod trade;
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
-pub struct Bitmex<Server> {
-    server: PhantomData<Server>,
-}
+/// [`Bitmex`] server base url.
+///
+/// See docs: <https://www.bitmex.com/app/wsAPI>
+pub const BASE_URL_BITMEX: &str = "wss://ws.bitmex.com/realtime";
 
-impl<Server> Connector for Bitmex<Server>
-where
-    Server: ExchangeServer,
-{
-    const ID: ExchangeId = Server::ID;
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+pub struct Bitmex;
+
+impl Connector for Bitmex {
+    const ID: ExchangeId = ExchangeId::Bitmex;
     type Channel = BitmexChannel;
     type Market = BitmexMarket;
     type Subscriber = WebSocketSubscriber;
@@ -49,7 +49,7 @@ where
     type SubResponse = BitmexSubResponse;
 
     fn url() -> Result<Url, SocketError> {
-        Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
+        Url::parse(BASE_URL_BITMEX).map_err(SocketError::UrlParse)
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
@@ -72,17 +72,11 @@ where
     }
 }
 
-impl<Server> StreamSelector<PublicTrades> for Bitmex<Server>
-where
-    Server: ExchangeServer + Debug + Send + Sync,
-{
+impl StreamSelector<PublicTrades> for Bitmex {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitmexTradePayload>>;
 }
 
-impl<'de, Server> serde::Deserialize<'de> for Bitmex<Server>
-where
-    Server: ExchangeServer,
-{
+impl<'de> serde::Deserialize<'de> for Bitmex {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
@@ -98,10 +92,7 @@ where
     }
 }
 
-impl<Server> serde::Serialize for Bitmex<Server>
-where
-    Server: ExchangeServer,
-{
+impl serde::Serialize for Bitmex {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,

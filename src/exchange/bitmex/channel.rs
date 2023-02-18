@@ -1,5 +1,5 @@
 use crate::{
-    exchange::bybit::Bybit,
+    exchange::bitmex::Bitmex,
     subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
@@ -19,7 +19,7 @@ impl BitmexChannel {
     pub const TRADES: Self = Self("trade");
 }
 
-impl<Server> Identifier<BitmexChannel> for Subscription<Bybit<Server>, PublicTrades> {
+impl Identifier<BitmexChannel> for Subscription<Bitmex, PublicTrades> {
     fn id(&self) -> BitmexChannel {
         BitmexChannel::TRADES
     }

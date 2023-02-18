@@ -1,14 +1,14 @@
 use crate::{exchange::bitmex::Bitmex, subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
-/// Type that defines how to translate a Barter [`Subscription`] into a [`Bybit`](super::Bybit)
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`](super::Bitmex)
 /// market that can be subscribed to.
 ///
-/// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
+/// See docs: <https://www.bitmex.com/app/wsAPI>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitmexMarket(pub String);
 
-impl<Server, Kind> Identifier<BitmexMarket> for Subscription<Bitmex<Server>, Kind> {
+impl<Kind> Identifier<BitmexMarket> for Subscription<Bitmex, Kind> {
     fn id(&self) -> BitmexMarket {
         // Notes:
         // - Must be uppercase since Bitmex sends message with uppercase MARKET (eg/ XBTUSD).
