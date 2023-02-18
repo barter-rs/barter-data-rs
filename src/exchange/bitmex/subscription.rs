@@ -17,20 +17,22 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitmexSubResponse {
     success: bool,
-    #[serde(skip_deserializing)]
+    #[serde(skip)]
     request: String,
     subscribe: String,
 }
 
 impl Validator for BitmexSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-        where
-            Self: Sized,
+    where
+        Self: Sized,
     {
         if self.success {
             Ok(self)
         } else {
-            Err(SocketError::Subscribe("received failure subscription response".to_string()))
+            Err(SocketError::Subscribe(
+                "received failure subscription response".to_string(),
+            ))
         }
     }
 }
@@ -68,7 +70,7 @@ mod tests {
                         success: true,
                         request: "".to_string(),
                         subscribe: "orderBookL2_25:XBTUSD".to_string(),
-                    })
+                    }),
                 },
                 TestCase {
                     // TC1: input response is failed subscription
