@@ -5,7 +5,7 @@ use crate::{
     Identifier,
 };
 use barter_integration::model::{Exchange, Instrument, SubscriptionId};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// [`Binance`](super::super::Binance) real-time OrderBook Level1 (top of book) message.
@@ -40,6 +40,12 @@ use serde::{Deserialize, Serialize};
 pub struct BinanceOrderBookL1 {
     #[serde(alias = "s", deserialize_with = "de_ob_l1_subscription_id")]
     pub subscription_id: SubscriptionId,
+    #[serde(
+        alias = "T",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc",
+        default = "Utc::now"
+    )]
+    pub time: DateTime<Utc>,
     #[serde(alias = "b", deserialize_with = "barter_integration::de::de_str")]
     pub best_bid_price: f64,
     #[serde(alias = "B", deserialize_with = "barter_integration::de::de_str")]
@@ -58,16 +64,13 @@ impl Identifier<Option<SubscriptionId>> for BinanceOrderBookL1 {
 
 impl From<(ExchangeId, Instrument, BinanceOrderBookL1)> for MarketIter<OrderBookL1> {
     fn from((exchange_id, instrument, book): (ExchangeId, Instrument, BinanceOrderBookL1)) -> Self {
-        // Create timestamp to be used for all required time fields that are not present
-        let time_now = Utc::now();
-
         Self(vec![Ok(MarketEvent {
-            exchange_time: time_now,
-            received_time: time_now,
+            exchange_time: book.time,
+            received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
             kind: OrderBookL1 {
-                last_update_time: time_now,
+                last_update_time: book.time,
                 best_bid: Level::new(book.best_bid_price, book.best_bid_amount),
                 best_ask: Level::new(book.best_ask_price, book.best_ask_amount),
             },
@@ -100,6 +103,8 @@ mod tests {
                 expected: BinanceOrderBookL1,
             }
 
+            let time = Utc::now();
+
             let tests = vec![
                 TestCase {
                     // TC0: valid Spot BinanceOrderBookL1
@@ -115,6 +120,7 @@ mod tests {
                 "#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|ETHUSDT"),
+                        time,
                         best_bid_price: 1215.27000000,
                         best_bid_amount: 32.49110000,
                         best_ask_price: 1215.28000000,
@@ -137,6 +143,7 @@ mod tests {
                     }"#,
                     expected: BinanceOrderBookL1 {
                         subscription_id: SubscriptionId::from("@bookTicker|BTCUSDT"),
+                        time,
                         best_bid_price: 16858.90,
                         best_bid_amount: 13.692,
                         best_ask_price: 16859.00,
@@ -146,12 +153,9 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                assert_eq!(
-                    serde_json::from_str::<BinanceOrderBookL1>(test.input).unwrap(),
-                    test.expected,
-                    "TC{} failed",
-                    index
-                );
+                let actual = serde_json::from_str::<BinanceOrderBookL1>(test.input).unwrap();
+                let actual = BinanceOrderBookL1 { time, ..actual };
+                assert_eq!(actual, test.expected, "TC{} failed", index);
             }
         }
     }
