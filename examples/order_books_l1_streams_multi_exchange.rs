@@ -1,5 +1,8 @@
 use barter_data::{
-    exchange::{binance::{spot::BinanceSpot, futures::BinanceFuturesUsd}, kraken::Kraken},
+    exchange::{
+        binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        kraken::Kraken,
+    },
     streams::Streams,
     subscription::book::OrderBooksL1,
 };
