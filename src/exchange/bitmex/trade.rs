@@ -10,7 +10,7 @@ use serde::{
     Deserialize, Serialize,
 };
 
-/// Terse type alias for an [`BybitTrade`](BybitTrade) real-time trades WebSocket message.
+/// Terse type alias for an [`BitmexTrade`](BitmexTrade) real-time trades WebSocket message.
 pub type BitmexTradePayload = BitmexMessage<BitmexTrade>;
 
 /// ### Raw Payload Examples
@@ -64,10 +64,7 @@ pub struct BitmexTrade {
     pub trd_type: String,
 }
 
-/// Deserialize a [`BybitMessage`] "s" (eg/ "publicTrade.BTCUSDT") as the associated
-/// [`SubscriptionId`].
-///
-/// eg/ "2023-02-18T09:27:59.701Z" to DateTime<Utc>
+/// Deserialize a [`BitmexTrade`] "timestamp" (eg/ "2023-02-18T09:27:59.701Z") as [`DateTime<Utc>`].
 pub fn de_str_datetime_as_datetime_utc<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: serde::de::Deserializer<'de>,
@@ -130,7 +127,7 @@ mod tests {
             }
 
             let tests = vec![
-                // TC0: input BybitTrade is deserialised
+                // TC0: input BitmexTrade is deserialised
                 TestCase {
                     input: r#"
                     {
@@ -183,14 +180,14 @@ mod tests {
         }
 
         #[test]
-        fn test_bitmex_payload_trade() {
+        fn test_bitmex_trade_payload() {
             struct TestCase {
                 input: &'static str,
                 expected: Result<BitmexTradePayload, SocketError>,
             }
 
             let tests = vec![
-                // TC0: input BybitTrade is deserialised
+                // TC0: input BitmexTradePayload is deserialised
                 TestCase {
                     input: r#"
                     {
