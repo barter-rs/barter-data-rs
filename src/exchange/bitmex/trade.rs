@@ -73,10 +73,10 @@ where
     D: serde::de::Deserializer<'de>,
 {
     let input = <&str as serde::Deserialize>::deserialize(deserializer)?;
-    let custom = DateTime::parse_from_rfc3339("2023-02-18T09:27:59.701Z");
-    match custom {
-        Ok(t) => {
-            let utc: DateTime<Utc> = t.into();
+    let ts_from_rfc3339 = DateTime::parse_from_rfc3339(input);
+    match ts_from_rfc3339 {
+        Ok(fixed_offset_dt) => {
+            let utc: DateTime<Utc> = fixed_offset_dt.into();
             Ok(utc)
         }
         _ => Err(Error::invalid_value(
