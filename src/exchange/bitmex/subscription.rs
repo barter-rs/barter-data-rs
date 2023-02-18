@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// ### Raw Payload Examples
 /// See docs: <https://www.bitmex.com/app/wsAPI#Response-Format>
+/// #### Subscription response payload
 /// ```json
 /// {
 ///     "success": true,
