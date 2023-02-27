@@ -30,9 +30,10 @@ impl Validator for BitmexSubResponse {
         if self.success {
             Ok(self)
         } else {
-            Err(SocketError::Subscribe(
-                "received failure subscription response".to_string(),
-            ))
+            Err(SocketError::Subscribe(format!(
+                "received failure subscription response for {} subscription",
+                self.subscribe
+            )))
         }
     }
 }
