@@ -29,10 +29,21 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct BitmexMessage<T> {
     pub table: String,
-    pub action: String,
+    pub action: BitmexAction,
     pub data: Vec<T>,
 }
 
+#[derive(Clone, PartialEq, PartialOrd, Ord, Eq, Debug, Deserialize, Serialize)]
+pub enum BitmexAction {
+    #[serde(alias = "partial")]
+    Partial,
+    #[serde(alias = "update")]
+    Update,
+    #[serde(alias = "insert")]
+    Insert,
+    #[serde(alias = "delete")]
+    Delete,
+}
 impl Identifier<Option<SubscriptionId>> for BitmexTradePayload {
     fn id(&self) -> Option<SubscriptionId> {
         let subscription_id = format!("{}|{}", self.table, self.data.first().unwrap().symbol);
