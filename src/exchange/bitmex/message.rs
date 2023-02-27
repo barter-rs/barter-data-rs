@@ -4,23 +4,6 @@ use serde::{Deserialize, Serialize};
 
 /// ### Raw Payload Examples
 /// See docs: <https://www.bitmex.com/app/wsAPI#Response-Format>
-/// #### Base payload
-///```json
-/// {
-///     "table": string,
-///     "action": 'update' | 'insert' | 'delete',
-///     "data": [{}],
-/// }
-/// ```
-/// #### Partial payload
-///```json
-/// {
-///     "table": string,
-///     "action": 'partial',
-///     "data": [{}],
-///     "keys": [],
-/// }
-/// ```
 /// #### Trade payload
 /// ```json
 /// {
