@@ -47,17 +47,6 @@ pub struct BitmexTrade {
 
     #[serde(rename = "trdMatchID")]
     pub id: String,
-
-    #[serde(rename = "tickDirection", skip)]
-    pub tick_direction: String,
-    #[serde(rename = "grossValue", skip)]
-    pub gross_value: i64,
-    #[serde(rename = "homeNotional", skip)]
-    pub home_notional: f64,
-    #[serde(rename = "foreignNotional", skip)]
-    pub foreign_notional: i64,
-    #[serde(rename = "trdType", skip)]
-    pub trd_type: String,
 }
 
 impl From<(ExchangeId, Instrument, BitmexTradePayload)> for MarketIter<PublicTrade> {
