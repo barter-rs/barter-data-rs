@@ -118,12 +118,6 @@ mod tests {
                         amount: 200.0,
                         price: 24564.5,
                         id: "31e50cb7-e005-a44e-f354-86e88dff52eb".to_string(),
-                        // ignored
-                        tick_direction: "".to_string(),
-                        gross_value: 0,
-                        home_notional: 0.0,
-                        foreign_notional: 0,
-                        trd_type: "".to_string(),
                     }),
                 },
             ];
@@ -187,12 +181,6 @@ mod tests {
                             amount: 200.0,
                             price: 24564.5,
                             id: "31e50cb7-e005-a44e-f354-86e88dff52eb".to_string(),
-                            // ignored
-                            tick_direction: "".to_string(),
-                            gross_value: 0,
-                            home_notional: 0.0,
-                            foreign_notional: 0,
-                            trd_type: "".to_string(),
                         }],
                     }),
                 },

@@ -69,7 +69,6 @@ mod tests {
                     "#,
                     expected: Ok(BitmexSubResponse {
                         success: true,
-                        request: "".to_string(),
                         subscribe: "orderBookL2_25:XBTUSD".to_string(),
                     }),
                 },
@@ -83,7 +82,6 @@ mod tests {
                     "#,
                     expected: Ok(BitmexSubResponse {
                         success: false,
-                        request: "".to_string(),
                         subscribe: "orderBookL2_25:XBTUSD".to_string(),
                     }),
                 },
@@ -119,7 +117,6 @@ mod tests {
                 // TC0: input response is successful subscription
                 input_response: BitmexSubResponse {
                     success: true,
-                    request: "".to_string(),
                     subscribe: "orderBookL2_25:XBTUSD".to_string(),
                 },
                 is_valid: true,
@@ -128,7 +125,6 @@ mod tests {
                 // TC1: input response is failed subscription
                 input_response: BitmexSubResponse {
                     success: false,
-                    request: "".to_string(),
                     subscribe: "orderBookL2_25:XBTUSD".to_string(),
                 },
                 is_valid: false,
