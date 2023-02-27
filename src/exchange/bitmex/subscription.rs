@@ -16,12 +16,9 @@ use serde::{Deserialize, Serialize};
 ///     }
 /// }
 ///```
-
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct BitmexSubResponse {
     success: bool,
-    #[serde(skip)]
-    request: String,
     subscribe: String,
 }
 
