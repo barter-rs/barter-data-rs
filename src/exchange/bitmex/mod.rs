@@ -1,3 +1,4 @@
+use crate::exchange::PingInterval;
 use crate::{
     exchange::{
         bitmex::{
@@ -15,6 +16,8 @@ use crate::{
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
 use std::fmt::Debug;
+use std::time::Duration;
+use tokio::time;
 use url::Url;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -68,6 +71,13 @@ impl Connector for Bitmex {
             })
             .to_string(),
         )]
+    }
+
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: time::interval(Duration::from_millis(5000)),
+            ping: || -> WsMessage { WsMessage::Text("ping".to_string()) },
+        })
     }
 
     fn expected_responses(_: &Map<Instrument>) -> usize {
