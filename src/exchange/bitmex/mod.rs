@@ -58,6 +58,13 @@ impl Connector for Bitmex {
         Url::parse(BASE_URL_BITMEX).map_err(SocketError::UrlParse)
     }
 
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: time::interval(Duration::from_millis(5000)),
+            ping: || -> WsMessage { WsMessage::Text("ping".to_string()) },
+        })
+    }
+
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
         let stream_names = exchange_subs
             .into_iter()
@@ -71,13 +78,6 @@ impl Connector for Bitmex {
             })
             .to_string(),
         )]
-    }
-
-    fn ping_interval() -> Option<PingInterval> {
-        Some(PingInterval {
-            interval: time::interval(Duration::from_millis(5000)),
-            ping: || -> WsMessage { WsMessage::Text("ping".to_string()) },
-        })
     }
 
     fn expected_responses(_: &Map<Instrument>) -> usize {
