@@ -7,8 +7,8 @@ use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for an [`BitmexTrade`](BitmexTrade) real-time trades WebSocket message.
-pub type BitmexTradePayload = BitmexMessage<BitmexTrade>;
+/// Terse type alias for an [`BitmexTrade`](BitmexTradeInner) real-time trades WebSocket message.
+pub type BitmexTrade = BitmexMessage<BitmexTradeInner>;
 
 /// ### Raw Payload Examples
 /// See docs: <https://www.bitmex.com/app/wsAPI#Response-Format>
@@ -35,7 +35,7 @@ pub type BitmexTradePayload = BitmexMessage<BitmexTrade>;
 /// }
 ///```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct BitmexTrade {
+pub struct BitmexTradeInner {
     pub timestamp: DateTime<Utc>,
 
     pub symbol: String,
@@ -49,10 +49,8 @@ pub struct BitmexTrade {
     pub id: String,
 }
 
-impl From<(ExchangeId, Instrument, BitmexTradePayload)> for MarketIter<PublicTrade> {
-    fn from(
-        (exchange_id, instrument, trades): (ExchangeId, Instrument, BitmexTradePayload),
-    ) -> Self {
+impl From<(ExchangeId, Instrument, BitmexTrade)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BitmexTrade)) -> Self {
         Self(
             trades
                 .data
@@ -89,7 +87,7 @@ mod tests {
         fn test_bitmex_trade() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BitmexTrade, SocketError>,
+                expected: Result<BitmexTradeInner, SocketError>,
             }
 
             let tests = vec![
@@ -110,7 +108,7 @@ mod tests {
                         "trdType": "Regular"
                     }
                     "#,
-                    expected: Ok(BitmexTrade {
+                    expected: Ok(BitmexTradeInner {
                         timestamp: Utc.with_ymd_and_hms(2023, 2, 18, 9, 27, 59).unwrap()
                             + Duration::milliseconds(701),
                         symbol: "XBTUSD".to_string(),
@@ -123,7 +121,7 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BitmexTrade>(test.input);
+                let actual = serde_json::from_str::<BitmexTradeInner>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
@@ -143,7 +141,7 @@ mod tests {
         fn test_bitmex_trade_payload() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BitmexTradePayload, SocketError>,
+                expected: Result<BitmexTrade, SocketError>,
             }
 
             let tests = vec![
@@ -170,10 +168,9 @@ mod tests {
                         ]
                     }
                     "#,
-                    expected: Ok(BitmexTradePayload {
+                    expected: Ok(BitmexTrade {
                         table: "trade".to_string(),
-                        action: "insert".to_string(),
-                        data: vec![BitmexTrade {
+                        data: vec![BitmexTradeInner {
                             timestamp: Utc.with_ymd_and_hms(2023, 2, 18, 9, 27, 59).unwrap()
                                 + Duration::milliseconds(701),
                             symbol: "XBTUSD".to_string(),
@@ -187,7 +184,7 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BitmexTradePayload>(test.input);
+                let actual = serde_json::from_str::<BitmexTrade>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)

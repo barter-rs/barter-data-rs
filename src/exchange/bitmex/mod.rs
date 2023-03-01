@@ -3,7 +3,7 @@ use crate::{
     exchange::{
         bitmex::{
             channel::BitmexChannel, market::BitmexMarket, subscription::BitmexSubResponse,
-            trade::BitmexTradePayload,
+            trade::BitmexTrade,
         },
         subscription::ExchangeSub,
         Connector, ExchangeId, StreamSelector,
@@ -86,7 +86,7 @@ impl Connector for Bitmex {
 }
 
 impl StreamSelector<PublicTrades> for Bitmex {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitmexTradePayload>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitmexTrade>>;
 }
 
 impl<'de> serde::Deserialize<'de> for Bitmex {

@@ -1,4 +1,4 @@
-use crate::{exchange::bitmex::trade::BitmexTradePayload, Identifier};
+use crate::{exchange::bitmex::trade::BitmexTrade, Identifier};
 use barter_integration::model::SubscriptionId;
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +32,7 @@ pub struct BitmexMessage<T> {
     pub data: Vec<T>,
 }
 
-impl Identifier<Option<SubscriptionId>> for BitmexTradePayload {
+impl Identifier<Option<SubscriptionId>> for BitmexTrade {
     fn id(&self) -> Option<SubscriptionId> {
         let subscription_id = format!("{}|{}", self.table, self.data.first().unwrap().symbol);
         Some(SubscriptionId(subscription_id))
