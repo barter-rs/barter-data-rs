@@ -34,9 +34,9 @@ pub struct BitmexMessage<T> {
 
 impl Identifier<Option<SubscriptionId>> for BitmexTrade {
     fn id(&self) -> Option<SubscriptionId> {
-        match self.data.first() {
-            Some(trade) => Some(SubscriptionId(format!("{}|{}", self.table, trade.symbol))),
-            _ => None,
-        }
+        self.data
+            .first()
+            .map(|trade| SubscriptionId(format!("{}|{}", self.table, trade.symbol)))
+            .or(None)
     }
 }
