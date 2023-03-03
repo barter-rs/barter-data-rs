@@ -5,6 +5,7 @@ use tracing::info;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        bitmex::Bitmex,
         bybit::{futures::BybitFuturesUsd, spot::BybitSpot},
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
@@ -51,6 +52,9 @@ async fn main() {
         ])
         .subscribe([
             (BybitFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+        ])
+        .subscribe([
+            (Bitmex, "xbt", "usd", InstrumentKind::Spot, PublicTrades)
         ])
         .init()
         .await
