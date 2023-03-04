@@ -7,8 +7,8 @@ use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for an [`BybitTrade`](BybitTrade) real-time trades WebSocket message.
-pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
+/// Terse type alias for an [`BybitTrade`](BybitTradeInner) real-time trades WebSocket message.
+pub type BybitTrade = BybitMessage<Vec<BybitTradeInner>>;
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -26,7 +26,7 @@ pub type BybitTradePayload = BybitMessage<Vec<BybitTrade>>;
 /// }
 /// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
-pub struct BybitTrade {
+pub struct BybitTradeInner {
     #[serde(
         alias = "T",
         deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
@@ -49,10 +49,8 @@ pub struct BybitTrade {
     pub id: String,
 }
 
-impl From<(ExchangeId, Instrument, BybitTradePayload)> for MarketIter<PublicTrade> {
-    fn from(
-        (exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTradePayload),
-    ) -> Self {
+impl From<(ExchangeId, Instrument, BybitTrade)> for MarketIter<PublicTrade> {
+    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTrade)) -> Self {
         Self(
             trades
                 .data
@@ -91,11 +89,11 @@ mod tests {
         fn test_bybit_trade() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BybitTrade, SocketError>,
+                expected: Result<BybitTradeInner, SocketError>,
             }
 
             let tests = vec![
-                // TC0: input BybitTrade is deserialised
+                // TC0: input BybitTradeInner is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -109,7 +107,7 @@ mod tests {
                             "BT": false
                         }
                     "#,
-                    expected: Ok(BybitTrade {
+                    expected: Ok(BybitTradeInner {
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
                             1672304486865,
                         )),
@@ -120,7 +118,7 @@ mod tests {
                         id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                     }),
                 },
-                // TC1: input BybitTrade is deserialised
+                // TC1: input BybitTradeInner is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -134,7 +132,7 @@ mod tests {
                             "BT": false
                         }
                     "#,
-                    expected: Ok(BybitTrade {
+                    expected: Ok(BybitTradeInner {
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
                             1672304486865,
                         )),
@@ -145,7 +143,7 @@ mod tests {
                         id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                     }),
                 },
-                // TC2: input BybitTrade is unable to be deserialised
+                // TC2: input BybitTradeInner is unable to be deserialised
                 TestCase {
                     input: r#"
                         {
@@ -167,7 +165,7 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BybitTrade>(test.input);
+                let actual = serde_json::from_str::<BybitTradeInner>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
@@ -187,7 +185,7 @@ mod tests {
         fn test_bybit_trade_payload() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BybitTradePayload, SocketError>,
+                expected: Result<BybitTrade, SocketError>,
             }
 
             let tests = vec![
@@ -222,14 +220,14 @@ mod tests {
                             ]
                         }
                     "#,
-                    expected: Ok(BybitTradePayload {
+                    expected: Ok(BybitTrade {
                         subscription_id: SubscriptionId("publicTrade|BTCUSDT".to_string()),
                         r#type: "snapshot".to_string(),
                         time: datetime_utc_from_epoch_duration(Duration::from_millis(
                             1672304486868,
                         )),
                         data: vec![
-                            BybitTrade {
+                            BybitTradeInner {
                                 time: datetime_utc_from_epoch_duration(Duration::from_millis(
                                     1672304486865,
                                 )),
@@ -239,7 +237,7 @@ mod tests {
                                 price: 16578.50,
                                 id: "20f43950-d8dd-5b31-9112-a178eb6023af".to_string(),
                             },
-                            BybitTrade {
+                            BybitTradeInner {
                                 time: datetime_utc_from_epoch_duration(Duration::from_millis(
                                     1672304486865,
                                 )),
@@ -314,7 +312,7 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BybitTradePayload>(test.input);
+                let actual = serde_json::from_str::<BybitTrade>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)

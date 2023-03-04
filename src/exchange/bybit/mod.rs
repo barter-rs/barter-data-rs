@@ -1,8 +1,9 @@
+use crate::exchange::PingInterval;
 use crate::{
     exchange::{
         bybit::{
             channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse,
-            trade::BybitTradePayload,
+            trade::BybitTrade,
         },
         subscription::ExchangeSub,
         Connector, ExchangeId, ExchangeServer, StreamSelector,
@@ -14,7 +15,9 @@ use crate::{
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
+use std::time::Duration;
 use std::{fmt::Debug, marker::PhantomData};
+use tokio::time;
 use url::Url;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -86,6 +89,20 @@ where
         )]
     }
 
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: time::interval(Duration::from_millis(5_000)),
+            ping: || {
+                WsMessage::Text(
+                    serde_json::json!({
+                        "op": "ping",
+                    })
+                    .to_string(),
+                )
+            },
+        })
+    }
+
     fn expected_responses(_: &Map<Instrument>) -> usize {
         1
     }
@@ -95,7 +112,7 @@ impl<Server> StreamSelector<PublicTrades> for Bybit<Server>
 where
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitTradePayload>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitTrade>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>
