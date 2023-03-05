@@ -1,11 +1,11 @@
 use crate::{
     exchange::{
         bybit::{
-            channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse,
-            trade::BybitTradePayload,
+            channel::BybitChannel, market::BybitMarket, message::BybitMessage,
+            subscription::BybitResponse,
         },
         subscription::ExchangeSub,
-        Connector, ExchangeId, ExchangeServer, StreamSelector,
+        Connector, ExchangeId, ExchangeServer, PingInterval, StreamSelector,
     },
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::{trade::PublicTrades, Map},
@@ -14,7 +14,8 @@ use crate::{
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData, time::Duration};
+use tokio::time;
 use url::Url;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -29,7 +30,7 @@ pub mod futures;
 /// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
-/// Generic [`BybitMessage<T>`](message::BybitMessage) type common to
+/// Generic [`BybitPayload<T>`](message::BybitPayload) type common to
 /// [`BybitSpot`](spot::BybitSpot)
 pub mod message;
 
@@ -65,10 +66,24 @@ where
     type Market = BybitMarket;
     type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
-    type SubResponse = BybitSubResponse;
+    type SubResponse = BybitResponse;
 
     fn url() -> Result<Url, SocketError> {
         Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
+    }
+
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: time::interval(Duration::from_millis(5_000)),
+            ping: || {
+                WsMessage::Text(
+                    serde_json::json!({
+                        "op": "ping",
+                    })
+                    .to_string(),
+                )
+            },
+        })
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
@@ -95,7 +110,7 @@ impl<Server> StreamSelector<PublicTrades> for Bybit<Server>
 where
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitTradePayload>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitMessage>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>

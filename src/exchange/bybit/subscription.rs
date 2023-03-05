@@ -18,36 +18,53 @@ use serde::{Deserialize, Serialize};
 /// ```json
 /// {
 ///     "success": false,
-///     "ret_msg": "subscribe",
+///     "ret_msg": "",
 ///     "conn_id": "2324d924-aa4d-45b0-a858-7b8be29ab52b",
 ///     "req_id": "10001",
 ///     "op": "subscribe"
 /// }
 ///
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct BybitSubResponse {
-    success: bool,
-    #[serde(skip)]
-    ret_msg: String,
-    #[serde(skip)]
-    req_id: String,
-    #[serde(skip)]
-    op: String,
-    #[serde(skip)]
-    conn_id: String,
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub struct BybitResponse {
+    pub success: bool,
+    #[serde(default)]
+    pub ret_msg: BybitReturnMessage,
 }
 
-impl Validator for BybitSubResponse {
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum BybitReturnMessage {
+    #[serde(alias = "")]
+    None,
+    #[serde(alias = "pong")]
+    Pong,
+    #[serde(alias = "subscribe")]
+    Subscribe,
+}
+
+impl Default for BybitReturnMessage {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl Validator for BybitResponse {
     fn validate(self) -> Result<Self, SocketError>
     where
         Self: Sized,
     {
-        if self.success {
-            Ok(self)
-        } else {
-            Err(SocketError::Subscribe(
-                "received failure subscription response".to_owned(),
-            ))
+        match self.ret_msg {
+            BybitReturnMessage::None | BybitReturnMessage::Subscribe => {
+                if self.success {
+                    Ok(self)
+                } else {
+                    Err(SocketError::Subscribe(
+                        "received failure subscription response".to_owned(),
+                    ))
+                }
+            }
+            _ => Err(SocketError::Subscribe(
+                "received other message out of sequence".to_owned(),
+            )),
         }
     }
 }
@@ -63,7 +80,7 @@ mod tests {
         fn test_bybit_sub_response() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BybitSubResponse, SocketError>,
+                expected: Result<BybitResponse, SocketError>,
             }
 
             let cases = vec![
@@ -78,12 +95,9 @@ mod tests {
                             "op": "subscribe"
                         }
                     "#,
-                    expected: Ok(BybitSubResponse {
+                    expected: Ok(BybitResponse {
                         success: true,
-                        ret_msg: "".to_string(),
-                        req_id: "".to_string(),
-                        op: "".to_string(),
-                        conn_id: "".to_string(),
+                        ret_msg: BybitReturnMessage::Subscribe,
                     }),
                 },
                 TestCase {
@@ -95,18 +109,15 @@ mod tests {
                             "op": ""
                         }
                     "#,
-                    expected: Ok(BybitSubResponse {
+                    expected: Ok(BybitResponse {
                         success: false,
-                        ret_msg: "".to_string(),
-                        req_id: "".to_string(),
-                        op: "".to_string(),
-                        conn_id: "".to_string(),
+                        ret_msg: BybitReturnMessage::None,
                     }),
                 },
             ];
 
             for (index, test) in cases.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BybitSubResponse>(test.input);
+                let actual = serde_json::from_str::<BybitResponse>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
@@ -126,30 +137,32 @@ mod tests {
     #[test]
     fn test_validate_bybit_sub_response() {
         struct TestCase {
-            input_response: BybitSubResponse,
+            input_response: BybitResponse,
             is_valid: bool,
         }
 
         let cases = vec![
             TestCase {
                 // TC0: input response is successful subscription
-                input_response: BybitSubResponse {
+                input_response: BybitResponse {
                     success: true,
-                    ret_msg: "".to_string(),
-                    req_id: "".to_string(),
-                    op: "".to_string(),
-                    conn_id: "".to_string(),
+                    ret_msg: BybitReturnMessage::Subscribe,
                 },
                 is_valid: true,
             },
             TestCase {
-                // TC1: input response is failed subscription
-                input_response: BybitSubResponse {
+                // TC1: input response is successful subscription
+                input_response: BybitResponse {
+                    success: true,
+                    ret_msg: BybitReturnMessage::None,
+                },
+                is_valid: true,
+            },
+            TestCase {
+                // TC2: input response is failed subscription
+                input_response: BybitResponse {
                     success: false,
-                    ret_msg: "".to_string(),
-                    req_id: "".to_string(),
-                    op: "".to_string(),
-                    conn_id: "".to_string(),
+                    ret_msg: BybitReturnMessage::Pong,
                 },
                 is_valid: false,
             },
