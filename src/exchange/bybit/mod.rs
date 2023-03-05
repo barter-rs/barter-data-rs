@@ -1,10 +1,11 @@
-use crate::exchange::bybit::message::BybitMessage;
-use crate::exchange::PingInterval;
 use crate::{
     exchange::{
-        bybit::{channel::BybitChannel, market::BybitMarket, subscription::BybitResponse},
+        bybit::{
+            channel::BybitChannel, market::BybitMarket, message::BybitMessage,
+            subscription::BybitResponse,
+        },
         subscription::ExchangeSub,
-        Connector, ExchangeId, ExchangeServer, StreamSelector,
+        Connector, ExchangeId, ExchangeServer, PingInterval, StreamSelector,
     },
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::{trade::PublicTrades, Map},
@@ -13,8 +14,7 @@ use crate::{
 };
 use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
-use std::time::Duration;
-use std::{fmt::Debug, marker::PhantomData};
+use std::{fmt::Debug, marker::PhantomData, time::Duration};
 use tokio::time;
 use url::Url;
 

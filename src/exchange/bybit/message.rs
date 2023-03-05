@@ -1,9 +1,12 @@
-use crate::event::MarketIter;
-use crate::exchange::bybit::subscription::BybitResponse;
-use crate::exchange::bybit::trade::BybitTrade;
-use crate::exchange::ExchangeId;
-use crate::subscription::trade::PublicTrade;
-use crate::{exchange::bybit::channel::BybitChannel, Identifier};
+use crate::{
+    event::MarketIter,
+    exchange::{
+        bybit::{channel::BybitChannel, subscription::BybitResponse, trade::BybitTrade},
+        ExchangeId,
+    },
+    subscription::trade::PublicTrade,
+    Identifier,
+};
 use barter_integration::model::{Instrument, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{
