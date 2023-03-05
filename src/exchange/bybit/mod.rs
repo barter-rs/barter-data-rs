@@ -72,6 +72,20 @@ where
         Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
     }
 
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: time::interval(Duration::from_millis(5_000)),
+            ping: || {
+                WsMessage::Text(
+                    serde_json::json!({
+                        "op": "ping",
+                    })
+                    .to_string(),
+                )
+            },
+        })
+    }
+
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
         let stream_names = exchange_subs
             .into_iter()
@@ -85,20 +99,6 @@ where
             })
             .to_string(),
         )]
-    }
-
-    fn ping_interval() -> Option<PingInterval> {
-        Some(PingInterval {
-            interval: time::interval(Duration::from_millis(5_000)),
-            ping: || {
-                WsMessage::Text(
-                    serde_json::json!({
-                        "op": "ping",
-                    })
-                    .to_string(),
-                )
-            },
-        })
     }
 
     fn expected_responses(_: &Map<Instrument>) -> usize {
