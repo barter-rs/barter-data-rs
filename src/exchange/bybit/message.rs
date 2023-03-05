@@ -137,7 +137,7 @@ mod tests {
             }
 
             let tests = vec![
-                // TC0: input BybitPongMessage is deserialised
+                // TC0: input BybitHeartbeat is deserialised
                 TestCase {
                     input: r#"
                         {
