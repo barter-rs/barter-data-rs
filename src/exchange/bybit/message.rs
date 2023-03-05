@@ -92,7 +92,7 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
 impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
         match message {
-            BybitMessage::Response(_m) => Self(vec![]),
+            BybitMessage::Response(_) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),
         }
     }
