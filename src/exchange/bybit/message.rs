@@ -1,4 +1,5 @@
 use crate::event::MarketIter;
+use crate::exchange::bybit::subscription::BybitResponse;
 use crate::exchange::bybit::trade::BybitTrade;
 use crate::exchange::ExchangeId;
 use crate::subscription::trade::PublicTrade;
@@ -10,30 +11,12 @@ use serde::{
     Deserialize, Serialize,
 };
 
+/// [`Bybit`](super::Bybit) websocket message supports both [`BybitTrade`](BybitTrade) and [`BybitResponse`](BybitResponse) .
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum BybitMessage {
-    Heartbeat(BybitHeartbeat),
+    Response(BybitResponse),
     Trade(BybitTrade),
-}
-
-/// ### Raw Payload Examples
-/// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
-/// #### Heartbeat
-///```json
-/// {
-///     "success": true,
-///     "ret_msg": "pong",
-///     "conn_id": "0970e817-426e-429a-a679-ff7f55e0b16a",
-///     "op": "ping"
-/// }
-/// ```
-#[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
-pub struct BybitHeartbeat {
-    success: bool,
-    ret_msg: String,
-    op: String,
-    conn_id: String,
 }
 
 /// ### Raw Payload Examples
@@ -109,7 +92,7 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
 impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
         match message {
-            BybitMessage::Heartbeat(_m) => Self(vec![]),
+            BybitMessage::Response(_m) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),
         }
     }
@@ -121,17 +104,18 @@ mod tests {
 
     mod de {
         use super::*;
+        use crate::exchange::bybit::subscription::BybitReturnMessage;
         use barter_integration::error::SocketError;
 
         #[test]
         fn test_bybit_pong() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BybitHeartbeat, SocketError>,
+                expected: Result<BybitResponse, SocketError>,
             }
 
             let tests = vec![
-                // TC0: input BybitHeartbeat is deserialised
+                // TC0: input BybitResponse(Pong) is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -141,17 +125,15 @@ mod tests {
                             "op": "ping"
                         }
                     "#,
-                    expected: Ok(BybitHeartbeat {
+                    expected: Ok(BybitResponse {
                         success: true,
-                        ret_msg: "pong".to_string(),
-                        op: "ping".to_string(),
-                        conn_id: "0970e817-426e-429a-a679-ff7f55e0b16a".to_string(),
+                        ret_msg: BybitReturnMessage::Pong,
                     }),
                 },
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BybitHeartbeat>(test.input);
+                let actual = serde_json::from_str::<BybitResponse>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)

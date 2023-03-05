@@ -2,7 +2,7 @@ use crate::exchange::bybit::message::BybitMessage;
 use crate::exchange::PingInterval;
 use crate::{
     exchange::{
-        bybit::{channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse},
+        bybit::{channel::BybitChannel, market::BybitMarket, subscription::BybitResponse},
         subscription::ExchangeSub,
         Connector, ExchangeId, ExchangeServer, StreamSelector,
     },
@@ -66,7 +66,7 @@ where
     type Market = BybitMarket;
     type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
-    type SubResponse = BybitSubResponse;
+    type SubResponse = BybitResponse;
 
     fn url() -> Result<Url, SocketError> {
         Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
