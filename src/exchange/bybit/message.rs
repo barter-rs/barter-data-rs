@@ -115,12 +115,6 @@ impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     }
 }
 
-impl<T> Identifier<Option<SubscriptionId>> for BybitPayload<T> {
-    fn id(&self) -> Option<SubscriptionId> {
-        Some(self.subscription_id.clone())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
