@@ -10,19 +10,30 @@ use serde::{
     Deserialize, Serialize,
 };
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum BybitMessage {
+    Heartbeat(BybitHeartbeat),
+    Trade(BybitTrade),
+}
+
+/// ### Raw Payload Examples
+/// See docs: <https://bybit-exchange.github.io/docs/v5/ws/connect>
+/// #### Heartbeat
+///```json
+/// {
+///     "success": true,
+///     "ret_msg": "pong",
+///     "conn_id": "0970e817-426e-429a-a679-ff7f55e0b16a",
+///     "op": "ping"
+/// }
+/// ```
 #[derive(Clone, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
-pub struct BybitPongMessage {
+pub struct BybitHeartbeat {
     success: bool,
     ret_msg: String,
     op: String,
     conn_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum BybitMessage {
-    Pong(BybitPongMessage),
-    Trade(BybitTrade),
 }
 
 /// ### Raw Payload Examples
@@ -98,7 +109,7 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
 impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
         match message {
-            BybitMessage::Pong(_m) => Self(vec![]),
+            BybitMessage::Heartbeat(_m) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),
         }
     }
@@ -122,7 +133,7 @@ mod tests {
         fn test_bybit_pong() {
             struct TestCase {
                 input: &'static str,
-                expected: Result<BybitPongMessage, SocketError>,
+                expected: Result<BybitHeartbeat, SocketError>,
             }
 
             let tests = vec![
@@ -136,7 +147,7 @@ mod tests {
                             "op": "ping"
                         }
                     "#,
-                    expected: Ok(BybitPongMessage {
+                    expected: Ok(BybitHeartbeat {
                         success: true,
                         ret_msg: "pong".to_string(),
                         op: "ping".to_string(),
@@ -146,7 +157,7 @@ mod tests {
             ];
 
             for (index, test) in tests.into_iter().enumerate() {
-                let actual = serde_json::from_str::<BybitPongMessage>(test.input);
+                let actual = serde_json::from_str::<BybitHeartbeat>(test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
                         assert_eq!(actual, expected, "TC{} failed", index)
