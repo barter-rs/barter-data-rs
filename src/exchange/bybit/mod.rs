@@ -30,7 +30,7 @@ pub mod futures;
 /// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
-/// Generic [`BybitMessage<T>`](message::BybitPayload) type common to
+/// Generic [`BybitPayload<T>`](message::BybitPayload) type common to
 /// [`BybitSpot`](spot::BybitSpot)
 pub mod message;
 
