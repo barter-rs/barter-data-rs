@@ -1,10 +1,8 @@
+use crate::exchange::bybit::message::BybitMessage;
 use crate::exchange::PingInterval;
 use crate::{
     exchange::{
-        bybit::{
-            channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse,
-            trade::BybitTrade,
-        },
+        bybit::{channel::BybitChannel, market::BybitMarket, subscription::BybitSubResponse},
         subscription::ExchangeSub,
         Connector, ExchangeId, ExchangeServer, StreamSelector,
     },
@@ -32,7 +30,7 @@ pub mod futures;
 /// into an exchange [`Connector`] specific market used for generating [`Connector::requests`].
 pub mod market;
 
-/// Generic [`BybitMessage<T>`](message::BybitMessage) type common to
+/// Generic [`BybitMessage<T>`](message::BybitPayload) type common to
 /// [`BybitSpot`](spot::BybitSpot)
 pub mod message;
 
@@ -112,7 +110,7 @@ impl<Server> StreamSelector<PublicTrades> for Bybit<Server>
 where
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitTrade>>;
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitMessage>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>

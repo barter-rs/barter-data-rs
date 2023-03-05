@@ -1,6 +1,6 @@
 use crate::{
     event::{MarketEvent, MarketIter},
-    exchange::{bybit::message::BybitMessage, ExchangeId},
+    exchange::{bybit::message::BybitPayload, ExchangeId},
     subscription::trade::PublicTrade,
 };
 use barter_integration::model::{Exchange, Instrument, Side};
@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Terse type alias for an [`BybitTrade`](BybitTradeInner) real-time trades WebSocket message.
-pub type BybitTrade = BybitMessage<Vec<BybitTradeInner>>;
+pub type BybitTrade = BybitPayload<Vec<BybitTradeInner>>;
 
 /// ### Raw Payload Examples
 /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
@@ -189,7 +189,7 @@ mod tests {
             }
 
             let tests = vec![
-                // TC0: input BybitTradePayload is deserialised
+                // TC0: input BybitTrade is deserialised
                 TestCase {
                     input: r#"
                         {
@@ -250,7 +250,7 @@ mod tests {
                         ],
                     }),
                 },
-                // TC1: input BybitTradePayload is invalid w/ no subscription_id
+                // TC1: input BybitTrade is invalid w/ no subscription_id
                 TestCase {
                     input: r#"
                         {
@@ -273,7 +273,7 @@ mod tests {
                         item: "".to_string(),
                     }),
                 },
-                // TC1: input BybitTradePayload is invalid w/ invalid subscription_id format
+                // TC1: input BybitTrade is invalid w/ invalid subscription_id format
                 TestCase {
                     input: r#"
                         {
