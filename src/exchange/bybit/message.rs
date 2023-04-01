@@ -1,10 +1,13 @@
 use crate::{
     event::MarketIter,
     exchange::{
-        bybit::{channel::BybitChannel, subscription::BybitResponse, trade::BybitTrade},
+        bybit::{
+            channel::BybitChannel, liquidation::BybitLiquidation, subscription::BybitResponse,
+            trade::BybitTrade,
+        },
         ExchangeId,
     },
-    subscription::trade::PublicTrade,
+    subscription::{liquidation::Liquidation, trade::PublicTrade},
     Identifier,
 };
 use barter_integration::model::{Instrument, SubscriptionId};
@@ -20,6 +23,7 @@ use serde::{
 pub enum BybitMessage {
     Response(BybitResponse),
     Trade(BybitTrade),
+    Liquidation(BybitLiquidation),
 }
 
 /// ### Raw Payload Examples
@@ -91,7 +95,19 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
     fn id(&self) -> Option<SubscriptionId> {
         match self {
             BybitMessage::Trade(trade) => Some(trade.subscription_id.clone()),
+            BybitMessage::Liquidation(liquidation) => Some(liquidation.subscription_id.clone()),
             _ => None,
+        }
+    }
+}
+
+impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<Liquidation> {
+    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
+        match message {
+            BybitMessage::Liquidation(liquidation) => {
+                Self::from((exchange_id, instrument, liquidation))
+            }
+            _ => Self(vec![]),
         }
     }
 }
@@ -99,8 +115,8 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
 impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
         match message {
-            BybitMessage::Response(_) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),
+            _ => Self(vec![]),
         }
     }
 }
