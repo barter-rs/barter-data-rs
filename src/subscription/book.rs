@@ -7,7 +7,7 @@ use barter_integration::model::{Exchange, Instrument, Side};
 use barter_macro::{DeSubKind, SerSubKind};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Debug};
 use tracing::debug;
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
@@ -52,10 +52,31 @@ impl OrderBookL1 {
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
-pub struct OrderBooksL2;
+pub struct OrderBooksL2 {
+    levels:
+};
 
 impl SubKind for OrderBooksL2 {
     type Event = OrderBook;
+}
+
+/// Defines the type of a [`Subscription`], and the output [`Self::Event`] that it yields.
+pub trait Depth
+where
+    Self: Debug + Clone,
+{
+    type Level: Debug + Clone;
+    fn depth() -> &'static str;
+}
+
+
+
+impl Depth for OrderBooksL2 {
+    type Level = Level;
+
+    fn depth(self) -> &'static str {
+        todo!()
+    }
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]

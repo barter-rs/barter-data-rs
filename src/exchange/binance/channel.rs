@@ -62,7 +62,7 @@ impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderB
 
 impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL2> {
     fn id(&self) -> BinanceChannel {
-        BinanceChannel::ORDER_BOOK_L2
+        BinanceChannel(format!("@depth@{}", "100ms").as_str())
     }
 }
 
