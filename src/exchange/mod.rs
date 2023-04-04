@@ -39,6 +39,9 @@ pub mod kraken;
 /// `Okx` [`Connector`] and [`StreamSelector`] implementations.
 pub mod okx;
 
+/// `Poloniex` [`Connector`] and [`StreamSelector`] implementations.
+pub mod poloniex;
+
 /// Defines the generic [`ExchangeSub`] containing a market and channel combination used by an
 /// exchange [`Connector`] to build [`WsMessage`] subscription payloads.
 pub mod subscription;
@@ -179,6 +182,7 @@ pub enum ExchangeId {
     GateioSpot,
     Kraken,
     Okx,
+    Poloniex
 }
 
 impl From<ExchangeId> for barter_integration::model::Exchange {
@@ -209,6 +213,7 @@ impl ExchangeId {
             ExchangeId::GateioFuturesBtc => "gateio_futures_btc",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Okx => "okx",
+            ExchangeId::Poloniex => "poloniex"
         }
     }
 

@@ -10,6 +10,7 @@ use barter_data::{
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
+        poloniex::Poloniex
     },
     streams::Streams,
     subscription::trade::PublicTrades,
@@ -55,6 +56,9 @@ async fn main() {
         ])
         .subscribe([
             (Bitmex, "xbt", "usd", InstrumentKind::Spot, PublicTrades)
+        ])
+        .subscribe([
+            (Poloniex, "btc", "usdt", InstrumentKind::Spot, PublicTrades)
         ])
         .init()
         .await
