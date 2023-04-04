@@ -59,6 +59,7 @@ arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply
 | **GateioFuturesBtc**  | `GateioFuturesBtc::default()`  |      FuturePerpetual      |                   PublicTrades                   |
 |      **Kraken**       |            `Kraken`            |           Spot            |          PublicTrades <br> OrderBooksL1          |
 |        **Okx**        |             `Okx`              | Spot <br> FuturePerpetual |                   PublicTrades                   |
+|     **Poloniex**      |           `Poloniex`           |           Spot            |                   PublicTrades                   |
 
 
 ## Examples
