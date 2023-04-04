@@ -1,5 +1,6 @@
 use self::{
-    channel::PoloniexChannel, market::PoloniexMarket, subscription::PoloniexSubResponse, trade::PoloniexTrade,
+    channel::PoloniexChannel, market::PoloniexMarket, subscription::PoloniexSubResponse,
+    trade::PoloniexTrade,
 };
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
@@ -22,7 +23,7 @@ pub mod channel;
 pub mod market;
 
 /// [`Subscription`](crate::subscription::Subscription) response type and response
-/// [`Validator`](barter_integration::Validator) for [`Okx`].
+/// [`Validator`](barter_integration::Validator) for [`Poloniex`].
 pub mod subscription;
 
 /// Generic [`PoloniexMessage<T>`](message::PoloniexMessage)
@@ -69,7 +70,6 @@ impl Connector for Poloniex {
             .collect()
     }
 }
-
 
 impl StreamSelector<PublicTrades> for Poloniex {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, PoloniexTrade>>;

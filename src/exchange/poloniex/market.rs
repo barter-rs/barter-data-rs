@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct PoloniexMarket(pub String);
 
-impl <Kind> Identifier<PoloniexMarket> for Subscription<Poloniex, Kind>{
+impl<Kind> Identifier<PoloniexMarket> for Subscription<Poloniex, Kind> {
     fn id(&self) -> PoloniexMarket {
         PoloniexMarket(format!("{}_{}", self.instrument.base, self.instrument.quote).to_uppercase())
     }

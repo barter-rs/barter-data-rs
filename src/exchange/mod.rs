@@ -182,7 +182,7 @@ pub enum ExchangeId {
     GateioSpot,
     Kraken,
     Okx,
-    Poloniex
+    Poloniex,
 }
 
 impl From<ExchangeId> for barter_integration::model::Exchange {
@@ -213,7 +213,7 @@ impl ExchangeId {
             ExchangeId::GateioFuturesBtc => "gateio_futures_btc",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Okx => "okx",
-            ExchangeId::Poloniex => "poloniex"
+            ExchangeId::Poloniex => "poloniex",
         }
     }
 

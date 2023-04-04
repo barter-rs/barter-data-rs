@@ -1,7 +1,7 @@
 use super::Poloniex;
 use crate::{
     subscription::{trade::PublicTrades, Subscription},
-    Identifier
+    Identifier,
 };
 use serde::Serialize;
 
@@ -13,7 +13,7 @@ use serde::Serialize;
 pub struct PoloniexChannel(pub &'static str);
 
 impl PoloniexChannel {
-    /// [`Okx`] real-time trades channel.
+    /// [`Poloniex`] real-time trades channel.
     ///
     /// See docs: <https://docs.poloniex.com/#public-channels-market-data-trades>
     pub const TRADES: Self = Self("trades");

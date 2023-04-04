@@ -1,13 +1,13 @@
 use crate::{
     event::{MarketEvent, MarketIter},
-    exchange::{ExchangeId, poloniex::message::PoloniexMessage},
-    subscription::trade::PublicTrade
+    exchange::{poloniex::message::PoloniexMessage, ExchangeId},
+    subscription::trade::PublicTrade,
 };
 use barter_integration::model::{Exchange, Instrument, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for an [`BitmexTrade`](BitmexTradeInner) real-time trades WebSocket message.
+/// Terse type alias for an [`BitmexTrade`](PoloniexTradeInner) real-time trades WebSocket message.
 pub type PoloniexTrade = PoloniexMessage<PoloniexTradeInner>;
 
 ///Poloniex real-time trade websocket messsage.
@@ -19,12 +19,12 @@ pub type PoloniexTrade = PoloniexMessage<PoloniexTradeInner>;
 ///    "channel": "trades",
 ///    "data": [{
 ///      "symbol": "BTC_USDT",
-///      "amount": "70", 
+///      "amount": "70",
 ///      "takerSide": "buy",
 ///      "quantity": "4",
 ///      "createTime": 1648059516810,
-///      "price": "104", 
-///      "id": 1648059516810, 
+///      "price": "104",
+///      "id": 1648059516810,
 ///      "ts": 1648059516832
 ///    }]
 ///}
@@ -37,12 +37,15 @@ pub struct PoloniexTradeInner {
     pub amount: f64,
     #[serde(alias = "price", deserialize_with = "barter_integration::de::de_str")]
     pub price: f64,
-    #[serde(alias = "ts", deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc")]
+    #[serde(
+        alias = "ts",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc"
+    )]
     pub timestamp: DateTime<Utc>,
     #[serde(alias = "id")]
     pub id: String,
     #[serde(alias = "takerSide")]
-    pub side: Side
+    pub side: Side,
 }
 
 impl From<(ExchangeId, Instrument, PoloniexTrade)> for MarketIter<PublicTrade> {
@@ -80,7 +83,7 @@ mod tests {
         use chrono::{Duration, TimeZone};
 
         #[test]
-        fn test_poloniex_trade(){
+        fn test_poloniex_trade() {
             let input = r#"
             {
                   "symbol": "BTC_USDT",
@@ -102,7 +105,7 @@ mod tests {
                 side: Side::Buy,
                 amount: 70.0,
                 price: 104.0,
-                id: 1648059516810
+                id: 1648059516810,
             });
 
             match (actual, expected) {
@@ -117,7 +120,6 @@ mod tests {
                     panic!("TC failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
                 }
             }
-
         }
     }
 }

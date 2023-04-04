@@ -10,7 +10,7 @@ use barter_data::{
         coinbase::Coinbase,
         gateio::spot::GateioSpot,
         okx::Okx,
-        poloniex::Poloniex
+        poloniex::Poloniex,
     },
     streams::Streams,
     subscription::trade::PublicTrades,

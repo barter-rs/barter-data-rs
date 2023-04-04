@@ -26,13 +26,13 @@ pub enum PoloniexSubResponse {
     #[serde(rename = "subscribe")]
     Subscribed,
     Error {
-        message: String
-    }
+        message: String,
+    },
 }
 
 impl Validator for PoloniexSubResponse {
     fn validate(self) -> Result<Self, SocketError>
-    where 
+    where
         Self: Sized,
     {
         match self {
@@ -48,14 +48,14 @@ impl Validator for PoloniexSubResponse {
 mod tests {
     use super::*;
 
-    mod de{
+    mod de {
         use super::*;
 
         #[test]
-        fn test_poliniex_subscription_response(){
-            struct TestCase{
+        fn test_poliniex_subscription_response() {
+            struct TestCase {
                 input: &'static str,
-                expected: Result<PoloniexSubResponse, SocketError>
+                expected: Result<PoloniexSubResponse, SocketError>,
             }
 
             let cases = vec![
@@ -78,9 +78,9 @@ mod tests {
                 }
                 "#,
                     expected: Ok(PoloniexSubResponse::Error {
-                        message: "Subscription failed (generic)".to_string()
+                        message: "Subscription failed (generic)".to_string(),
                     }),
-                }
+                },
             ];
 
             for (index, test) in cases.into_iter().enumerate() {

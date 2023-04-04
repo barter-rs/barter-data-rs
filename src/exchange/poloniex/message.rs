@@ -11,12 +11,12 @@ use serde::{Deserialize, Serialize};
 ///    "channel": "trades",
 ///    "data": [{
 ///      "symbol": "BTC_USDT",
-///      "amount": "70", 
+///      "amount": "70",
 ///      "takerSide": "buy",
 ///      "quantity": "4",
 ///      "createTime": 1648059516810,
-///      "price": "104", 
-///      "id": 1648059516810, 
+///      "price": "104",
+///      "id": 1648059516810,
 ///      "ts": 1648059516832
 ///    }]
 ///}
