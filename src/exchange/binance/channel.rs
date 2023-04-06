@@ -9,6 +9,7 @@ use crate::{
     Identifier,
 };
 use serde::Serialize;
+use crate::exchange::binance::book::BinanceDepth;
 
 /// Type that defines how to translate a Barter [`Subscription`] into a [`Binance`](super::Binance)
 /// channel to be subscribed to.
@@ -62,7 +63,20 @@ impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderB
 
 impl<Server> Identifier<BinanceChannel> for Subscription<Binance<Server>, OrderBooksL2> {
     fn id(&self) -> BinanceChannel {
-        BinanceChannel(format!("@depth@{}", "100ms").as_str())
+        match &self.kind.depth {
+            &BinanceDepth::FIVE => {
+                BinanceChannel("@depth5@100ms")
+            }
+            &BinanceDepth::TEN => {
+                BinanceChannel("@depth10@100ms")
+            }
+            &BinanceDepth::TWENTY => {
+                BinanceChannel("@depth20@100ms")
+            }
+            &BinanceDepth::NONE => {
+                BinanceChannel("@depth@100ms")
+            }
+        }
     }
 }
 

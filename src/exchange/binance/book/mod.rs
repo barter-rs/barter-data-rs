@@ -51,3 +51,17 @@ mod tests {
         }
     }
 }
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum BinanceDepth {
+    FIVE = 5,
+    TEN = 10,
+    TWENTY = 20,
+    NONE
+}
+
+impl Default for BinanceDepth {
+    fn default() -> Self {
+        BinanceDepth::NONE
+    }
+}

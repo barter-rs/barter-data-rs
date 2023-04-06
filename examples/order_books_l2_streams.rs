@@ -5,6 +5,7 @@ use barter_data::{
 };
 use barter_integration::model::InstrumentKind;
 use tracing::info;
+use barter_data::exchange::binance::book::BinanceDepth;
 
 #[rustfmt::skip]
 #[tokio::main]
@@ -18,21 +19,23 @@ async fn main() {
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2),
+            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2 {
+                depth: BinanceDepth::TEN,
+            }),
         ])
 
         // Separate WebSocket connection for ETH_USDT stream since it's very high volume
         .subscribe([
-            (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, OrderBooksL2),
+            (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, OrderBooksL2::default()),
         ])
 
         // Lower volume Instruments can share a WebSocket connection
-        .subscribe([
-            (BinanceSpot::default(), "xrp", "usdt", InstrumentKind::Spot, OrderBooksL2),
-            (BinanceSpot::default(), "sol", "usdt", InstrumentKind::Spot, OrderBooksL2),
-            (BinanceSpot::default(), "avax", "usdt", InstrumentKind::Spot, OrderBooksL2),
-            (BinanceSpot::default(), "ltc", "usdt", InstrumentKind::Spot, OrderBooksL2),
-        ])
+        // .subscribe([
+        //     (BinanceSpot::default(), "xrp", "usdt", InstrumentKind::Spot, OrderBooksL2::default()),
+        //     (BinanceSpot::default(), "sol", "usdt", InstrumentKind::Spot, OrderBooksL2::default()),
+        //     (BinanceSpot::default(), "avax", "usdt", InstrumentKind::Spot, OrderBooksL2::default()),
+        //     (BinanceSpot::default(), "ltc", "usdt", InstrumentKind::Spot, OrderBooksL2::default()),
+        // ])
         .init()
         .await
         .unwrap();
