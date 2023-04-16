@@ -3,7 +3,7 @@ use crate::{
     event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
 };
-use barter_integration::model::{Exchange, Instrument, Side};
+use barter_integration::model::{instrument::Instrument, Exchange, Side};
 use barter_macro::{DeSubKind, SerSubKind};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

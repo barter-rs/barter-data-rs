@@ -3,7 +3,7 @@ use crate::{
     exchange::{bitmex::message::BitmexMessage, ExchangeId},
     subscription::trade::PublicTrade,
 };
-use barter_integration::model::{Exchange, Instrument, Side};
+use barter_integration::model::{instrument::Instrument, Exchange, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

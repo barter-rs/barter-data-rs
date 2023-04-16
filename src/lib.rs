@@ -35,7 +35,7 @@
 //!     streams::Streams,
 //!     subscription::trade::PublicTrades,
 //! };
-//! use barter_integration::model::InstrumentKind;
+//! use barter_integration::model::instrument::kind::InstrumentKind;
 //! use futures::StreamExt;
 //!
 //! #[tokio::main]
@@ -48,8 +48,8 @@
 //!             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
 //!         ])
 //!         .subscribe([
-//!             (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-//!             (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+//!             (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
 //!         ])
 //!         .subscribe([
 //!             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
@@ -62,8 +62,8 @@
 //!         .subscribe([
 //!             (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
 //!             (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
-//!             (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-//!             (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+//!             (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+//!             (Okx, "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
 //!        ])
 //!         .init()
 //!         .await

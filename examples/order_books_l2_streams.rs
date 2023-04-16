@@ -3,7 +3,7 @@ use barter_data::{
     streams::Streams,
     subscription::book::OrderBooksL2,
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::InstrumentKind;
 use tracing::info;
 
 #[rustfmt::skip]

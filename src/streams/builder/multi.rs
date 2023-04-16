@@ -92,7 +92,7 @@ impl<Output> MultiStreamBuilder<Output> {
     /// [`MultiStreamBuilder`] and map all [`Streams<SubKind::Event>`](Streams) into a common
     /// [`Streams<Output>`](Streams).
     pub async fn init(self) -> Result<Streams<Output>, DataError> {
-        // Await Stream initialisation futures and ensure success
+        // Await Stream initialisation perpetual and ensure success
         futures::future::try_join_all(self.futures).await?;
 
         // Construct Streams<Output> using each ExchangeChannel receiver

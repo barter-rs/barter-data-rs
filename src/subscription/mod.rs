@@ -1,7 +1,10 @@
 use crate::exchange::StreamSelector;
 use barter_integration::{
     error::SocketError,
-    model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
+    model::{
+        instrument::{kind::InstrumentKind, symbol::Symbol, Instrument},
+        SubscriptionId,
+    },
     protocol::websocket::WsMessage,
     Validator,
 };
@@ -100,13 +103,13 @@ where
         let exchange = Exchange::ID;
 
         // Validate the Exchange supports the Subscription InstrumentKind
-        match self.instrument.kind {
-            InstrumentKind::Spot if exchange.supports_spot() => Ok(self),
-            InstrumentKind::FuturePerpetual if exchange.supports_futures() => Ok(self),
-            other => Err(SocketError::Unsupported {
+        if exchange.supports(self.instrument.kind) {
+            Ok(self)
+        } else {
+            Err(SocketError::Unsupported {
                 entity: exchange.as_str(),
-                item: other.to_string(),
-            }),
+                item: self.instrument.kind.to_string(),
+            })
         }
     }
 }
@@ -164,18 +167,22 @@ mod tests {
 
     mod subscription {
         use super::*;
-        use crate::exchange::coinbase::Coinbase;
-        use crate::exchange::okx::Okx;
-        use crate::subscription::trade::PublicTrades;
+        use crate::{
+            exchange::{coinbase::Coinbase, okx::Okx},
+            subscription::trade::PublicTrades,
+        };
+        use barter_integration::model::instrument::kind::InstrumentKind;
 
         mod de {
             use super::*;
-            use crate::exchange::binance::futures::BinanceFuturesUsd;
-            use crate::exchange::binance::spot::BinanceSpot;
-            use crate::exchange::gateio::futures::GateioFuturesUsd;
-            use crate::exchange::okx::Okx;
-            use crate::subscription::book::OrderBooksL2;
-            use crate::subscription::trade::PublicTrades;
+            use crate::{
+                exchange::{
+                    binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+                    gateio::perpetual::GateioPerpetualsUsd,
+                    okx::Okx,
+                },
+                subscription::{book::OrderBooksL2, trade::PublicTrades},
+            };
 
             #[test]
             fn test_subscription_okx_spot_public_trades() {
@@ -184,7 +191,7 @@ mod tests {
                     "exchange": "okx",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "spot",
+                    "instrument_kind": "spot",
                     "kind": "public_trades"
                 }
                 "#;
@@ -199,7 +206,7 @@ mod tests {
                     "exchange": "binance_spot",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "spot",
+                    "instrument_kind": "spot",
                     "kind": "public_trades"
                 }
                 "#;
@@ -214,7 +221,7 @@ mod tests {
                     "exchange": "binance_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "future_perpetual",
+                    "instrument_kind": "perpetual",
                     "kind": "order_books_l2"
                 }
                 "#;
@@ -227,15 +234,15 @@ mod tests {
             fn subscription_gateio_futures_usd_public_trades() {
                 let input = r#"
                 {
-                    "exchange": "gateio_futures_usd",
+                    "exchange": "gateio_perpetuals_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "future_perpetual",
+                    "instrument_kind": "perpetual",
                     "kind": "public_trades"
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
+                serde_json::from_str::<Subscription<GateioPerpetualsUsd, PublicTrades>>(input)
                     .unwrap();
             }
         }
@@ -271,7 +278,7 @@ mod tests {
                         Coinbase,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     )),
                     expected: Err(SocketError::Unsupported {
@@ -329,14 +336,14 @@ mod tests {
                         Okx,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     )),
                     expected: Ok(Subscription::from((
                         Okx,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     ))),
                 },
@@ -362,6 +369,7 @@ mod tests {
 
     mod instrument_map {
         use super::*;
+        use barter_integration::model::instrument::{kind::InstrumentKind, Instrument};
 
         #[test]
         fn test_find_instrument() {

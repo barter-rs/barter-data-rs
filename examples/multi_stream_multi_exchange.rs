@@ -11,7 +11,7 @@ use barter_data::{
         trade::PublicTrades,
     },
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::InstrumentKind;
 use tokio_stream::StreamExt;
 use tracing::info;
 
@@ -35,11 +35,11 @@ async fn main() {
                 (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
             ])
             .subscribe([
-                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
             ])
             .subscribe([
                 (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-                (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+                (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
             ])
         )
 
@@ -49,7 +49,7 @@ async fn main() {
                 (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL1),
             ])
             .subscribe([
-                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL1),
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, OrderBooksL1),
             ])
             .subscribe([
                 (Kraken, "xbt", "usd", InstrumentKind::Spot, OrderBooksL1),
@@ -62,7 +62,7 @@ async fn main() {
                 (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, OrderBooksL2),
             ])
             .subscribe([
-                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL2),
+                (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, OrderBooksL2),
             ])
         )
         .init()

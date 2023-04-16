@@ -12,7 +12,9 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
+use barter_integration::{
+    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
+};
 use serde::de::{Error, Unexpected};
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 use tokio::time;
@@ -23,7 +25,7 @@ use url::Url;
 pub mod channel;
 
 /// [`ExchangeServer`] and [`StreamSelector`] implementations for
-/// [`BybitFuturesUsd`](futures::BybitFuturesUsd).
+/// [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod futures;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -40,18 +42,18 @@ pub mod spot;
 
 /// [`Subscription`](crate::subscription::Subscription) response type and response
 /// [`Validator`](barter_integration::Validator) common to both [`BybitSpot`](spot::BybitSpot)
-/// and [`BybitFuturesUsd`](futures::BybitFuturesUsd).
+/// and [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod subscription;
 
 /// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
-/// [`BybitFuturesUsd`](futures::BybitFuturesUsd).
+/// [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod trade;
 
 /// Generic [`Bybit<Server>`](Bybit) exchange.
 ///
 /// ### Notes
 /// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
-/// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturesUsd`](futures::BybitFuturesUsd).
+/// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bybit<Server> {
     server: PhantomData<Server>,

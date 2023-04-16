@@ -1,13 +1,13 @@
-use crate::subscription::liquidation::Liquidation;
 use crate::{
     error::DataError,
     subscription::{
         book::{OrderBook, OrderBookL1},
         candle::Candle,
+        liquidation::Liquidation,
         trade::PublicTrade,
     },
 };
-use barter_integration::model::{Exchange, Instrument};
+use barter_integration::model::{instrument::Instrument, Exchange};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

@@ -100,7 +100,7 @@ where
     /// Each consumer loop distributes consumed [`MarketEvent<SubKind::Event>s`](MarketEvent) to
     /// the [`Streams`] `HashMap` returned by this method.
     pub async fn init(self) -> Result<Streams<MarketEvent<Kind::Event>>, DataError> {
-        // Await Stream initialisation futures and ensure success
+        // Await Stream initialisation perpetual and ensure success
         futures::future::try_join_all(self.futures).await?;
 
         // Construct Streams using each ExchangeChannel receiver
@@ -164,9 +164,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::coinbase::Coinbase;
-    use crate::subscription::trade::PublicTrades;
-    use barter_integration::model::InstrumentKind;
+    use crate::{exchange::coinbase::Coinbase, subscription::trade::PublicTrades};
+    use barter_integration::model::instrument::kind::InstrumentKind;
 
     #[test]
     fn test_validate() {
@@ -204,7 +203,7 @@ mod tests {
                     Coinbase,
                     "base",
                     "quote",
-                    InstrumentKind::FuturePerpetual,
+                    InstrumentKind::Perpetual,
                     PublicTrades,
                 ))],
                 expected: Err(SocketError::Subscribe("".to_string())),

@@ -4,7 +4,9 @@ use crate::{
     subscription::{Map, SubKind},
 };
 use async_trait::async_trait;
-use barter_integration::{model::Instrument, protocol::websocket::WsMessage, Transformer};
+use barter_integration::{
+    model::instrument::Instrument, protocol::websocket::WsMessage, Transformer,
+};
 use tokio::sync::mpsc;
 
 /// Generic OrderBook [`ExchangeTransformer`]s.

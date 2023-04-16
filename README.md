@@ -46,19 +46,23 @@ arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply
 
 ### Supported Exchange Subscriptions
 
-|       Exchange        |        Constructor Code        |      InstrumentKinds      |                     SubKinds                     |
-|:---------------------:|:------------------------------:|:-------------------------:|:------------------------------------------------:|
-|    **BinanceSpot**    |    `BinanceSpot::default()`    |           Spot            | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |                                                              |
-| **BinanceFuturesUsd** | `BinanceFuturesUsd::default()` |      FuturePerpetual      | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |
-|     **Bitfinex**      |           `Bitfinex`           |           Spot            |                   PublicTrades                   |
-|     **BybitSpot**     |     `BybitSpot::default()`     |           Spot            |                   PublicTrades                   |
-|  **BybitFuturesUsd**  |  `BybitFuturesUsd::default()`  |      FuturePerpetual      |                   PublicTrades                   |
-|     **Coinbase**      |           `Coinbase`           |           Spot            |                   PublicTrades                   |
-|    **GateioSpot**     |    `GateioSpot::default()`     |           Spot            |                   PublicTrades                   |
-| **GateioFuturesUsd**  | `GateioFuturesUsd::default()`  |      FuturePerpetual      |                   PublicTrades                   |
-| **GateioFuturesBtc**  | `GateioFuturesBtc::default()`  |      FuturePerpetual      |                   PublicTrades                   |
-|      **Kraken**       |            `Kraken`            |           Spot            |          PublicTrades <br> OrderBooksL1          |
-|        **Okx**        |             `Okx`              | Spot <br> FuturePerpetual |                   PublicTrades                   |
+|        Exchange         |         Constructor Code         |               InstrumentKinds               |                     SubKinds                     |
+|:-----------------------:|:--------------------------------:|:-------------------------------------------:|:------------------------------------------------:|
+|     **BinanceSpot**     |     `BinanceSpot::default()`     |                    Spot                     | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |                                                              |
+|  **BinanceFuturesUsd**  |  `BinanceFuturesUsd::default()`  |                  Perpetual                  | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |
+|      **Bitfinex**       |            `Bitfinex`            |                    Spot                     |                   PublicTrades                   |
+|       **Bitmex**        |             `Bitmex`             |                  Perpetual                  |                   PublicTrades                   |
+|      **BybitSpot**      |      `BybitSpot::default()`      |                    Spot                     |                   PublicTrades                   |
+| **BybitPerpetualsUsd**  | `BybitPerpetualsUsd::default()`  |                  Perpetual                  |                   PublicTrades                   |
+|      **Coinbase**       |            `Coinbase`            |                    Spot                     |                   PublicTrades                   |
+|     **GateioSpot**      |     `GateioSpot::default()`      |                    Spot                     |                   PublicTrades                   |
+|  **GateioFuturesUsd**   |  `GateioFuturesUsd::default()`   |                   Future                    |                   PublicTrades                   |
+|  **GateioFuturesBtc**   |  `GateioFuturesBtc::default()`   |                   Future                    |                   PublicTrades                   |
+| **GateioPerpetualsUsd** | `GateioPerpetualsUsd::default()` |                  Perpetual                  |                   PublicTrades                   |
+| **GateioPerpetualsBtc** | `GateioPerpetualsBtc::default()` |                  Perpetual                  |                   PublicTrades                   |
+|  **GateioOptionsBtc**   |    `GateioOptions::default()`    |                   Option                    |                   PublicTrades                   |
+|       **Kraken**        |             `Kraken`             |                    Spot                     |          PublicTrades <br> OrderBooksL1          |
+|         **Okx**         |              `Okx`               | Spot <br> Future <br> Perpetual <br> Option |                   PublicTrades                   |
 
 
 ## Examples
@@ -69,28 +73,38 @@ See barter-data-rs/examples for a more comprehensive selection of examples!
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        bitmex::Bitmex,
+        bybit::{futures::BybitPerpetualsUsd, spot::BybitSpot},
         coinbase::Coinbase,
-        gateio::spot::GateioSpot,
+        gateio::{
+            option::GateioOptions,
+            perpetual::{GateioPerpetualsBtc, GateioPerpetualsUsd},
+            spot::GateioSpot,
+        },
         okx::Okx,
     },
     streams::Streams,
     subscription::trade::PublicTrades,
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::{
+    FutureContract, InstrumentKind, OptionContract, OptionExercise, OptionKind,
+};
+use chrono::{TimeZone, Utc};
 use futures::StreamExt;
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
     // Initialise PublicTrades Streams for various exchanges
-    // '--> each call to StreamBuilder::subscribe() initialises a separate WebSocket connection
-    let streams = Streams::builder()
+    // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
+    let streams = Streams::<PublicTrades>::builder()
         .subscribe([
             (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
             (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
         ])
         .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
         ])
         .subscribe([
             (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
@@ -98,13 +112,31 @@ async fn main() {
         ])
         .subscribe([
             (GateioSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (GateioSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (GateioPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        ])
+        .subscribe([
+            (GateioPerpetualsBtc::default(), "btc", "usd", InstrumentKind::Perpetual, PublicTrades),
+        ])
+        .subscribe([
+            (GateioOptions::default(), "btc", "usdt", InstrumentKind::Option(put_contract()), PublicTrades),
         ])
         .subscribe([
             (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "eth", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (Okx, "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            (Okx, "btc", "usd", InstrumentKind::Future(future_contract()), PublicTrades),
+            (Okx, "btc", "usd", InstrumentKind::Option(call_contract()), PublicTrades),
+        ])
+        .subscribe([
+            (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+            (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        ])
+        .subscribe([
+            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        ])
+        .subscribe([
+            (Bitmex, "xbt", "usd", InstrumentKind::Perpetual, PublicTrades)
         ])
         .init()
         .await
@@ -117,7 +149,7 @@ async fn main() {
     let mut joined_stream = streams.join_map().await;
 
     while let Some((exchange, trade)) = joined_stream.next().await {
-        println!("Exchange: {exchange}, Market<PublicTrade>: {trade:?}");
+        info!("Exchange: {exchange}, MarketEvent<PublicTrade>: {trade:?}");
     }
 }
 ```

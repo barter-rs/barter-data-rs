@@ -4,7 +4,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
+use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +14,7 @@ pub type OkxTrades = OkxMessage<OkxTrade>;
 /// [`Okx`](super::Okx) market data WebSocket message.
 ///
 /// ### Raw Payload Examples
+/// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 /// #### Spot Buy Trade
 /// ```json
 /// {
@@ -34,7 +35,25 @@ pub type OkxTrades = OkxMessage<OkxTrade>;
 /// }
 /// ```
 ///
-/// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
+/// #### Option Call Sell Trade
+/// ```json
+/// {
+///   "arg": {
+///     "channel": "trades",
+///     "instId": "BTC-USD-231229-35000-C"
+///   },
+///   "data": [
+///     {
+///       "instId": "BTC-USD-231229-35000-C",
+///       "tradeId": "4",
+///       "px": "0.1525",
+///       "sz": "21",
+///       "side": "sell",
+///       "ts": "1681473269025"
+///     }
+///   ]
+/// }
+/// ```
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct OkxMessage<T> {
     #[serde(
@@ -119,8 +138,7 @@ mod tests {
 
     mod de {
         use super::*;
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
+        use barter_integration::{de::datetime_utc_from_epoch_duration, error::SocketError};
         use std::time::Duration;
 
         #[test]

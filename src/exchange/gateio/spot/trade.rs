@@ -5,7 +5,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
+use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -42,6 +42,7 @@ pub struct GateioSpotTradeInner {
 
     #[serde(alias = "size", deserialize_with = "barter_integration::de::de_str")]
     pub amount: f64,
+
     /// Taker [`Side`] of the trade.
     pub side: Side,
 }

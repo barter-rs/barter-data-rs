@@ -2,7 +2,7 @@ use self::{
     channel::OkxChannel, market::OkxMarket, subscription::OkxSubResponse, trade::OkxTrades,
 };
 use crate::{
-    exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
+    exchange::{Connector, ExchangeId, ExchangeSub, PingInterval, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
     subscription::trade::PublicTrades,
     transformer::stateless::StatelessTransformer,
@@ -11,6 +11,7 @@ use crate::{
 use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use barter_macro::{DeExchange, SerExchange};
 use serde_json::json;
+use std::time::Duration;
 use url::Url;
 
 /// Defines the type that translates a Barter [`Subscription`](crate::subscription::Subscription)
@@ -33,6 +34,11 @@ pub mod trade;
 /// See docs: <https://www.okx.com/docs-v5/en/#overview-api-resources-and-support>
 pub const BASE_URL_OKX: &str = "wss://wsaws.okx.com:8443/ws/v5/public";
 
+/// [`Okx`] server [`PingInterval`] duration.
+///
+/// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-connect>
+pub const PING_INTERVAL_OKX: Duration = Duration::from_secs(29);
+
 /// [`Okx`] exchange.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api>
@@ -51,6 +57,13 @@ impl Connector for Okx {
 
     fn url() -> Result<Url, SocketError> {
         Url::parse(BASE_URL_OKX).map_err(SocketError::UrlParse)
+    }
+
+    fn ping_interval() -> Option<PingInterval> {
+        Some(PingInterval {
+            interval: tokio::time::interval(PING_INTERVAL_OKX),
+            ping: || WsMessage::text("ping"),
+        })
     }
 
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
