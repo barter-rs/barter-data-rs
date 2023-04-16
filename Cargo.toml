@@ -13,10 +13,13 @@ categories = ["accessibility", "simulation"]
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.16", features = ["env-filter", "json"] }
+rust_decimal = "1.29.1"
+rust_decimal_macros = "1.29.1"
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.5.2"
+#barter-integration = "0.5.3"
+barter-integration = { path = "../barter-integration-rs" }
 barter-macro =  "0.1.1"
 
 # Logging

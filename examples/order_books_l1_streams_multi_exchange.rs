@@ -24,8 +24,8 @@ async fn main() {
             (BinanceSpot::default(), "eth", "usd", InstrumentKind::Spot, OrderBooksL1),
         ])
         .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, OrderBooksL1),
-            (BinanceFuturesUsd::default(), "eth", "usd", InstrumentKind::FuturePerpetual, OrderBooksL1),
+            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, OrderBooksL1),
+            (BinanceFuturesUsd::default(), "eth", "usd", InstrumentKind::Perpetual, OrderBooksL1),
         ])
         .subscribe([
             (Kraken, "xbt", "usd", InstrumentKind::Spot, OrderBooksL1),

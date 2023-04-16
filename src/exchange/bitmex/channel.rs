@@ -13,7 +13,7 @@ use serde::Serialize;
 pub struct BitmexChannel(pub &'static str);
 
 impl BitmexChannel {
-    /// [`Bitmex`](super::Bitmex) real-time trades channel name.
+    /// [`Bitmex`] real-time trades channel name.
     ///
     /// See docs: <https://www.bitmex.com/app/wsAPI>
     pub const TRADES: Self = Self("trade");

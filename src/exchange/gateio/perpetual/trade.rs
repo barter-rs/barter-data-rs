@@ -9,15 +9,34 @@ use barter_integration::model::{instrument::Instrument, Exchange, Side, Subscrip
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Terse type alias for a [`GateioFuturesUsd`](super::GateioFuturesUsd) and
-/// [`GateioFuturesBtc`](super::GateioFuturesBtc) real-time trades WebSocket message.
+/// Terse type alias for a
+/// [`GateioFuturesUsdt`](super::super::futures::GateioFuturesUsdt),
+/// [`GateioFuturesBtc`](super::super::futures::GateioFuturesBtc),
+/// [`GateioPerpetualUsdt`](super::GateioPerpetualsUsd) and
+/// [`GateioPerpetualBtc`](super::GateioPerpetualsBtc) real-time trades WebSocket message.
 pub type GateioFuturesTrades = GateioMessage<Vec<GateioFuturesTradeInner>>;
 
-/// [`GateioFuturesUsd`](super::GateioFuturesUsd) and [`GateioFuturesBtc`](super::GateioFuturesBtc)
-/// real-time trade WebSocket message.
+/// [`GateioFuturesUsdt`](super::super::futures::GateioFuturesUsdt),
+/// [`GateioFuturesBtc`](super::super::futures::GateioFuturesBtc),
+/// [`GateioPerpetualUsdt`](super::GateioPerpetualsUsd) and
+/// [`GateioPerpetualBtc`](super::GateioPerpetualsBtc) real-time trade WebSocket message.
 ///
 /// ### Raw Payload Examples
-/// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
+/// #### Future Sell Trade
+/// See docs: <https://www.gate.io/docs/developers/delivery/ws/en/#trades-notification>
+/// ```json
+/// {
+///   "id": 27753479,
+///   "create_time": 1545136464,
+///   "create_time_ms": 1545136464123,
+///   "price": "96.4",
+///   "size": -108,
+///   "contract": "ETH_USDT_QUARTERLY_20201225"
+/// }
+/// ```
+///
+/// #### Future Perpetual Sell Trade
+/// See docs: <https://www.gate.io/docs/developers/futures/ws/en/#trades-api>
 /// ```json
 /// {
 ///   "id": 27753479,
@@ -89,8 +108,30 @@ mod tests {
         use super::*;
 
         #[test]
+        fn test_gateio_message_perpetual_trade() {
+            let input = "{\"time\":1669843487,\"time_ms\":1669843487733,\"channel\":\"perpetual.trades\",\"event\":\"update\",\"result\":[{\"contract\":\"ETH_USDT\",\"create_time\":1669843487,\"create_time_ms\":1669843487724,\"id\":180276616,\"price\":\"1287\",\"size\":3}]}";
+            serde_json::from_str::<GateioFuturesTrades>(input).unwrap();
+        }
+
+        #[test]
         fn test_gateio_message_futures_trade() {
-            let input = "{\"time\":1669843487,\"time_ms\":1669843487733,\"channel\":\"futures.trades\",\"event\":\"update\",\"result\":[{\"contract\":\"ETH_USDT\",\"create_time\":1669843487,\"create_time_ms\":1669843487724,\"id\":180276616,\"price\":\"1287\",\"size\":3}]}";
+            let input = r#"
+            {
+              "channel": "futures.trades",
+              "event": "update",
+              "time": 1541503698,
+              "result": [
+                {
+                  "size": -108,
+                  "id": 27753479,
+                  "create_time": 1545136464,
+                  "create_time_ms": 1545136464123,
+                  "price": "96.4",
+                  "contract": "ETH_USDT_QUARTERLY_20201225"
+                }
+              ]
+            }"#;
+
             serde_json::from_str::<GateioFuturesTrades>(input).unwrap();
         }
     }

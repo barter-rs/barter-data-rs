@@ -1,25 +1,22 @@
-use self::trade::GateioFuturesTrades;
-use super::Gateio;
 use crate::{
-    exchange::{ExchangeId, ExchangeServer, StreamSelector},
+    exchange::{
+        gateio::{perpetual::trade::GateioFuturesTrades, Gateio},
+        ExchangeId, ExchangeServer, StreamSelector,
+    },
     subscription::trade::PublicTrades,
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use serde::{Deserialize, Serialize};
-
-/// Public trades types.
-pub mod trade;
 
 /// [`GateioFuturesUsd`] WebSocket server base url.
 ///
-/// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/usdt";
+/// See docs: <https://www.gate.io/docs/developers/delivery/ws/en/>
+pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_USD: &str = "wss://fx-ws.gateio.ws/v4/ws/delivery/usdt";
 
-/// [`Gateio`](super::Gateio) futures usd exchange.
+/// [`Gateio`] perpetual usd exchange.
 pub type GateioFuturesUsd = Gateio<GateioServerFuturesUsd>;
 
-/// [`Gateio`](super::Gateio) futures usd [`ExchangeServer`].
+/// [`Gateio`] perpetual usd [`ExchangeServer`].
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct GateioServerFuturesUsd;
 
@@ -37,16 +34,14 @@ impl StreamSelector<PublicTrades> for GateioFuturesUsd {
 
 /// [`GateioFuturesBtc`] WebSocket server base url.
 ///
-/// See docs: <https://www.gate.io/docs/developers/futures/ws/en/>
-pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/btc";
+/// See docs: <https://www.gate.io/docs/developers/delivery/ws/en/>
+pub const WEBSOCKET_BASE_URL_GATEIO_FUTURES_BTC: &str = "wss://fx-ws.gateio.ws/v4/ws/delivery/btc";
 
-/// [`Gateio`](super::Gateio) futures btc exchange.
+/// [`Gateio`] perpetual btc exchange.
 pub type GateioFuturesBtc = Gateio<GateioServerFuturesBtc>;
 
-/// [`Gateio`](super::Gateio) futures btc [`ExchangeServer`].
-#[derive(
-    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, Deserialize, Serialize,
-)]
+/// [`Gateio`] perpetual btc [`ExchangeServer`].
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct GateioServerFuturesBtc;
 
 impl ExchangeServer for GateioServerFuturesBtc {

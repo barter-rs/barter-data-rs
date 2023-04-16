@@ -18,20 +18,20 @@ async fn main() {
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
         ])
 
         // Separate WebSocket connection for ETH_USDT stream since it's very high volume
         .subscribe([
-            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
         ])
 
         // Lower volume Instruments can share a WebSocket connection
         .subscribe([
-            (BinanceFuturesUsd::default(), "xrp", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "sol", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "avax", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "ltc", "usdt", InstrumentKind::FuturePerpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "xrp", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "sol", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "avax", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            (BinanceFuturesUsd::default(), "ltc", "usdt", InstrumentKind::Perpetual, PublicTrades),
         ])
         .init()
         .await

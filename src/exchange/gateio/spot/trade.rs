@@ -42,6 +42,7 @@ pub struct GateioSpotTradeInner {
 
     #[serde(alias = "size", deserialize_with = "barter_integration::de::de_str")]
     pub amount: f64,
+
     /// Taker [`Side`] of the trade.
     pub side: Side,
 }

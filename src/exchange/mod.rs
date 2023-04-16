@@ -5,7 +5,10 @@ use crate::{
     MarketStream,
 };
 use barter_integration::{
-    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage, Validator,
+    error::SocketError,
+    model::instrument::{kind::InstrumentKind, Instrument},
+    protocol::websocket::WsMessage,
+    Validator,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
@@ -172,11 +175,14 @@ pub enum ExchangeId {
     Bitfinex,
     Bitmex,
     BybitSpot,
-    BybitFuturesUsd,
+    BybitPerpetualsUsd,
     Coinbase,
-    GateioFuturesBtc,
-    GateioFuturesUsd,
     GateioSpot,
+    GateioFuturesUsd,
+    GateioFuturesBtc,
+    GateioPerpetualsBtc,
+    GateioPerpetualsUsd,
+    GateioOptions,
     Kraken,
     Okx,
 }
@@ -202,38 +208,50 @@ impl ExchangeId {
             ExchangeId::Bitfinex => "bitfinex",
             ExchangeId::Bitmex => "bitmex",
             ExchangeId::BybitSpot => "bybit_spot",
-            ExchangeId::BybitFuturesUsd => "bybit_futures_usd",
+            ExchangeId::BybitPerpetualsUsd => "bybit_perpetuals_usd",
             ExchangeId::Coinbase => "coinbase",
             ExchangeId::GateioSpot => "gateio_spot",
             ExchangeId::GateioFuturesUsd => "gateio_futures_usd",
             ExchangeId::GateioFuturesBtc => "gateio_futures_btc",
+            ExchangeId::GateioPerpetualsUsd => "gateio_perpetuals_usd",
+            ExchangeId::GateioPerpetualsBtc => "gateio_perpetuals_btc",
+            ExchangeId::GateioOptions => "gateio_options",
             ExchangeId::Kraken => "kraken",
             ExchangeId::Okx => "okx",
         }
     }
 
     /// Determines whether the [`Connector`] associated with this [`ExchangeId`] supports the
-    /// ingestion of [`InstrumentKind::Spot`](barter_integration::model::InstrumentKind) market data.
+    /// ingestion of market data for the provided [`InstrumentKind`].
     #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_spot(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => false,
-            ExchangeId::BybitFuturesUsd => false,
-            _ => true,
-        }
-    }
+    pub fn supports(&self, instrument_kind: InstrumentKind) -> bool {
+        use ExchangeId::*;
+        use InstrumentKind::*;
 
-    /// Determines whether the [`Connector`] associated with this [`ExchangeId`] supports the
-    /// collection of [`InstrumentKind::Future**`](barter_integration::model::InstrumentKind)
-    /// market data.
-    #[allow(clippy::match_like_matches_macro)]
-    pub fn supports_futures(&self) -> bool {
-        match self {
-            ExchangeId::BinanceFuturesUsd => true,
-            ExchangeId::BybitFuturesUsd => true,
-            ExchangeId::Bitmex => true,
-            ExchangeId::Okx => true,
-            _ => false,
+        match (self, instrument_kind) {
+            // Spot
+            (
+                BinanceFuturesUsd | Bitmex | BybitPerpetualsUsd | GateioPerpetualsUsd
+                | GateioPerpetualsBtc,
+                Spot,
+            ) => false,
+            (_, Spot) => true,
+
+            // Future
+            (GateioFuturesUsd | GateioFuturesBtc | Okx, Future(_)) => true,
+            (_, Future(_)) => false,
+
+            // Future Perpetual Swaps
+            (
+                BinanceFuturesUsd | Bitmex | Okx | BybitPerpetualsUsd | GateioPerpetualsUsd
+                | GateioPerpetualsBtc,
+                Perpetual,
+            ) => true,
+            (_, Perpetual) => false,
+
+            // Option
+            (GateioOptions | Okx, Option(_)) => true,
+            (_, Option(_)) => false,
         }
     }
 }

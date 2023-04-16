@@ -19,25 +19,25 @@ pub struct OkxMarket(pub String);
 
 impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Kind> {
     fn id(&self) -> OkxMarket {
+        use InstrumentKind::*;
         let Instrument { base, quote, kind } = &self.instrument;
 
         OkxMarket(match kind {
-            InstrumentKind::Spot => format!("{base}-{quote}").to_uppercase(),
-            InstrumentKind::Future(future) => {
-                format!("{base}-{quote}-{}", format_expiry(future.expiry))
+            Spot => format!("{base}-{quote}").to_uppercase(),
+            Future(future) => {
+                format!("{base}-{quote}-{}", format_expiry(future.expiry)).to_uppercase()
             }
-            InstrumentKind::FuturePerpetual => format!("{base}-{quote}-SWAP").to_uppercase(),
-            InstrumentKind::Option(option) => {
-                format!(
-                    "{base}-{quote}-{}-{}-{}",
-                    format_expiry(option.expiry),
-                    option.strike,
-                    match option.kind {
-                        OptionKind::Call => "C",
-                        OptionKind::Put => "P",
-                    },
-                )
-            }
+            Perpetual => format!("{base}-{quote}-SWAP").to_uppercase(),
+            Option(option) => format!(
+                "{base}-{quote}-{}-{}-{}",
+                format_expiry(option.expiry),
+                option.strike,
+                match option.kind {
+                    OptionKind::Call => "C",
+                    OptionKind::Put => "P",
+                },
+            )
+            .to_uppercase(),
         })
     }
 }

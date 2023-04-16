@@ -1,7 +1,7 @@
 use crate::{exchange::bitmex::Bitmex, subscription::Subscription, Identifier};
 use serde::{Deserialize, Serialize};
 
-/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`](super::Bitmex)
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`]
 /// market that can be subscribed to.
 ///
 /// See docs: <https://www.bitmex.com/app/wsAPI>

@@ -1,11 +1,8 @@
 use crate::{
-    exchange::gateio::{
-        futures::{GateioFuturesBtc, GateioFuturesUsd},
-        spot::GateioSpot,
-    },
     subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
+use barter_integration::model::instrument::kind::InstrumentKind;
 use serde::Serialize;
 
 /// Type that defines how to translate a Barter [`Subscription`] into a
@@ -21,27 +18,25 @@ impl GateioChannel {
     /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
     pub const SPOT_TRADES: Self = Self("spot.trades");
 
-    /// Gateio [`InstrumentKind::FuturePerpetual`] real-time trades channel.
+    /// Gateio [`InstrumentKind::Future`] & [`InstrumentKind::Perpetual`] real-time trades channel.
     ///
-    /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/#public-trades-channel>
-    pub const FUTURE_PERPETUAL_TRADES: Self = Self("futures.trades");
+    /// See docs: <https://www.gate.io/docs/developers/futures/ws/en/#trades-subscription>
+    /// See docs: <https://www.gate.io/docs/developers/delivery/ws/en/#trades-subscription>
+    pub const FUTURE_TRADES: Self = Self("futures.trades");
+
+    /// Gateio [`InstrumentKind::Option`] real-time trades channel.
+    ///
+    /// See docs: <https://www.gate.io/docs/developers/options/ws/en/#public-contract-trades-channel>
+    pub const OPTION_TRADES: Self = Self("options.trades");
 }
 
-impl Identifier<GateioChannel> for Subscription<GateioSpot, PublicTrades> {
+impl<GateioExchange> Identifier<GateioChannel> for Subscription<GateioExchange, PublicTrades> {
     fn id(&self) -> GateioChannel {
-        GateioChannel::SPOT_TRADES
-    }
-}
-
-impl Identifier<GateioChannel> for Subscription<GateioFuturesUsd, PublicTrades> {
-    fn id(&self) -> GateioChannel {
-        GateioChannel::FUTURE_PERPETUAL_TRADES
-    }
-}
-
-impl Identifier<GateioChannel> for Subscription<GateioFuturesBtc, PublicTrades> {
-    fn id(&self) -> GateioChannel {
-        GateioChannel::FUTURE_PERPETUAL_TRADES
+        match self.instrument.kind {
+            InstrumentKind::Spot => GateioChannel::SPOT_TRADES,
+            InstrumentKind::Future(_) | InstrumentKind::Perpetual => GateioChannel::FUTURE_TRADES,
+            InstrumentKind::Option(_) => GateioChannel::OPTION_TRADES,
+        }
     }
 }
 

@@ -103,13 +103,13 @@ where
         let exchange = Exchange::ID;
 
         // Validate the Exchange supports the Subscription InstrumentKind
-        match self.instrument.kind {
-            InstrumentKind::Spot if exchange.supports_spot() => Ok(self),
-            InstrumentKind::FuturePerpetual if exchange.supports_futures() => Ok(self),
-            other => Err(SocketError::Unsupported {
+        if exchange.supports(self.instrument.kind) {
+            Ok(self)
+        } else {
+            Err(SocketError::Unsupported {
                 entity: exchange.as_str(),
-                item: other.to_string(),
-            }),
+                item: self.instrument.kind.to_string(),
+            })
         }
     }
 }
@@ -178,7 +178,7 @@ mod tests {
             use crate::{
                 exchange::{
                     binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
-                    gateio::futures::GateioFuturesUsd,
+                    gateio::perpetual::GateioPerpetualsUsd,
                     okx::Okx,
                 },
                 subscription::{book::OrderBooksL2, trade::PublicTrades},
@@ -221,7 +221,7 @@ mod tests {
                     "exchange": "binance_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_kind": "future_perpetual",
+                    "instrument_kind": "perpetual",
                     "kind": "order_books_l2"
                 }
                 "#;
@@ -234,15 +234,15 @@ mod tests {
             fn subscription_gateio_futures_usd_public_trades() {
                 let input = r#"
                 {
-                    "exchange": "gateio_futures_usd",
+                    "exchange": "gateio_perpetuals_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_kind": "future_perpetual",
+                    "instrument_kind": "perpetual",
                     "kind": "public_trades"
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<GateioFuturesUsd, PublicTrades>>(input)
+                serde_json::from_str::<Subscription<GateioPerpetualsUsd, PublicTrades>>(input)
                     .unwrap();
             }
         }
@@ -278,7 +278,7 @@ mod tests {
                         Coinbase,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     )),
                     expected: Err(SocketError::Unsupported {
@@ -336,14 +336,14 @@ mod tests {
                         Okx,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     )),
                     expected: Ok(Subscription::from((
                         Okx,
                         "base",
                         "quote",
-                        InstrumentKind::FuturePerpetual,
+                        InstrumentKind::Perpetual,
                         PublicTrades,
                     ))),
                 },
