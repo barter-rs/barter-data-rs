@@ -35,7 +35,7 @@
 //!     streams::Streams,
 //!     subscription::trade::PublicTrades,
 //! };
-//! use barter_integration::model::InstrumentKind;
+//! use barter_integration::model::instrument::kind::InstrumentKind;
 //! use futures::StreamExt;
 //!
 //! #[tokio::main]

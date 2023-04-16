@@ -164,9 +164,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::exchange::coinbase::Coinbase;
-    use crate::subscription::trade::PublicTrades;
-    use barter_integration::model::InstrumentKind;
+    use crate::{exchange::coinbase::Coinbase, subscription::trade::PublicTrades};
+    use barter_integration::model::instrument::kind::InstrumentKind;
 
     #[test]
     fn test_validate() {

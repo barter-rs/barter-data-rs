@@ -5,7 +5,7 @@ use crate::{
     MarketStream,
 };
 use barter_integration::{
-    error::SocketError, model::Instrument, protocol::websocket::WsMessage, Validator,
+    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage, Validator,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{

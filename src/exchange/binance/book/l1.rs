@@ -4,7 +4,7 @@ use crate::{
     subscription::book::{Level, OrderBookL1},
     Identifier,
 };
-use barter_integration::model::{Exchange, Instrument, SubscriptionId};
+use barter_integration::model::{instrument::Instrument, Exchange, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

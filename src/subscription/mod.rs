@@ -1,7 +1,10 @@
 use crate::exchange::StreamSelector;
 use barter_integration::{
     error::SocketError,
-    model::{Instrument, InstrumentKind, SubscriptionId, Symbol},
+    model::{
+        instrument::{kind::InstrumentKind, symbol::Symbol, Instrument},
+        SubscriptionId,
+    },
     protocol::websocket::WsMessage,
     Validator,
 };
@@ -164,18 +167,22 @@ mod tests {
 
     mod subscription {
         use super::*;
-        use crate::exchange::coinbase::Coinbase;
-        use crate::exchange::okx::Okx;
-        use crate::subscription::trade::PublicTrades;
+        use crate::{
+            exchange::{coinbase::Coinbase, okx::Okx},
+            subscription::trade::PublicTrades,
+        };
+        use barter_integration::model::instrument::kind::InstrumentKind;
 
         mod de {
             use super::*;
-            use crate::exchange::binance::futures::BinanceFuturesUsd;
-            use crate::exchange::binance::spot::BinanceSpot;
-            use crate::exchange::gateio::futures::GateioFuturesUsd;
-            use crate::exchange::okx::Okx;
-            use crate::subscription::book::OrderBooksL2;
-            use crate::subscription::trade::PublicTrades;
+            use crate::{
+                exchange::{
+                    binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+                    gateio::futures::GateioFuturesUsd,
+                    okx::Okx,
+                },
+                subscription::{book::OrderBooksL2, trade::PublicTrades},
+            };
 
             #[test]
             fn test_subscription_okx_spot_public_trades() {
@@ -184,7 +191,7 @@ mod tests {
                     "exchange": "okx",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "spot",
+                    "instrument_kind": "spot",
                     "kind": "public_trades"
                 }
                 "#;
@@ -199,7 +206,7 @@ mod tests {
                     "exchange": "binance_spot",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "spot",
+                    "instrument_kind": "spot",
                     "kind": "public_trades"
                 }
                 "#;
@@ -214,7 +221,7 @@ mod tests {
                     "exchange": "binance_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "future_perpetual",
+                    "instrument_kind": "future_perpetual",
                     "kind": "order_books_l2"
                 }
                 "#;
@@ -230,7 +237,7 @@ mod tests {
                     "exchange": "gateio_futures_usd",
                     "base": "btc",
                     "quote": "usdt",
-                    "instrument_type": "future_perpetual",
+                    "instrument_kind": "future_perpetual",
                     "kind": "public_trades"
                 }
                 "#;
@@ -362,6 +369,7 @@ mod tests {
 
     mod instrument_map {
         use super::*;
+        use barter_integration::model::instrument::{kind::InstrumentKind, Instrument};
 
         #[test]
         fn test_find_instrument() {

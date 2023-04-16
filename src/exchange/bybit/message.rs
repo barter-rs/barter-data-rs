@@ -7,7 +7,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{Instrument, SubscriptionId};
+use barter_integration::model::{instrument::Instrument, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{
     de::{Error, Unexpected},

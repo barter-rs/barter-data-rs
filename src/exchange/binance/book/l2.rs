@@ -1,5 +1,4 @@
-use super::super::channel::BinanceChannel;
-use super::BinanceLevel;
+use super::{super::channel::BinanceChannel, BinanceLevel};
 use crate::{
     exchange::subscription::ExchangeSub,
     subscription::book::{OrderBook, OrderBookSide},

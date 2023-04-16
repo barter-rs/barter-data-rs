@@ -7,7 +7,7 @@ use crate::{
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},
-    model::{Exchange, Instrument, Side, SubscriptionId},
+    model::{instrument::Instrument, Exchange, Side, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -208,9 +208,11 @@ mod tests {
 
     mod de {
         use super::*;
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
-        use barter_integration::model::{Side, SubscriptionId};
+        use barter_integration::{
+            de::datetime_utc_from_epoch_duration,
+            error::SocketError,
+            model::{Side, SubscriptionId},
+        };
 
         #[test]
         fn test_kraken_message_trades() {

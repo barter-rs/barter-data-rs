@@ -10,7 +10,7 @@ use crate::{
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::Instrument,
+    model::instrument::Instrument,
     protocol::websocket::{connect, WebSocket},
 };
 use futures::SinkExt;

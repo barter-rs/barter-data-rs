@@ -6,7 +6,7 @@ use barter_data::{
     streams::Streams,
     subscription::book::OrderBooksL1,
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::InstrumentKind;
 use futures::StreamExt;
 use tracing::info;
 

@@ -5,7 +5,7 @@ use crate::{
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},
-    model::{Exchange, Instrument, Side},
+    model::{instrument::Instrument, Exchange, Side},
 };
 use chrono::{DateTime, Utc};
 use serde::Serialize;

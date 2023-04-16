@@ -1,8 +1,11 @@
 use crate::{
+    exchange::gateio::{
+        futures::{GateioFuturesBtc, GateioFuturesUsd},
+        spot::GateioSpot,
+    },
     subscription::{trade::PublicTrades, Subscription},
     Identifier,
 };
-use barter_integration::model::InstrumentKind;
 use serde::Serialize;
 
 /// Type that defines how to translate a Barter [`Subscription`] into a
@@ -24,12 +27,21 @@ impl GateioChannel {
     pub const FUTURE_PERPETUAL_TRADES: Self = Self("futures.trades");
 }
 
-impl<Server> Identifier<GateioChannel> for Subscription<Server, PublicTrades> {
+impl Identifier<GateioChannel> for Subscription<GateioSpot, PublicTrades> {
     fn id(&self) -> GateioChannel {
-        match self.instrument.kind {
-            InstrumentKind::Spot => GateioChannel::SPOT_TRADES,
-            InstrumentKind::FuturePerpetual => GateioChannel::FUTURE_PERPETUAL_TRADES,
-        }
+        GateioChannel::SPOT_TRADES
+    }
+}
+
+impl Identifier<GateioChannel> for Subscription<GateioFuturesUsd, PublicTrades> {
+    fn id(&self) -> GateioChannel {
+        GateioChannel::FUTURE_PERPETUAL_TRADES
+    }
+}
+
+impl Identifier<GateioChannel> for Subscription<GateioFuturesBtc, PublicTrades> {
+    fn id(&self) -> GateioChannel {
+        GateioChannel::FUTURE_PERPETUAL_TRADES
     }
 }
 

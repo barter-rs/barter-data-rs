@@ -8,7 +8,7 @@ use crate::{
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::{Instrument, SubscriptionId},
+    model::{instrument::Instrument, SubscriptionId},
     protocol::{
         websocket::{WebSocket, WebSocketParser},
         StreamParser,

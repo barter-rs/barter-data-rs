@@ -1,15 +1,13 @@
 use super::super::KrakenMessage;
-use crate::exchange::kraken::channel::KrakenChannel;
-use crate::exchange::subscription::ExchangeSub;
 use crate::{
     event::{MarketEvent, MarketIter},
-    exchange::ExchangeId,
+    exchange::{kraken::channel::KrakenChannel, subscription::ExchangeSub, ExchangeId},
     subscription::book::{Level, OrderBookL1},
     Identifier,
 };
 use barter_integration::{
     de::extract_next,
-    model::{Exchange, Instrument, SubscriptionId},
+    model::{instrument::Instrument, Exchange, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -134,9 +132,9 @@ mod tests {
 
     mod de {
         use super::*;
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
-        use barter_integration::model::SubscriptionId;
+        use barter_integration::{
+            de::datetime_utc_from_epoch_duration, error::SocketError, model::SubscriptionId,
+        };
 
         #[test]
         fn test_kraken_message_order_book_l1() {

@@ -1,6 +1,13 @@
 use super::Okx;
 use crate::{subscription::Subscription, Identifier};
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::{
+    kind::{InstrumentKind, OptionKind},
+    Instrument,
+};
+use chrono::{
+    format::{DelayedFormat, StrftimeItems},
+    DateTime, Utc,
+};
 use serde::{Deserialize, Serialize};
 
 /// Type that defines how to translate a Barter [`Subscription`] into a
@@ -12,12 +19,24 @@ pub struct OkxMarket(pub String);
 
 impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Kind> {
     fn id(&self) -> OkxMarket {
-        OkxMarket(match self.instrument.kind {
-            InstrumentKind::Spot => {
-                format!("{}-{}", self.instrument.base, self.instrument.quote).to_uppercase()
+        let Instrument { base, quote, kind } = &self.instrument;
+
+        OkxMarket(match kind {
+            InstrumentKind::Spot => format!("{base}-{quote}").to_uppercase(),
+            InstrumentKind::Future(future) => {
+                format!("{base}-{quote}-{}", format_expiry(future.expiry))
             }
-            InstrumentKind::FuturePerpetual => {
-                format!("{}-{}-SWAP", self.instrument.base, self.instrument.quote).to_uppercase()
+            InstrumentKind::FuturePerpetual => format!("{base}-{quote}-SWAP").to_uppercase(),
+            InstrumentKind::Option(option) => {
+                format!(
+                    "{base}-{quote}-{}-{}-{}",
+                    format_expiry(option.expiry),
+                    option.strike,
+                    match option.kind {
+                        OptionKind::Call => "C",
+                        OptionKind::Put => "P",
+                    },
+                )
             }
         })
     }
@@ -27,4 +46,13 @@ impl AsRef<str> for OkxMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+/// Format the expiry DateTime<Utc> to be Okx API compatible.
+///
+/// eg/ "230526" (26th of May 2023)
+///
+/// See docs: <https://www.okx.com/docs-v5/en/#rest-api-public-data-get-instruments>
+fn format_expiry<'a>(expiry: DateTime<Utc>) -> DelayedFormat<StrftimeItems<'a>> {
+    expiry.date_naive().format("%g%m%d")
 }

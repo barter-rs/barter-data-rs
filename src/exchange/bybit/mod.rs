@@ -12,7 +12,9 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
+use barter_integration::{
+    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
+};
 use serde::de::{Error, Unexpected};
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 use tokio::time;

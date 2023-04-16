@@ -1,4 +1,4 @@
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::InstrumentKind;
 use futures::StreamExt;
 use tracing::info;
 

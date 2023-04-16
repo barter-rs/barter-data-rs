@@ -9,7 +9,9 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{error::SocketError, model::Instrument, protocol::websocket::WsMessage};
+use barter_integration::{
+    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
+};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 

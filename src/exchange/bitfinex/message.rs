@@ -4,7 +4,7 @@ use crate::{
 };
 use barter_integration::{
     de::extract_next,
-    model::{Instrument, SubscriptionId},
+    model::{instrument::Instrument, SubscriptionId},
 };
 use serde::Serialize;
 
@@ -132,9 +132,9 @@ impl<'de> serde::Deserialize<'de> for BitfinexMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use barter_integration::de::datetime_utc_from_epoch_duration;
-    use barter_integration::error::SocketError;
-    use barter_integration::model::Side;
+    use barter_integration::{
+        de::datetime_utc_from_epoch_duration, error::SocketError, model::Side,
+    };
     use std::time::Duration;
 
     #[test]

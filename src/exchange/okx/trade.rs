@@ -4,7 +4,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{Exchange, Instrument, Side, SubscriptionId};
+use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -119,8 +119,7 @@ mod tests {
 
     mod de {
         use super::*;
-        use barter_integration::de::datetime_utc_from_epoch_duration;
-        use barter_integration::error::SocketError;
+        use barter_integration::{de::datetime_utc_from_epoch_duration, error::SocketError};
         use std::time::Duration;
 
         #[test]

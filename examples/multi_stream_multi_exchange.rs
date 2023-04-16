@@ -11,7 +11,7 @@ use barter_data::{
         trade::PublicTrades,
     },
 };
-use barter_integration::model::InstrumentKind;
+use barter_integration::model::instrument::kind::InstrumentKind;
 use tokio_stream::StreamExt;
 use tracing::info;
 
