@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.6.9"
+version = "0.7.0"
 authors = ["JustAStream"]
 edition = "2021"
 license = "MIT"
