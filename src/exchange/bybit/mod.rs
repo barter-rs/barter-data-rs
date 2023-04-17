@@ -45,6 +45,9 @@ pub mod spot;
 /// and [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod subscription;
 
+/// Public liquidations types for [`BybitFuturesUsd`](futures::BybitFuturesUsd).
+mod liquidation;
+
 /// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
 /// [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod trade;

@@ -1,6 +1,6 @@
 use crate::{
     exchange::bybit::Bybit,
-    subscription::{trade::PublicTrades, Subscription},
+    subscription::{liquidation::Liquidations, trade::PublicTrades, Subscription},
     Identifier,
 };
 use serde::Serialize;
@@ -13,15 +13,26 @@ use serde::Serialize;
 pub struct BybitChannel(pub &'static str);
 
 impl BybitChannel {
-    /// [`Bybit`](super::Bybit) real-time trades channel name.
+    /// [`Bybit`](super::Bybit) real-time trades channel.
     ///
     /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
     pub const TRADES: Self = Self("publicTrade");
+
+    /// [`Bybit`](super::Bybit) real-time liquidations channel.
+    ///
+    /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/liquidation>
+    pub const LIQUIDATIONS: Self = Self("liquidation");
 }
 
 impl<Server> Identifier<BybitChannel> for Subscription<Bybit<Server>, PublicTrades> {
     fn id(&self) -> BybitChannel {
         BybitChannel::TRADES
+    }
+}
+
+impl<Server> Identifier<BybitChannel> for Subscription<Bybit<Server>, Liquidations> {
+    fn id(&self) -> BybitChannel {
+        BybitChannel::LIQUIDATIONS
     }
 }
 

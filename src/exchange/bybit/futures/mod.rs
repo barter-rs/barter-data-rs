@@ -1,5 +1,10 @@
 use super::{Bybit, ExchangeServer};
-use crate::exchange::ExchangeId;
+use crate::{
+    exchange::{bybit::message::BybitMessage, ExchangeId, StreamSelector},
+    subscription::liquidation::Liquidations,
+    transformer::stateless::StatelessTransformer,
+    ExchangeWsStream,
+};
 
 /// [`BybitPerpetualsUsd`] WebSocket server base url.
 ///
@@ -19,4 +24,8 @@ impl ExchangeServer for BybitServerPerpetualsUsd {
     fn websocket_url() -> &'static str {
         WEBSOCKET_BASE_URL_BYBIT_PERPETUALS_USD
     }
+}
+
+impl StreamSelector<Liquidations> for Bybit<BybitServerFuturesUsd> {
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, Liquidations, BybitMessage>>;
 }
