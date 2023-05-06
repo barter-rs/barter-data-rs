@@ -118,8 +118,8 @@ impl OrderBook {
 /// Normalised Barter [`Level`]s for one [`Side`] of the [`OrderBook`].
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBookSide {
-    side: Side,
-    levels: Vec<Level>,
+    pub side: Side,
+    pub levels: Vec<Level>,
 }
 
 impl OrderBookSide {
