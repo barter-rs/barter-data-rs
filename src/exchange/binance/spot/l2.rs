@@ -166,7 +166,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
     {
         // Construct initial OrderBook snapshot GET url
         let snapshot_url = format!(
-            "{}?symbol={}{}&limit=100",
+            "{}?symbol={}{}&limit=5000",
             HTTP_BOOK_L2_SNAPSHOT_URL_BINANCE_SPOT,
             instrument.base.as_ref().to_uppercase(),
             instrument.quote.as_ref().to_uppercase()
