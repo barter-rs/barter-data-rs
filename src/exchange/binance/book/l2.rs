@@ -60,7 +60,8 @@ pub struct BinanceOrderBookL2Snapshot {
 impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     fn from(snapshot: BinanceOrderBookL2Snapshot) -> Self {
         Self {
-            last_update_time: snapshot.time,
+            exchange_update_time: snapshot.time,
+            last_update_time: Utc::now(),
             bids: OrderBookSide::new(Side::Buy, snapshot.bids),
             asks: OrderBookSide::new(Side::Sell, snapshot.asks),
         }

@@ -218,7 +218,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
         // Update OrderBook metadata & Levels:
         // 7. The data in each event is the absolute quantity for a price level.
         // 8. If the quantity is 0, remove the price level.
-        book.last_update_time = update.time;
+        book.last_update_time = Utc::now();
         book.bids.upsert(update.bids);
         book.asks.upsert(update.asks);
 
@@ -500,6 +500,7 @@ mod tests {
                 expected: Result<Option<OrderBook>, DataError>,
             }
 
+            let exchange_time = Utc::now();
             let time = Utc::now();
 
             let tests = vec![
@@ -511,6 +512,7 @@ mod tests {
                         prev_last_update_id: 0,
                     },
                     book: OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(Side::Buy, vec![Level::new(50, 1)]),
                         asks: OrderBookSide::new(Side::Sell, vec![Level::new(100, 1)]),
@@ -533,6 +535,7 @@ mod tests {
                         prev_last_update_id: 100,
                     },
                     book: OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,
@@ -574,6 +577,7 @@ mod tests {
                         time: Default::default(),
                     },
                     expected: Ok(Some(OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,

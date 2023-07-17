@@ -519,6 +519,7 @@ mod tests {
                         last_update_id: 100,
                     },
                     book: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: time,
                         bids: OrderBookSide::new(Side::Buy, vec![Level::new(50, 1)]),
                         asks: OrderBookSide::new(Side::Sell, vec![Level::new(100, 1)]),
@@ -541,6 +542,7 @@ mod tests {
                         last_update_id: 100,
                     },
                     book: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,
@@ -583,6 +585,7 @@ mod tests {
                         time: Default::default(),
                     },
                     expected: Ok(Some(OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,

@@ -73,7 +73,9 @@ impl SubKind for OrderBooksL3 {
 /// Normalised Barter [`OrderBook`] snapshot.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
-    /// Exchange given timestamp of the last orderbook update 
+    /// Exchange generated timestamp of the last orderbook event
+    pub exchange_update_time: DateTime<Utc>,
+    /// Local timestamp of the last orderbook update
     pub last_update_time: DateTime<Utc>,
     pub bids: OrderBookSide,
     pub asks: OrderBookSide,
@@ -277,7 +279,7 @@ pub fn volume_weighted_mid_price(best_bid: Level, best_ask: Level) -> f64 {
 impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
     fn from((exchange_id, instrument, book): (ExchangeId, Instrument, OrderBook)) -> Self {
         Self(vec![Ok(MarketEvent {
-            exchange_time: book.last_update_time,
+            exchange_time: book.exchange_update_time,
             received_time: Utc::now(),
             exchange: Exchange::from(exchange_id),
             instrument,
@@ -396,6 +398,7 @@ mod tests {
                 TestCase {
                     // TC0: no levels so 0.0 mid-price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -411,6 +414,7 @@ mod tests {
                 TestCase {
                     // TC1: no asks in the book so take best bid price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -426,6 +430,7 @@ mod tests {
                 TestCase {
                     // TC2: no bids in the book so take ask price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -441,6 +446,7 @@ mod tests {
                 TestCase {
                     // TC3: best bid and ask amount is the same, so regular mid-price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -471,6 +477,7 @@ mod tests {
                 TestCase {
                     // TC0: no levels so 0.0 mid-price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -486,6 +493,7 @@ mod tests {
                 TestCase {
                     // TC1: no asks in the book so take best bid price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -501,6 +509,7 @@ mod tests {
                 TestCase {
                     // TC2: no bids in the book so take ask price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -516,6 +525,7 @@ mod tests {
                 TestCase {
                     // TC3: best bid and ask amount is the same, so regular mid-price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
@@ -531,6 +541,7 @@ mod tests {
                 TestCase {
                     // TC4: valid volume weighted mid-price
                     input: OrderBook {
+                        exchange_update_time: Default::default(),
                         last_update_time: Default::default(),
                         bids: OrderBookSide {
                             side: Side::Buy,
