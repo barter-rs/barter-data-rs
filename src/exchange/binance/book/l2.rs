@@ -5,7 +5,7 @@ use crate::{
     Identifier,
 };
 use barter_integration::model::{Side, SubscriptionId};
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 
 /// [`Binance`](super::super::Binance) OrderBook Level2 snapshot HTTP message.
@@ -47,6 +47,12 @@ use serde::{Deserialize, Serialize};
 pub struct BinanceOrderBookL2Snapshot {
     #[serde(rename = "lastUpdateId")]
     pub last_update_id: u64,
+    #[serde(
+        alias = "E",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc",
+        default = "Utc::now"
+    )]
+    pub time: DateTime<Utc>,
     pub bids: Vec<BinanceLevel>,
     pub asks: Vec<BinanceLevel>,
 }
@@ -54,7 +60,7 @@ pub struct BinanceOrderBookL2Snapshot {
 impl From<BinanceOrderBookL2Snapshot> for OrderBook {
     fn from(snapshot: BinanceOrderBookL2Snapshot) -> Self {
         Self {
-            last_update_time: Utc::now(),
+            last_update_time: snapshot.time,
             bids: OrderBookSide::new(Side::Buy, snapshot.bids),
             asks: OrderBookSide::new(Side::Sell, snapshot.asks),
         }
@@ -80,6 +86,10 @@ mod tests {
     use super::*;
 
     mod de {
+        use std::time::Duration;
+
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+
         use super::*;
 
         #[test]
@@ -95,6 +105,7 @@ mod tests {
                     input: r#"
                     {
                         "lastUpdateId": 1027024,
+                        "E": 123456789,
                         "bids": [
                             [
                                 "4.00000000",
@@ -119,6 +130,7 @@ mod tests {
                             price: 4.00000200,
                             amount: 12.0,
                         }],
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(123456789)),
                     },
                 },
                 TestCase {
@@ -152,6 +164,7 @@ mod tests {
                             price: 4.00000200,
                             amount: 12.0,
                         }],
+                        time: datetime_utc_from_epoch_duration(Duration::from_millis(1589436922972)),
                     },
                 },
             ];

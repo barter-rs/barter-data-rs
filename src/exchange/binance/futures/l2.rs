@@ -11,7 +11,7 @@ use barter_integration::{
     model::{instrument::Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
 };
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -58,6 +58,12 @@ pub struct BinanceFuturesOrderBookL2Delta {
     pub bids: Vec<BinanceLevel>,
     #[serde(alias = "a")]
     pub asks: Vec<BinanceLevel>,
+    #[serde(
+        alias = "E",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc",
+        default = "Utc::now"
+    )]
+    pub time: DateTime<Utc>,
 }
 
 impl Identifier<Option<SubscriptionId>> for BinanceFuturesOrderBookL2Delta {
@@ -233,6 +239,10 @@ mod tests {
     use super::*;
 
     mod de {
+        use std::time::Duration;
+
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+
         use super::*;
 
         #[test]
@@ -275,7 +285,8 @@ mod tests {
                     asks: vec![BinanceLevel {
                         price: 0.0026,
                         amount: 100.0
-                    },]
+                    },],
+                    time: datetime_utc_from_epoch_duration(Duration::from_millis(123_456_789))
                 }
             );
         }
@@ -341,6 +352,7 @@ mod tests {
                         prev_last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -357,6 +369,7 @@ mod tests {
                         prev_last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -376,6 +389,7 @@ mod tests {
                         prev_last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -395,6 +409,7 @@ mod tests {
                         prev_last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -442,6 +457,7 @@ mod tests {
                         prev_last_update_id: 100,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -458,6 +474,7 @@ mod tests {
                         prev_last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -513,6 +530,7 @@ mod tests {
                         prev_last_update_id: 0,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(None),
                 },
@@ -562,6 +580,7 @@ mod tests {
                                 amount: 0.0,
                             },
                         ],
+                        time: Default::default(),
                     },
                     expected: Ok(Some(OrderBook {
                         last_update_time: time,

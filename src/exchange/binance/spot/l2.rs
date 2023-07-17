@@ -11,7 +11,7 @@ use barter_integration::{
     model::{instrument::Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
 };
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -53,6 +53,12 @@ pub struct BinanceSpotOrderBookL2Delta {
     pub bids: Vec<BinanceLevel>,
     #[serde(alias = "a")]
     pub asks: Vec<BinanceLevel>,
+    #[serde(
+        alias = "E",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc",
+        default = "Utc::now"
+    )]
+    pub time: DateTime<Utc>,
 }
 
 impl Identifier<Option<SubscriptionId>> for BinanceSpotOrderBookL2Delta {
@@ -212,7 +218,7 @@ impl OrderBookUpdater for BinanceSpotBookUpdater {
         // Update OrderBook metadata & Levels:
         // 7. The data in each event is the absolute quantity for a price level.
         // 8. If the quantity is 0, remove the price level.
-        book.last_update_time = Utc::now();
+        book.last_update_time = update.time;
         book.bids.upsert(update.bids);
         book.asks.upsert(update.asks);
 
@@ -230,6 +236,10 @@ mod tests {
     use super::*;
 
     mod de {
+        use std::time::Duration;
+
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+
         use super::*;
 
         #[test]
@@ -265,7 +275,8 @@ mod tests {
                             amount: 20.68790000
                         },
                     ],
-                    asks: vec![]
+                    asks: vec![],
+                    time: datetime_utc_from_epoch_duration(Duration::from_millis(1671656397761))
                 }
             );
         }
@@ -332,6 +343,7 @@ mod tests {
                         last_update_id: 110,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -348,6 +360,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -367,6 +380,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -386,6 +400,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -433,6 +448,7 @@ mod tests {
                         last_update_id: 110,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -449,6 +465,7 @@ mod tests {
                         last_update_id: 130,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -504,6 +521,7 @@ mod tests {
                         last_update_id: 100, // u == updater.lastUpdateId
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(None),
                 },
@@ -553,6 +571,7 @@ mod tests {
                                 amount: 0.0,
                             },
                         ],
+                        time: Default::default(),
                     },
                     expected: Ok(Some(OrderBook {
                         last_update_time: time,

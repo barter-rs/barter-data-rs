@@ -73,6 +73,7 @@ impl SubKind for OrderBooksL3 {
 /// Normalised Barter [`OrderBook`] snapshot.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBook {
+    /// Exchange given timestamp of the last orderbook update 
     pub last_update_time: DateTime<Utc>,
     pub bids: OrderBookSide,
     pub asks: OrderBookSide,
