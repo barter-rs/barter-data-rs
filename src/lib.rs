@@ -1,3 +1,6 @@
+#![forbid(unsafe_code)]
+#![allow(clippy::pedantic)]
+#![warn(clippy::all)]
 #![warn(
     missing_debug_implementations,
     missing_copy_implementations,
