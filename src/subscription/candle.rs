@@ -15,11 +15,13 @@ impl SubKind for Candles {
 pub enum TimeSeries {
     OneMinute,
     FiveMinutes,
+    FifteenMinutes,
+    ThirtyMinutes,
     OneHour,
     FourHours,
-    Day,
-    Week,
-    Month,
+    Daily,
+    Weekly,
+    Monthly,
 }
 
 /// Normalised Barter OHLCV [`Candle`] model.
