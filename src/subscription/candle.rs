@@ -11,9 +11,21 @@ impl SubKind for Candles {
     type Event = Candle;
 }
 
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
+pub enum TimeSeries {
+    OneMinute,
+    FiveMinutes,
+    OneHour,
+    FourHours,
+    Day,
+    Week,
+    Month,
+}
+
 /// Normalised Barter OHLCV [`Candle`] model.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
+    pub time_series: TimeSeries,
     pub close_time: DateTime<Utc>,
     pub open: f64,
     pub high: f64,
