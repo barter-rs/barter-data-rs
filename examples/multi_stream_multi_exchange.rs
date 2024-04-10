@@ -2,12 +2,14 @@ use barter_data::{
     event::{DataKind, MarketEvent},
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
+        bybit::futures::BybitPerpetualsUsd,
         kraken::Kraken,
         okx::Okx,
     },
     streams::Streams,
     subscription::{
         book::{OrderBooksL1, OrderBooksL2},
+        candle::Candles,
         trade::PublicTrades,
     },
 };
@@ -40,6 +42,13 @@ async fn main() {
             .subscribe([
                 (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
                 (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+            ])
+        )
+
+        // Add Candles Streams for various exchanges
+        .add(Streams::<Candles>::builder()
+            .subscribe([
+                (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles),
             ])
         )
 

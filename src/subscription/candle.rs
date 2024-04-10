@@ -14,11 +14,10 @@ impl SubKind for Candles {
 /// Normalised Barter OHLCV [`Candle`] model.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Debug, Deserialize, Serialize)]
 pub struct Candle {
-    pub close_time: DateTime<Utc>,
+    pub start_time: DateTime<Utc>,
     pub open: f64,
     pub high: f64,
     pub low: f64,
     pub close: f64,
     pub volume: f64,
-    pub trade_count: u64,
 }
