@@ -2,10 +2,27 @@ use super::SubKind;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+pub enum CandlePeriod {
+    OneMinute,
+    ThreeMinutes,
+    FiveMinutes,
+    FifteenMinutes,
+    ThirtyMinutes,
+    OneHour,
+    TwoHours,
+    FourHours,
+    SixHours,
+    TwelveHours,
+    OneDay,
+    OneWeek,
+    OneMonth,
+}
+
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields [`Candle`]
 /// [`MarketEvent<T>`](crate::event::MarketEvent) events.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct Candles;
+pub struct Candles(pub CandlePeriod);
 
 impl SubKind for Candles {
     type Event = Candle;

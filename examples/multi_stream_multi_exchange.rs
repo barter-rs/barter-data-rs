@@ -9,7 +9,7 @@ use barter_data::{
     streams::Streams,
     subscription::{
         book::{OrderBooksL1, OrderBooksL2},
-        candle::Candles,
+        candle::{CandlePeriod, Candles},
         trade::PublicTrades,
     },
 };
@@ -48,7 +48,7 @@ async fn main() {
         // Add Candles Streams for various exchanges
         .add(Streams::<Candles>::builder()
             .subscribe([
-                (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles),
+                (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles(CandlePeriod::OneMinute)),
             ])
         )
 

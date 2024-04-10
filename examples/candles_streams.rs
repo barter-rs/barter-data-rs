@@ -1,7 +1,7 @@
 use barter_data::{
     exchange::{bybit::futures::BybitPerpetualsUsd, ExchangeId},
     streams::Streams,
-    subscription::candle::Candles,
+    subscription::candle::{CandlePeriod, Candles},
 };
 use barter_integration::model::instrument::kind::InstrumentKind;
 use tracing::info;
@@ -18,7 +18,7 @@ async fn main() {
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
-            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles),
+            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles(CandlePeriod::ThreeMinutes)),
         ])
         .init()
         .await

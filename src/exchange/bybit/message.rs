@@ -81,13 +81,12 @@ where
             "{}|{market}",
             BybitChannel::TRADES.0
         ))),
-        (Some("kline"), Some(_), Some(market)) => Ok(SubscriptionId::from(format!(
-            "{}|{market}",
-            BybitChannel::CANDLES.0
-        ))),
+        (Some("kline"), Some(period), Some(market)) => {
+            Ok(SubscriptionId::from(format!("kline.{period}|{market}")))
+        }
         _ => Err(Error::invalid_value(
             Unexpected::Str(input),
-            &"invalid message type expected pattern: <type>.<symbol>",
+            &"invalid message type expected pattern: <type>.<symbol> or <type>.<period>.<symbol>",
         )),
     }
 }
