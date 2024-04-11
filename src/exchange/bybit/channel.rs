@@ -22,7 +22,7 @@ impl BybitChannel {
     /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/trade>
     pub const TRADES: Self = Self("publicTrade");
 
-    /// [`Bybit`](super::Bybit) real-time trades channel name.
+    /// [`Bybit`](super::Bybit) real-time candles channel names.
     ///
     /// See docs: <https://bybit-exchange.github.io/docs/v5/websocket/public/kline>
     pub const CANDLES_1M: Self = Self("kline.1");
@@ -48,7 +48,6 @@ impl<Server> Identifier<BybitChannel> for Subscription<Bybit<Server>, PublicTrad
 
 impl<Server> Identifier<BybitChannel> for Subscription<Bybit<Server>, Candles> {
     fn id(&self) -> BybitChannel {
-        println!("self.kind.0: {:?}", self.kind.0);
         match self.kind.0 {
             CandlePeriod::OneMinute => BybitChannel::CANDLES_1M,
             CandlePeriod::ThreeMinutes => BybitChannel::CANDLES_3M,
