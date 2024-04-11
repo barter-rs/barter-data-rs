@@ -1,9 +1,13 @@
 use crate::{
     event::MarketIter,
     exchange::{
-        bybit::{channel::BybitChannel, subscription::BybitResponse, trade::BybitTrade},
+        bybit::{
+            candle::BybitCandle, channel::BybitChannel, subscription::BybitResponse,
+            trade::BybitTrade,
+        },
         ExchangeId,
     },
+    subscription::candle::Candle,
     subscription::trade::PublicTrade,
     Identifier,
 };
@@ -20,6 +24,7 @@ use serde::{
 pub enum BybitMessage {
     Response(BybitResponse),
     Trade(BybitTrade),
+    Candle(BybitCandle),
 }
 
 /// ### Raw Payload Examples
@@ -76,9 +81,12 @@ where
             "{}|{market}",
             BybitChannel::TRADES.0
         ))),
+        (Some("kline"), Some(period), Some(market)) => {
+            Ok(SubscriptionId::from(format!("kline.{period}|{market}")))
+        }
         _ => Err(Error::invalid_value(
             Unexpected::Str(input),
-            &"invalid message type expected pattern: <type>.<symbol>",
+            &"invalid message type expected pattern: <type>.<symbol> or <type>.<period>.<symbol>",
         )),
     }
 }
@@ -87,6 +95,7 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
     fn id(&self) -> Option<SubscriptionId> {
         match self {
             BybitMessage::Trade(trade) => Some(trade.subscription_id.clone()),
+            BybitMessage::Candle(candle) => Some(candle.subscription_id.clone()),
             _ => None,
         }
     }
@@ -95,8 +104,17 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
 impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
     fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
         match message {
-            BybitMessage::Response(_) => Self(vec![]),
+            BybitMessage::Response(_) | BybitMessage::Candle(_) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),
+        }
+    }
+}
+
+impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<Candle> {
+    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
+        match message {
+            BybitMessage::Response(_) | BybitMessage::Trade(_) => Self(vec![]),
+            BybitMessage::Candle(candle) => Self::from((exchange_id, instrument, candle)),
         }
     }
 }

@@ -32,6 +32,7 @@ impl<T> FromIterator<Result<MarketEvent<T>, DataError>> for MarketIter<T> {
 ///
 /// ### Examples
 /// - [`MarketEvent<PublicTrade>`](crate::subscription::trade::PublicTrade)
+/// - [`MarketEvent<Candle>`](crate::subscription::candle::Candle)
 /// - [`MarketEvent<OrderBookL1>`](crate::subscription::book::OrderBookL1)
 /// - [`MarketEvent<DataKind>`](DataKind)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
@@ -74,6 +75,18 @@ impl From<MarketEvent<PublicTrade>> for MarketEvent<DataKind> {
     }
 }
 
+impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
+    fn from(event: MarketEvent<Candle>) -> Self {
+        Self {
+            exchange_time: event.exchange_time,
+            received_time: event.received_time,
+            exchange: event.exchange,
+            instrument: event.instrument,
+            kind: DataKind::Candle(event.kind),
+        }
+    }
+}
+
 impl From<MarketEvent<OrderBookL1>> for MarketEvent<DataKind> {
     fn from(event: MarketEvent<OrderBookL1>) -> Self {
         Self {
@@ -94,18 +107,6 @@ impl From<MarketEvent<OrderBook>> for MarketEvent<DataKind> {
             exchange: event.exchange,
             instrument: event.instrument,
             kind: DataKind::OrderBook(event.kind),
-        }
-    }
-}
-
-impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<Candle>) -> Self {
-        Self {
-            exchange_time: event.exchange_time,
-            received_time: event.received_time,
-            exchange: event.exchange,
-            instrument: event.instrument,
-            kind: DataKind::Candle(event.kind),
         }
     }
 }

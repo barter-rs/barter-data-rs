@@ -127,7 +127,8 @@ pub mod subscription;
 ///
 /// Standard implementations that work for most exchanges are included such as: <br>
 /// - [`StatelessTransformer`](transformer::stateless::StatelessTransformer) for
-///   [`PublicTrades`](crate::subscription::trade::PublicTrades)
+///   [`PublicTrades`](crate::subscription::trade::PublicTrades),
+///   [`Candles`](crate::subscription::candle::Candles)
 ///   and [`OrderBooksL1`](crate::subscription::book::OrderBooksL1) streams. <br>
 /// - [`MultiBookTransformer`](transformer::book::MultiBookTransformer) for
 ///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and

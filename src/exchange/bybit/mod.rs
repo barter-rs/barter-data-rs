@@ -8,7 +8,7 @@ use crate::{
         Connector, ExchangeId, ExchangeServer, PingInterval, StreamSelector,
     },
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
-    subscription::{trade::PublicTrades, Map},
+    subscription::{candle::Candles, trade::PublicTrades, Map},
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
@@ -48,6 +48,10 @@ pub mod subscription;
 /// Public trade types common to both [`BybitSpot`](spot::BybitSpot) and
 /// [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 pub mod trade;
+
+/// Public candle types common to
+/// [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
+pub mod candle;
 
 /// Generic [`Bybit<Server>`](Bybit) exchange.
 ///
@@ -113,6 +117,13 @@ where
     Server: ExchangeServer + Debug + Send + Sync,
 {
     type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitMessage>>;
+}
+
+impl<Server> StreamSelector<Candles> for Bybit<Server>
+where
+    Server: ExchangeServer + Debug + Send + Sync,
+{
+    type Stream = ExchangeWsStream<StatelessTransformer<Self, Candles, BybitMessage>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>
