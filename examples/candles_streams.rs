@@ -12,7 +12,7 @@ async fn main() {
     // Initialise INFO Tracing log subscriber
     init_logging();
 
-    // Initialise PublicTrades Streams for BinanceFuturesUsd only
+    // Initialise Candles Streams for BybitPerpetualsUsd only
     // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
     let mut streams = Streams::<Candles>::builder()
 
@@ -24,7 +24,7 @@ async fn main() {
         .await
         .unwrap();
 
-    // Select the ExchangeId::BinanceFuturesUsd stream
+    // Select the ExchangeId::BybitPerpetualsUsd stream
     // Notes:
     //  - Use `streams.select(ExchangeId)` to interact with the individual exchange streams!
     //  - Use `streams.join()` to join all exchange streams into a single mpsc::UnboundedReceiver!
@@ -32,8 +32,8 @@ async fn main() {
         .select(ExchangeId::BybitPerpetualsUsd)
         .unwrap();
 
-    while let Some(trade) = bybit_stream.recv().await {
-        info!("MarketEvent<Candle>: {trade:?}");
+    while let Some(candle) = bybit_stream.recv().await {
+        info!("MarketEvent<Candle>: {candle:?}");
     }
 }
 
