@@ -18,8 +18,8 @@ rust_decimal_macros = "1.29.1"
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.5.3"
-barter-macro =  "0.1.1"
+barter-integration = "0.6.2"
+barter-macro = "0.1.1"
 
 # Logging
 tracing = "0.1.36"
@@ -45,4 +45,4 @@ serde_json = "1.0.83"
 ta = "0.5.0"
 
 # Misc
-chrono = {version = "0.4.21", features = ["serde"]}
+chrono = { version = "0.4.21", features = ["serde"] }
