@@ -69,6 +69,7 @@ impl From<(ExchangeId, Instrument, BybitCandle)> for MarketIter<Candle> {
             candles
                 .data
                 .into_iter()
+                .filter(|candle| candle.confirm)
                 .map(|candle| {
                     Ok(MarketEvent {
                         exchange_time: candle.timestamp,

@@ -18,7 +18,7 @@ async fn main() {
 
         // Separate WebSocket connection for BTC_USDT stream since it's very high volume
         .subscribe([
-            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles(CandlePeriod::ThreeMinutes)),
+            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, Candles(CandlePeriod::OneMinute)),
         ])
         .init()
         .await
