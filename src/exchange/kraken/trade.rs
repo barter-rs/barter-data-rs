@@ -51,7 +51,7 @@ impl Identifier<Option<SubscriptionId>> for KrakenTradesInner {
 fn custom_kraken_trade_id(trade: &KrakenTrade) -> String {
     format!(
         "{}_{}_{}_{}",
-        trade.time.timestamp_nanos(),
+        trade.time.timestamp_nanos_opt().unwrap(),
         trade.side,
         trade.price,
         trade.amount
