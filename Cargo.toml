@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["JustAStream"]
 edition = "2021"
 license = "MIT"
@@ -18,7 +18,7 @@ rust_decimal_macros = "1.29.1"
 
 [dependencies]
 # Barter Ecosystem
-barter-integration = "0.5.3"
+barter-integration = "0.7.1"
 barter-macro =  "0.1.1"
 
 # Logging
@@ -32,7 +32,7 @@ async-trait = "0.1.57"
 
 # Protocol
 url = "2.3.1"
-reqwest = "0.11.13"
+reqwest = "0.12.4"
 
 # Error
 thiserror = "1.0.32"
