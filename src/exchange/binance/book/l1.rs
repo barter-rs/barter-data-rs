@@ -4,7 +4,7 @@ use crate::{
     subscription::book::{Level, OrderBookL1},
     Identifier,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, SubscriptionId};
+use barter_integration::model::{Exchange, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -62,8 +62,12 @@ impl Identifier<Option<SubscriptionId>> for BinanceOrderBookL1 {
     }
 }
 
-impl From<(ExchangeId, Instrument, BinanceOrderBookL1)> for MarketIter<OrderBookL1> {
-    fn from((exchange_id, instrument, book): (ExchangeId, Instrument, BinanceOrderBookL1)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, BinanceOrderBookL1)>
+    for MarketIter<InstrumentId, OrderBookL1>
+{
+    fn from(
+        (exchange_id, instrument, book): (ExchangeId, InstrumentId, BinanceOrderBookL1),
+    ) -> Self {
         Self(vec![Ok(MarketEvent {
             exchange_time: book.time,
             received_time: Utc::now(),

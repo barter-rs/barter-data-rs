@@ -3,7 +3,7 @@ use crate::{
     exchange::{bybit::message::BybitPayload, ExchangeId},
     subscription::trade::PublicTrade,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, Side};
+use barter_integration::model::{Exchange, Side};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -49,8 +49,10 @@ pub struct BybitTradeInner {
     pub id: String,
 }
 
-impl From<(ExchangeId, Instrument, BybitTrade)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, BybitTrade)) -> Self {
+impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, BybitTrade)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, trades): (ExchangeId, InstrumentId, BybitTrade)) -> Self {
         Self(
             trades
                 .data

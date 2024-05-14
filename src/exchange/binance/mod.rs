@@ -2,6 +2,7 @@ use self::{
     book::l1::BinanceOrderBookL1, channel::BinanceChannel, market::BinanceMarket,
     subscription::BinanceSubResponse, trade::BinanceTrade,
 };
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeServer, ExchangeSub, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
@@ -9,9 +10,7 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{
-    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
-};
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use std::{fmt::Debug, marker::PhantomData};
 use url::Url;
 
@@ -47,7 +46,7 @@ pub mod trade;
 /// Generic [`Binance<Server>`](Binance) exchange.
 ///
 /// ### Notes
-/// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
+/// A `Server` [`ExchangeServer`] implementations exists for
 /// [`BinanceSpot`](spot::BinanceSpot) and [`BinanceFuturesUsd`](futures::BinanceFuturesUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Binance<Server> {
@@ -94,23 +93,28 @@ where
         )]
     }
 
-    fn expected_responses(_: &Map<Instrument>) -> usize {
+    fn expected_responses<InstrumentId>(_: &Map<InstrumentId>) -> usize {
         1
     }
 }
 
-impl<Server> StreamSelector<PublicTrades> for Binance<Server>
+impl<Instrument, Server> StreamSelector<Instrument, PublicTrades> for Binance<Server>
 where
+    Instrument: InstrumentData,
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BinanceTrade>>;
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, BinanceTrade>>;
 }
 
-impl<Server> StreamSelector<OrderBooksL1> for Binance<Server>
+impl<Instrument, Server> StreamSelector<Instrument, OrderBooksL1> for Binance<Server>
 where
+    Instrument: InstrumentData,
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, BinanceOrderBookL1>>;
+    type Stream = ExchangeWsStream<
+        StatelessTransformer<Self, Instrument::Id, OrderBooksL1, BinanceOrderBookL1>,
+    >;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Binance<Server>

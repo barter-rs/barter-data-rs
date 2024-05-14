@@ -61,9 +61,9 @@ where
     Market: AsRef<str>,
 {
     /// Construct a new exchange specific [`Self`] with the Barter [`Subscription`] provided.
-    pub fn new<Exchange, Kind>(sub: &Subscription<Exchange, Kind>) -> Self
+    pub fn new<Exchange, Instrument, Kind>(sub: &Subscription<Exchange, Instrument, Kind>) -> Self
     where
-        Subscription<Exchange, Kind>: Identifier<Channel> + Identifier<Market>,
+        Subscription<Exchange, Instrument, Kind>: Identifier<Channel> + Identifier<Market>,
     {
         Self {
             channel: sub.id(),

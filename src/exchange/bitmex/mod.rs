@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{
         bitmex::{
@@ -12,9 +13,7 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{
-    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
-};
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
 use std::fmt::Debug;
 use url::Url;
@@ -72,13 +71,17 @@ impl Connector for Bitmex {
         )]
     }
 
-    fn expected_responses(_: &Map<Instrument>) -> usize {
+    fn expected_responses<InstrumentId>(_: &Map<InstrumentId>) -> usize {
         1
     }
 }
 
-impl StreamSelector<PublicTrades> for Bitmex {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitmexTrade>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Bitmex
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, BitmexTrade>>;
 }
 
 impl<'de> serde::Deserialize<'de> for Bitmex {
@@ -90,7 +93,7 @@ impl<'de> serde::Deserialize<'de> for Bitmex {
         let expected = Self::ID.as_str();
 
         if input == Self::ID.as_str() {
-            Ok(Self::default())
+            Ok(Self)
         } else {
             Err(Error::invalid_value(Unexpected::Str(input), &expected))
         }

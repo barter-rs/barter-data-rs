@@ -1,13 +1,15 @@
-use super::BinanceChannel;
+use barter_integration::model::{Exchange, Side, SubscriptionId};
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+
 use crate::{
     event::{MarketEvent, MarketIter},
     exchange::{ExchangeId, ExchangeSub},
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+
+use super::BinanceChannel;
 
 /// Binance real-time trade message.
 ///
@@ -75,8 +77,10 @@ impl Identifier<Option<SubscriptionId>> for BinanceTrade {
     }
 }
 
-impl From<(ExchangeId, Instrument, BinanceTrade)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BinanceTrade)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, BinanceTrade)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, trade): (ExchangeId, InstrumentId, BinanceTrade)) -> Self {
         Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),
@@ -125,10 +129,12 @@ mod tests {
     use super::*;
 
     mod de {
-        use super::*;
+        use std::time::Duration;
+
         use barter_integration::{de::datetime_utc_from_epoch_duration, error::SocketError};
         use serde::de::Error;
-        use std::time::Duration;
+
+        use super::*;
 
         #[test]
         fn test_binance_trade() {

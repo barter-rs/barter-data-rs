@@ -81,6 +81,7 @@
 //! }
 //! ```
 
+use crate::instrument::InstrumentData;
 use crate::{
     error::DataError,
     event::MarketEvent,
@@ -101,7 +102,7 @@ use tracing::{debug, error};
 /// All [`Error`](std::error::Error)s generated in Barter-Data.
 pub mod error;
 
-/// Defines the generic [`MarketEvent<T>`](event::MarketEvent) used in every [`MarketStream`].
+/// Defines the generic [`MarketEvent<T>`](MarketEvent) used in every [`MarketStream`].
 pub mod event;
 
 /// [`Connector`] implementations for each exchange.
@@ -122,16 +123,19 @@ pub mod subscriber;
 /// Barter output type the exchange will be transformed into.
 pub mod subscription;
 
+/// [`InstrumentData`] trait for instrument describing data.
+pub mod instrument;
+
 /// Generic [`ExchangeTransformer`] implementations used by [`MarketStream`]s to translate exchange
 /// specific types to normalised Barter types.
 ///
 /// Standard implementations that work for most exchanges are included such as: <br>
 /// - [`StatelessTransformer`](transformer::stateless::StatelessTransformer) for
-///   [`PublicTrades`](crate::subscription::trade::PublicTrades)
-///   and [`OrderBooksL1`](crate::subscription::book::OrderBooksL1) streams. <br>
+///   [`PublicTrades`](subscription::trade::PublicTrades)
+///   and [`OrderBooksL1`](subscription::book::OrderBooksL1) streams. <br>
 /// - [`MultiBookTransformer`](transformer::book::MultiBookTransformer) for
-///   [`OrderBooksL2`](crate::subscription::book::OrderBooksL2) and
-///   [`OrderBooksL3`](crate::subscription::book::OrderBooksL3) streams.
+///   [`OrderBooksL2`](subscription::book::OrderBooksL2) and
+///   [`OrderBooksL3`](subscription::book::OrderBooksL3) streams.
 pub mod transformer;
 
 /// Convenient type alias for an [`ExchangeStream`] utilising a tungstenite
@@ -146,28 +150,40 @@ pub trait Identifier<T> {
 /// [`Stream`] that yields [`Market<Kind>`](MarketEvent) events. The type of [`Market<Kind>`](MarketEvent)
 /// depends on the provided [`SubKind`] of the passed [`Subscription`]s.
 #[async_trait]
-pub trait MarketStream<Exchange, Kind>
+pub trait MarketStream<Exchange, Instrument, Kind>
 where
-    Self: Stream<Item = Result<MarketEvent<Kind::Event>, DataError>> + Send + Sized + Unpin,
+    Self: Stream<Item = Result<MarketEvent<Instrument::Id, Kind::Event>, DataError>>
+        + Send
+        + Sized
+        + Unpin,
     Exchange: Connector,
+    Instrument: InstrumentData,
     Kind: SubKind,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
+    async fn init(
+        subscriptions: &[Subscription<Exchange, Instrument, Kind>],
+    ) -> Result<Self, DataError>
     where
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
+        Subscription<Exchange, Instrument, Kind>:
+            Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 #[async_trait]
-impl<Exchange, Kind, Transformer> MarketStream<Exchange, Kind> for ExchangeWsStream<Transformer>
+impl<Exchange, Instrument, Kind, Transformer> MarketStream<Exchange, Instrument, Kind>
+    for ExchangeWsStream<Transformer>
 where
     Exchange: Connector + Send + Sync,
+    Instrument: InstrumentData,
     Kind: SubKind + Send + Sync,
-    Transformer: ExchangeTransformer<Exchange, Kind> + Send,
+    Transformer: ExchangeTransformer<Exchange, Instrument::Id, Kind> + Send,
     Kind::Event: Send,
 {
-    async fn init(subscriptions: &[Subscription<Exchange, Kind>]) -> Result<Self, DataError>
+    async fn init(
+        subscriptions: &[Subscription<Exchange, Instrument, Kind>],
+    ) -> Result<Self, DataError>
     where
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Subscription<Exchange, Instrument, Kind>:
+            Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Connect & subscribe
         let (websocket, map) = Exchange::Subscriber::subscribe(subscriptions).await?;

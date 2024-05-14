@@ -1,5 +1,6 @@
 use self::trade::GateioSpotTrade;
 use super::Gateio;
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{ExchangeId, ExchangeServer, StreamSelector},
     subscription::trade::PublicTrades,
@@ -16,10 +17,10 @@ pub mod trade;
 /// See docs: <https://www.gate.io/docs/developers/apiv4/ws/en/>
 pub const WEBSOCKET_BASE_URL_GATEIO_SPOT: &str = "wss://api.gateio.ws/ws/v4/";
 
-/// [`Gateio`](super::Gateio) spot exchange.
+/// [`Gateio`] spot exchange.
 pub type GateioSpot = Gateio<GateioServerSpot>;
 
-/// [`Gateio`](super::Gateio) spot [`ExchangeServer`].
+/// [`Gateio`] spot [`ExchangeServer`].
 #[derive(
     Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default, DeExchange, SerExchange,
 )]
@@ -33,6 +34,10 @@ impl ExchangeServer for GateioServerSpot {
     }
 }
 
-impl StreamSelector<PublicTrades> for GateioSpot {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioSpotTrade>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for GateioSpot
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, GateioSpotTrade>>;
 }

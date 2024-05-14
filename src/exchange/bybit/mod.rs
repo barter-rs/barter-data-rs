@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{
         bybit::{
@@ -12,9 +13,7 @@ use crate::{
     transformer::stateless::StatelessTransformer,
     ExchangeWsStream,
 };
-use barter_integration::{
-    error::SocketError, model::instrument::Instrument, protocol::websocket::WsMessage,
-};
+use barter_integration::{error::SocketError, protocol::websocket::WsMessage};
 use serde::de::{Error, Unexpected};
 use std::{fmt::Debug, marker::PhantomData, time::Duration};
 use tokio::time;
@@ -52,7 +51,7 @@ pub mod trade;
 /// Generic [`Bybit<Server>`](Bybit) exchange.
 ///
 /// ### Notes
-/// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
+/// A `Server` [`ExchangeServer`] implementations exists for
 /// [`BybitSpot`](spot::BybitSpot) and [`BybitFuturesUsd`](futures::BybitPerpetualsUsd).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Bybit<Server> {
@@ -103,16 +102,18 @@ where
         )]
     }
 
-    fn expected_responses(_: &Map<Instrument>) -> usize {
+    fn expected_responses<InstrumentId>(_: &Map<InstrumentId>) -> usize {
         1
     }
 }
 
-impl<Server> StreamSelector<PublicTrades> for Bybit<Server>
+impl<Instrument, Server> StreamSelector<Instrument, PublicTrades> for Bybit<Server>
 where
+    Instrument: InstrumentData,
     Server: ExchangeServer + Debug + Send + Sync,
 {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BybitMessage>>;
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, BybitMessage>>;
 }
 
 impl<'de, Server> serde::Deserialize<'de> for Bybit<Server>

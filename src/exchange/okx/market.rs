@@ -1,4 +1,5 @@
 use super::Okx;
+use crate::instrument::MarketInstrumentData;
 use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::instrument::{
     kind::{InstrumentKind, OptionKind},
@@ -11,13 +12,13 @@ use chrono::{
 use serde::{Deserialize, Serialize};
 
 /// Type that defines how to translate a Barter [`Subscription`] into a
-/// [`Okx`](super::Okx) market that can be subscribed to.
+/// [`Okx`] market that can be subscribed to.
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#websocket-api-public-channel>
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct OkxMarket(pub String);
 
-impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Kind> {
+impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Instrument, Kind> {
     fn id(&self) -> OkxMarket {
         use InstrumentKind::*;
         let Instrument { base, quote, kind } = &self.instrument;
@@ -39,6 +40,12 @@ impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Kind> {
             )
             .to_uppercase(),
         })
+    }
+}
+
+impl<Kind> Identifier<OkxMarket> for Subscription<Okx, MarketInstrumentData, Kind> {
+    fn id(&self) -> OkxMarket {
+        OkxMarket(self.instrument.name_exchange.clone())
     }
 }
 

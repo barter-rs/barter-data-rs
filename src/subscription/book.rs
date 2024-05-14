@@ -3,7 +3,7 @@ use crate::{
     event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, Side};
+use barter_integration::model::{Exchange, Side};
 use barter_macro::{DeSubKind, SerSubKind};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -11,7 +11,7 @@ use std::cmp::Ordering;
 use tracing::debug;
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
-/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
+/// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 1 refers to the best non-aggregated bid and ask [`Level`] on each side of the
 /// [`OrderBook`].
@@ -48,7 +48,7 @@ impl OrderBookL1 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
-/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
+/// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
@@ -59,7 +59,7 @@ impl SubKind for OrderBooksL2 {
 }
 
 /// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]
-/// [`MarketEvent<T>`](crate::event::MarketEvent) events.
+/// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 3 refers to the non-aggregated [`OrderBook`]. This is a direct replication of the exchange
 /// [`OrderBook`].
@@ -273,8 +273,10 @@ pub fn volume_weighted_mid_price(best_bid: Level, best_ask: Level) -> f64 {
         / (best_bid.amount + best_ask.amount)
 }
 
-impl From<(ExchangeId, Instrument, OrderBook)> for MarketIter<OrderBook> {
-    fn from((exchange_id, instrument, book): (ExchangeId, Instrument, OrderBook)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, OrderBook)>
+    for MarketIter<InstrumentId, OrderBook>
+{
+    fn from((exchange_id, instrument, book): (ExchangeId, InstrumentId, OrderBook)) -> Self {
         Self(vec![Ok(MarketEvent {
             exchange_time: book.last_update_time,
             received_time: Utc::now(),

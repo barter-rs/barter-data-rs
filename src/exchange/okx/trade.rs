@@ -4,7 +4,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
+use barter_integration::model::{Exchange, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -91,8 +91,10 @@ pub struct OkxTrade {
     pub time: DateTime<Utc>,
 }
 
-impl From<(ExchangeId, Instrument, OkxTrades)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trades): (ExchangeId, Instrument, OkxTrades)) -> Self {
+impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, OkxTrades)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, trades): (ExchangeId, InstrumentId, OkxTrades)) -> Self {
         trades
             .data
             .into_iter()

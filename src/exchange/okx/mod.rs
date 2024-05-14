@@ -1,6 +1,7 @@
 use self::{
     channel::OkxChannel, market::OkxMarket, subscription::OkxSubResponse, trade::OkxTrades,
 };
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, PingInterval, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
@@ -77,6 +78,10 @@ impl Connector for Okx {
     }
 }
 
-impl StreamSelector<PublicTrades> for Okx {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, OkxTrades>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Okx
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, OkxTrades>>;
 }

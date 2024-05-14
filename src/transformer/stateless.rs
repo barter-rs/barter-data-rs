@@ -7,11 +7,7 @@ use crate::{
     Identifier,
 };
 use async_trait::async_trait;
-use barter_integration::{
-    model::{instrument::Instrument, SubscriptionId},
-    protocol::websocket::WsMessage,
-    Transformer,
-};
+use barter_integration::{model::SubscriptionId, protocol::websocket::WsMessage, Transformer};
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use tokio::sync::mpsc;
@@ -21,41 +17,44 @@ use tokio::sync::mpsc;
 /// [`PublicTrades`](crate::subscription::trade::PublicTrades) or
 /// [`OrderBooksL1`](crate::subscription::book::OrderBooksL1) streams.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize)]
-pub struct StatelessTransformer<Exchange, Kind, Input> {
-    instrument_map: Map<Instrument>,
+pub struct StatelessTransformer<Exchange, InstrumentId, Kind, Input> {
+    instrument_map: Map<InstrumentId>,
     phantom: PhantomData<(Exchange, Kind, Input)>,
 }
 
 #[async_trait]
-impl<Exchange, Kind, Input> ExchangeTransformer<Exchange, Kind>
-    for StatelessTransformer<Exchange, Kind, Input>
+impl<Exchange, InstrumentId, Kind, Input> ExchangeTransformer<Exchange, InstrumentId, Kind>
+    for StatelessTransformer<Exchange, InstrumentId, Kind, Input>
 where
     Exchange: Connector + Send,
+    InstrumentId: Clone + Send,
     Kind: SubKind + Send,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
-    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
+    MarketIter<InstrumentId, Kind::Event>: From<(ExchangeId, InstrumentId, Input)>,
 {
     async fn new(
         _: mpsc::UnboundedSender<WsMessage>,
-        instrument_map: Map<Instrument>,
+        instrument_map: Map<InstrumentId>,
     ) -> Result<Self, DataError> {
         Ok(Self {
             instrument_map,
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         })
     }
 }
 
-impl<Exchange, Kind, Input> Transformer for StatelessTransformer<Exchange, Kind, Input>
+impl<Exchange, InstrumentId, Kind, Input> Transformer
+    for StatelessTransformer<Exchange, InstrumentId, Kind, Input>
 where
     Exchange: Connector,
+    InstrumentId: Clone,
     Kind: SubKind,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
-    MarketIter<Kind::Event>: From<(ExchangeId, Instrument, Input)>,
+    MarketIter<InstrumentId, Kind::Event>: From<(ExchangeId, InstrumentId, Input)>,
 {
     type Error = DataError;
     type Input = Input;
-    type Output = MarketEvent<Kind::Event>;
+    type Output = MarketEvent<InstrumentId, Kind::Event>;
     type OutputIter = Vec<Result<Self::Output, Self::Error>>;
 
     fn transform(&mut self, input: Self::Input) -> Self::OutputIter {
@@ -67,7 +66,14 @@ where
 
         // Find Instrument associated with Input and transform
         match self.instrument_map.find(&subscription_id) {
-            Ok(instrument) => MarketIter::<Kind::Event>::from((Exchange::ID, instrument, input)).0,
+            Ok(instrument) => {
+                MarketIter::<InstrumentId, Kind::Event>::from((
+                    Exchange::ID,
+                    instrument.clone(),
+                    input,
+                ))
+                .0
+            }
             Err(unidentifiable) => vec![Err(DataError::Socket(unidentifiable))],
         }
     }

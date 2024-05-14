@@ -6,6 +6,7 @@ use crate::{
     subscription::{SubKind, Subscription},
     Identifier,
 };
+use barter_integration::model::instrument::Instrument;
 use barter_integration::{error::SocketError, Validator};
 use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 use tokio::sync::mpsc;
@@ -26,7 +27,7 @@ pub struct StreamBuilder<Kind>
 where
     Kind: SubKind,
 {
-    pub channels: HashMap<ExchangeId, ExchangeChannel<MarketEvent<Kind::Event>>>,
+    pub channels: HashMap<ExchangeId, ExchangeChannel<MarketEvent<Instrument, Kind::Event>>>,
     pub futures: Vec<SubscribeFuture>,
 }
 
@@ -62,11 +63,12 @@ where
     pub fn subscribe<SubIter, Sub, Exchange>(mut self, subscriptions: SubIter) -> Self
     where
         SubIter: IntoIterator<Item = Sub>,
-        Sub: Into<Subscription<Exchange, Kind>>,
-        Exchange: StreamSelector<Kind> + Ord + Send + Sync + 'static,
+        Sub: Into<Subscription<Exchange, Instrument, Kind>>,
+        Exchange: StreamSelector<Instrument, Kind> + Ord + Send + Sync + 'static,
         Kind: Ord + Send + Sync + 'static,
         Kind::Event: Send,
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Subscription<Exchange, Instrument, Kind>:
+            Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
     {
         // Construct Vec<Subscriptions> from input SubIter
         let mut subscriptions = subscriptions.into_iter().map(Sub::into).collect::<Vec<_>>();
@@ -99,7 +101,7 @@ where
     ///
     /// Each consumer loop distributes consumed [`MarketEvent<SubKind::Event>s`](MarketEvent) to
     /// the [`Streams`] `HashMap` returned by this method.
-    pub async fn init(self) -> Result<Streams<MarketEvent<Kind::Event>>, DataError> {
+    pub async fn init(self) -> Result<Streams<MarketEvent<Instrument, Kind::Event>>, DataError> {
         // Await Stream initialisation perpetual and ensure success
         futures::future::try_join_all(self.futures).await?;
 
@@ -139,10 +141,10 @@ impl<T> Default for ExchangeChannel<T> {
 /// Validate the provided collection of [`Subscription`]s, ensuring that the associated exchange
 /// supports every [`Subscription`] [`InstrumentKind`](barter_integration::model::InstrumentKind).
 pub fn validate<Exchange, Kind>(
-    subscriptions: &[Subscription<Exchange, Kind>],
+    subscriptions: &[Subscription<Exchange, Instrument, Kind>],
 ) -> Result<(), DataError>
 where
-    Exchange: StreamSelector<Kind>,
+    Exchange: StreamSelector<Instrument, Kind>,
     Kind: SubKind,
 {
     // Ensure at least one Subscription has been provided
@@ -166,12 +168,13 @@ mod tests {
     use super::*;
     use crate::{exchange::coinbase::Coinbase, subscription::trade::PublicTrades};
     use barter_integration::model::instrument::kind::InstrumentKind;
+    use barter_integration::model::instrument::Instrument;
 
     #[test]
     fn test_validate() {
         struct TestCase {
-            input: Vec<Subscription<Coinbase, PublicTrades>>,
-            expected: Result<Vec<Subscription<Coinbase, PublicTrades>>, SocketError>,
+            input: Vec<Subscription<Coinbase, Instrument, PublicTrades>>,
+            expected: Result<Vec<Subscription<Coinbase, Instrument, PublicTrades>>, SocketError>,
         }
 
         let cases = vec![

@@ -6,7 +6,7 @@ use crate::{
 use serde::Serialize;
 
 /// Type that defines how to translate a Barter [`Subscription`] into a
-/// [`Coinbase`](super::Coinbase) channel to be subscribed to.
+/// [`Coinbase`] channel to be subscribed to.
 ///
 /// See docs: <https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#subscribe>
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize)]
@@ -19,7 +19,7 @@ impl CoinbaseChannel {
     pub const TRADES: Self = Self("matches");
 }
 
-impl Identifier<CoinbaseChannel> for Subscription<Coinbase, PublicTrades> {
+impl<Instrument> Identifier<CoinbaseChannel> for Subscription<Coinbase, Instrument, PublicTrades> {
     fn id(&self) -> CoinbaseChannel {
         CoinbaseChannel::TRADES
     }

@@ -2,6 +2,7 @@ use self::{
     book::l1::KrakenOrderBookL1, channel::KrakenChannel, market::KrakenMarket,
     message::KrakenMessage, subscription::KrakenSubResponse, trade::KrakenTrades,
 };
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
@@ -79,10 +80,19 @@ impl Connector for Kraken {
     }
 }
 
-impl StreamSelector<PublicTrades> for Kraken {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, KrakenTrades>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Kraken
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, KrakenTrades>>;
 }
 
-impl StreamSelector<OrderBooksL1> for Kraken {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, OrderBooksL1, KrakenOrderBookL1>>;
+impl<Instrument> StreamSelector<Instrument, OrderBooksL1> for Kraken
+where
+    Instrument: InstrumentData,
+{
+    type Stream = ExchangeWsStream<
+        StatelessTransformer<Self, Instrument::Id, OrderBooksL1, KrakenOrderBookL1>,
+    >;
 }

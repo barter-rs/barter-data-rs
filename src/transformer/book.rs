@@ -30,7 +30,7 @@ where
     async fn init<Exchange, Kind>(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
         instrument: Instrument,
-    ) -> Result<InstrumentOrderBook<Self>, DataError>
+    ) -> Result<InstrumentOrderBook<Instrument, Self>, DataError>
     where
         Exchange: Send,
         Kind: Send;
@@ -46,8 +46,8 @@ where
 /// [`OrderBook`] for an [`Instrument`] with an exchange specific [`OrderBookUpdater`] to define
 /// how to update it.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
-pub struct InstrumentOrderBook<Updater> {
-    pub instrument: Instrument,
+pub struct InstrumentOrderBook<InstrumentId, Updater> {
+    pub instrument: InstrumentId,
     pub updater: Updater,
     pub book: OrderBook,
 }
@@ -56,14 +56,14 @@ pub struct InstrumentOrderBook<Updater> {
 /// normalised Barter OrderBook types. Requires an exchange specific [`OrderBookUpdater`]
 /// implementation.
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
-pub struct MultiBookTransformer<Exchange, Kind, Updater> {
-    pub book_map: Map<InstrumentOrderBook<Updater>>,
+pub struct MultiBookTransformer<Exchange, InstrumentId, Kind, Updater> {
+    pub book_map: Map<InstrumentOrderBook<InstrumentId, Updater>>,
     phantom: PhantomData<(Exchange, Kind)>,
 }
 
 #[async_trait]
-impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Kind>
-    for MultiBookTransformer<Exchange, Kind, Updater>
+impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Instrument, Kind>
+    for MultiBookTransformer<Exchange, Instrument, Kind, Updater>
 where
     Exchange: Connector + Send,
     Kind: SubKind<Event = OrderBook> + Send,
@@ -90,31 +90,33 @@ where
         let init_order_books = futures::future::join_all(init_book_requests)
             .await
             .into_iter()
-            .collect::<Result<Vec<InstrumentOrderBook<Updater>>, DataError>>()?;
+            .collect::<Result<Vec<InstrumentOrderBook<Instrument, Updater>>, DataError>>()?;
 
         // Construct OrderBookMap if all requests successful
         let book_map = sub_ids
             .into_iter()
             .zip(init_order_books.into_iter())
-            .collect::<Map<InstrumentOrderBook<Updater>>>();
+            .collect::<Map<InstrumentOrderBook<Instrument, Updater>>>();
 
         Ok(Self {
             book_map,
-            phantom: PhantomData::default(),
+            phantom: PhantomData,
         })
     }
 }
 
-impl<Exchange, Kind, Updater> Transformer for MultiBookTransformer<Exchange, Kind, Updater>
+impl<Exchange, InstrumentId, Kind, Updater> Transformer
+    for MultiBookTransformer<Exchange, InstrumentId, Kind, Updater>
 where
     Exchange: Connector,
+    InstrumentId: Clone,
     Kind: SubKind<Event = OrderBook>,
     Updater: OrderBookUpdater<OrderBook = Kind::Event>,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
     type Error = DataError;
     type Input = Updater::Update;
-    type Output = MarketEvent<Kind::Event>;
+    type Output = MarketEvent<InstrumentId, Kind::Event>;
     type OutputIter = Vec<Result<Self::Output, Self::Error>>;
 
     fn transform(&mut self, update: Self::Input) -> Self::OutputIter {
@@ -140,7 +142,12 @@ where
         // Apply update (snapshot or delta) to OrderBook & generate Market<OrderBook> snapshot
         match updater.update(book, update) {
             Ok(Some(book)) => {
-                MarketIter::<OrderBook>::from((Exchange::ID, instrument.clone(), book)).0
+                MarketIter::<InstrumentId, OrderBook>::from((
+                    Exchange::ID,
+                    instrument.clone(),
+                    book,
+                ))
+                .0
             }
             Ok(None) => vec![],
             Err(error) => vec![Err(error)],

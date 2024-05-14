@@ -5,7 +5,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{instrument::Instrument, Exchange, Side, SubscriptionId};
+use barter_integration::model::{Exchange, Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
@@ -48,8 +48,10 @@ impl Identifier<Option<SubscriptionId>> for CoinbaseTrade {
     }
 }
 
-impl From<(ExchangeId, Instrument, CoinbaseTrade)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, CoinbaseTrade)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, CoinbaseTrade)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, trade): (ExchangeId, InstrumentId, CoinbaseTrade)) -> Self {
         Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),

@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     error::DataError,
     event::MarketEvent,
@@ -20,14 +21,16 @@ pub const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 /// Initialises an exchange [`MarketStream`] using a collection of [`Subscription`]s. Consumed
 /// events are distributed downstream via the `exchange_tx mpsc::UnboundedSender`. A re-connection
 /// mechanism with an exponential backoff policy is utilised to ensure maximum up-time.
-pub async fn consume<Exchange, Kind>(
-    subscriptions: Vec<Subscription<Exchange, Kind>>,
-    exchange_tx: mpsc::UnboundedSender<MarketEvent<Kind::Event>>,
+pub async fn consume<Exchange, Instrument, Kind>(
+    subscriptions: Vec<Subscription<Exchange, Instrument, Kind>>,
+    exchange_tx: mpsc::UnboundedSender<MarketEvent<Instrument::Id, Kind::Event>>,
 ) -> DataError
 where
-    Exchange: StreamSelector<Kind>,
+    Exchange: StreamSelector<Instrument, Kind>,
     Kind: SubKind,
-    Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+    Instrument: InstrumentData,
+    Subscription<Exchange, Instrument, Kind>:
+        Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
 {
     // Determine ExchangeId associated with these Subscriptions
     let exchange = Exchange::ID;

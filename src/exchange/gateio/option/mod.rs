@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{
         gateio::{perpetual::trade::GateioFuturesTrades, Gateio},
@@ -28,6 +29,11 @@ impl ExchangeServer for GateioServerOptions {
     }
 }
 
-impl StreamSelector<PublicTrades> for GateioOptions {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioFuturesTrades>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for GateioOptions
+where
+    Instrument: InstrumentData,
+{
+    type Stream = ExchangeWsStream<
+        StatelessTransformer<Self, Instrument::Id, PublicTrades, GateioFuturesTrades>,
+    >;
 }

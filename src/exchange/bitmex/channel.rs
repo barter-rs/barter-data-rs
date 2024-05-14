@@ -5,7 +5,7 @@ use crate::{
 };
 use serde::Serialize;
 
-/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`](super::Bitmex)
+/// Type that defines how to translate a Barter [`Subscription`] into a [`Bitmex`]
 /// channel to be subscribed to.
 ///
 /// See docs: <https://www.bitmex.com/app/wsAPI>
@@ -19,7 +19,7 @@ impl BitmexChannel {
     pub const TRADES: Self = Self("trade");
 }
 
-impl Identifier<BitmexChannel> for Subscription<Bitmex, PublicTrades> {
+impl<Instrument> Identifier<BitmexChannel> for Subscription<Bitmex, Instrument, PublicTrades> {
     fn id(&self) -> BitmexChannel {
         BitmexChannel::TRADES
     }

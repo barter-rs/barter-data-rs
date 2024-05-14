@@ -7,7 +7,7 @@ use crate::{
     subscription::trade::PublicTrade,
     Identifier,
 };
-use barter_integration::model::{instrument::Instrument, SubscriptionId};
+use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
 use serde::{
     de::{Error, Unexpected},
@@ -92,8 +92,10 @@ impl Identifier<Option<SubscriptionId>> for BybitMessage {
     }
 }
 
-impl From<(ExchangeId, Instrument, BybitMessage)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BybitMessage)) -> Self {
+impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, BybitMessage)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, message): (ExchangeId, InstrumentId, BybitMessage)) -> Self {
         match message {
             BybitMessage::Response(_) => Self(vec![]),
             BybitMessage::Trade(trade) => Self::from((exchange_id, instrument, trade)),

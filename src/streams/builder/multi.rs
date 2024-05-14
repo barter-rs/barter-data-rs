@@ -1,5 +1,6 @@
 use super::{ExchangeChannel, StreamBuilder, Streams};
 use crate::{error::DataError, event::MarketEvent, exchange::ExchangeId, subscription::SubKind};
+use barter_integration::model::instrument::Instrument;
 use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 
 /// Communicative type alias representing the [`Future`] result of a [`StreamBuilder::init`] call
@@ -44,7 +45,7 @@ impl<Output> MultiStreamBuilder<Output> {
     #[allow(clippy::should_implement_trait)]
     pub fn add<Kind>(mut self, builder: StreamBuilder<Kind>) -> Self
     where
-        Output: From<MarketEvent<Kind::Event>> + Send + 'static,
+        Output: From<MarketEvent<Instrument, Kind::Event>> + Send + 'static,
         Kind: SubKind + 'static,
         Kind::Event: Send,
     {
