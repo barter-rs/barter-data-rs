@@ -7,18 +7,20 @@ use crate::{
         trade::PublicTrade,
     },
 };
-use barter_integration::model::{instrument::Instrument, Exchange};
+use barter_integration::model::Exchange;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Convenient new type containing a collection of [`MarketEvent<T>`](MarketEvent)s.
 #[derive(Debug)]
-pub struct MarketIter<T>(pub Vec<Result<MarketEvent<T>, DataError>>);
+pub struct MarketIter<InstrumentId, T>(pub Vec<Result<MarketEvent<InstrumentId, T>, DataError>>);
 
-impl<T> FromIterator<Result<MarketEvent<T>, DataError>> for MarketIter<T> {
+impl<InstrumentId, T> FromIterator<Result<MarketEvent<InstrumentId, T>, DataError>>
+    for MarketIter<InstrumentId, T>
+{
     fn from_iter<Iter>(iter: Iter) -> Self
     where
-        Iter: IntoIterator<Item = Result<MarketEvent<T>, DataError>>,
+        Iter: IntoIterator<Item = Result<MarketEvent<InstrumentId, T>, DataError>>,
     {
         Self(iter.into_iter().collect())
     }
@@ -31,15 +33,15 @@ impl<T> FromIterator<Result<MarketEvent<T>, DataError>> for MarketIter<T> {
 /// See [`crate::subscription`] for all existing Barter Market event variants.
 ///
 /// ### Examples
-/// - [`MarketEvent<PublicTrade>`](crate::subscription::trade::PublicTrade)
-/// - [`MarketEvent<OrderBookL1>`](crate::subscription::book::OrderBookL1)
+/// - [`MarketEvent<PublicTrade>`](PublicTrade)
+/// - [`MarketEvent<OrderBookL1>`](OrderBookL1)
 /// - [`MarketEvent<DataKind>`](DataKind)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
-pub struct MarketEvent<T> {
+pub struct MarketEvent<InstrumentId, T> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
-    pub instrument: Instrument,
+    pub instrument: InstrumentId,
     pub kind: T,
 }
 
@@ -62,8 +64,10 @@ pub enum DataKind {
     Liquidation(Liquidation),
 }
 
-impl From<MarketEvent<PublicTrade>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<PublicTrade>) -> Self {
+impl<InstrumentId> From<MarketEvent<InstrumentId, PublicTrade>>
+    for MarketEvent<InstrumentId, DataKind>
+{
+    fn from(event: MarketEvent<InstrumentId, PublicTrade>) -> Self {
         Self {
             exchange_time: event.exchange_time,
             received_time: event.received_time,
@@ -74,8 +78,10 @@ impl From<MarketEvent<PublicTrade>> for MarketEvent<DataKind> {
     }
 }
 
-impl From<MarketEvent<OrderBookL1>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<OrderBookL1>) -> Self {
+impl<InstrumentId> From<MarketEvent<InstrumentId, OrderBookL1>>
+    for MarketEvent<InstrumentId, DataKind>
+{
+    fn from(event: MarketEvent<InstrumentId, OrderBookL1>) -> Self {
         Self {
             exchange_time: event.exchange_time,
             received_time: event.received_time,
@@ -86,8 +92,10 @@ impl From<MarketEvent<OrderBookL1>> for MarketEvent<DataKind> {
     }
 }
 
-impl From<MarketEvent<OrderBook>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<OrderBook>) -> Self {
+impl<InstrumentId> From<MarketEvent<InstrumentId, OrderBook>>
+    for MarketEvent<InstrumentId, DataKind>
+{
+    fn from(event: MarketEvent<InstrumentId, OrderBook>) -> Self {
         Self {
             exchange_time: event.exchange_time,
             received_time: event.received_time,
@@ -98,8 +106,8 @@ impl From<MarketEvent<OrderBook>> for MarketEvent<DataKind> {
     }
 }
 
-impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<Candle>) -> Self {
+impl<InstrumentId> From<MarketEvent<InstrumentId, Candle>> for MarketEvent<InstrumentId, DataKind> {
+    fn from(event: MarketEvent<InstrumentId, Candle>) -> Self {
         Self {
             exchange_time: event.exchange_time,
             received_time: event.received_time,
@@ -110,8 +118,10 @@ impl From<MarketEvent<Candle>> for MarketEvent<DataKind> {
     }
 }
 
-impl From<MarketEvent<Liquidation>> for MarketEvent<DataKind> {
-    fn from(event: MarketEvent<Liquidation>) -> Self {
+impl<InstrumentId> From<MarketEvent<InstrumentId, Liquidation>>
+    for MarketEvent<InstrumentId, DataKind>
+{
+    fn from(event: MarketEvent<InstrumentId, Liquidation>) -> Self {
         Self {
             exchange_time: event.exchange_time,
             received_time: event.received_time,

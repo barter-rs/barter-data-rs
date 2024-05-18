@@ -23,6 +23,7 @@ use self::{
     channel::BitfinexChannel, market::BitfinexMarket, message::BitfinexMessage,
     subscription::BitfinexPlatformEvent, validator::BitfinexWebSocketSubValidator,
 };
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
     subscriber::WebSocketSubscriber,
@@ -99,6 +100,10 @@ impl Connector for Bitfinex {
     }
 }
 
-impl StreamSelector<PublicTrades> for Bitfinex {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, BitfinexMessage>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Bitfinex
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, BitfinexMessage>>;
 }

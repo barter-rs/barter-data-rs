@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{subscription::ExchangeSub, Connector},
     subscription::{Map, SubKind, Subscription, SubscriptionMeta},
@@ -10,11 +11,15 @@ use std::collections::HashMap;
 /// Defines how to map a collection of Barter [`Subscription`]s into exchange specific
 /// [`SubscriptionMeta`], containing subscription payloads that are sent to the exchange.
 pub trait SubscriptionMapper {
-    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta
+    fn map<Exchange, Instrument, Kind>(
+        subscriptions: &[Subscription<Exchange, Instrument, Kind>],
+    ) -> SubscriptionMeta<Instrument::Id>
     where
         Exchange: Connector,
+        Instrument: InstrumentData,
         Kind: SubKind,
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
+        Subscription<Exchange, Instrument, Kind>:
+            Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
 
 /// Standard [`SubscriptionMapper`] for
@@ -23,11 +28,15 @@ pub trait SubscriptionMapper {
 pub struct WebSocketSubMapper;
 
 impl SubscriptionMapper for WebSocketSubMapper {
-    fn map<Exchange, Kind>(subscriptions: &[Subscription<Exchange, Kind>]) -> SubscriptionMeta
+    fn map<Exchange, Instrument, Kind>(
+        subscriptions: &[Subscription<Exchange, Instrument, Kind>],
+    ) -> SubscriptionMeta<Instrument::Id>
     where
         Exchange: Connector,
         Kind: SubKind,
-        Subscription<Exchange, Kind>: Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
+        Instrument: InstrumentData,
+        Subscription<Exchange, Instrument, Kind>:
+            Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
         ExchangeSub<Exchange::Channel, Exchange::Market>: Identifier<SubscriptionId>,
     {
         // Allocate SubscriptionIds HashMap to track identifiers for each actioned Subscription
@@ -46,7 +55,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
                 // Use ExchangeSub SubscriptionId as the link to this Barter Subscription
                 instrument_map
                     .0
-                    .insert(subscription_id, subscription.instrument.clone());
+                    .insert(subscription_id, subscription.instrument.id().clone());
 
                 exchange_sub
             })

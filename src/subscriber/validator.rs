@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::Connector,
     subscription::{Map, SubKind},
@@ -5,7 +6,6 @@ use crate::{
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::instrument::Instrument,
     protocol::{
         websocket::{WebSocket, WebSocketParser},
         StreamParser,
@@ -22,12 +22,13 @@ use tracing::debug;
 pub trait SubscriptionValidator {
     type Parser: StreamParser;
 
-    async fn validate<Exchange, Kind>(
-        instrument_map: Map<Instrument>,
+    async fn validate<Exchange, Instrument, Kind>(
+        instrument_map: Map<Instrument::Id>,
         websocket: &mut WebSocket,
-    ) -> Result<Map<Instrument>, SocketError>
+    ) -> Result<Map<Instrument::Id>, SocketError>
     where
         Exchange: Connector + Send,
+        Instrument: InstrumentData,
         Kind: SubKind + Send;
 }
 
@@ -39,12 +40,13 @@ pub struct WebSocketSubValidator;
 impl SubscriptionValidator for WebSocketSubValidator {
     type Parser = WebSocketParser;
 
-    async fn validate<Exchange, Kind>(
-        instrument_map: Map<Instrument>,
+    async fn validate<Exchange, Instrument, Kind>(
+        instrument_map: Map<Instrument::Id>,
         websocket: &mut WebSocket,
-    ) -> Result<Map<Instrument>, SocketError>
+    ) -> Result<Map<Instrument::Id>, SocketError>
     where
         Exchange: Connector + Send,
+        Instrument: InstrumentData,
         Kind: SubKind + Send,
     {
         // Establish exchange specific subscription validation parameters

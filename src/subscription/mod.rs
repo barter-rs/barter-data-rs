@@ -9,6 +9,8 @@ use barter_integration::{
     Validator,
 };
 use serde::{Deserialize, Serialize};
+use std::borrow::Borrow;
+use std::hash::Hash;
 use std::{
     collections::HashMap,
     fmt::{Debug, Display, Formatter},
@@ -37,7 +39,7 @@ where
 /// Barter [`Subscription`] used to subscribe to a [`SubKind`] for a particular exchange
 /// [`Instrument`].
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub struct Subscription<Exchange, Kind> {
+pub struct Subscription<Exchange, Instrument, Kind> {
     pub exchange: Exchange,
     #[serde(flatten)]
     pub instrument: Instrument,
@@ -45,9 +47,10 @@ pub struct Subscription<Exchange, Kind> {
     pub kind: Kind,
 }
 
-impl<Exchange, Kind> Display for Subscription<Exchange, Kind>
+impl<Exchange, Instrument, Kind> Display for Subscription<Exchange, Instrument, Kind>
 where
     Exchange: Display,
+    Instrument: Display,
     Kind: Display,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -56,7 +59,7 @@ where
 }
 
 impl<Exchange, S, Kind> From<(Exchange, S, S, InstrumentKind, Kind)>
-    for Subscription<Exchange, Kind>
+    for Subscription<Exchange, Instrument, Kind>
 where
     S: Into<Symbol>,
 {
@@ -67,7 +70,8 @@ where
     }
 }
 
-impl<Exchange, I, Kind> From<(Exchange, I, Kind)> for Subscription<Exchange, Kind>
+impl<Exchange, I, Instrument, Kind> From<(Exchange, I, Kind)>
+    for Subscription<Exchange, Instrument, Kind>
 where
     I: Into<Instrument>,
 {
@@ -76,7 +80,7 @@ where
     }
 }
 
-impl<Exchange, Kind> Subscription<Exchange, Kind> {
+impl<Exchange, Instrument, Kind> Subscription<Exchange, Instrument, Kind> {
     /// Constructs a new [`Subscription`] using the provided configuration.
     pub fn new<I>(exchange: Exchange, instrument: I, kind: Kind) -> Self
     where
@@ -90,9 +94,9 @@ impl<Exchange, Kind> Subscription<Exchange, Kind> {
     }
 }
 
-impl<Exchange, Kind> Validator for &Subscription<Exchange, Kind>
+impl<Exchange, Kind> Validator for &Subscription<Exchange, Instrument, Kind>
 where
-    Exchange: StreamSelector<Kind>,
+    Exchange: StreamSelector<Instrument, Kind>,
     Kind: SubKind,
 {
     fn validate(self) -> Result<Self, SocketError>
@@ -117,10 +121,10 @@ where
 /// Metadata generated from a collection of Barter [`Subscription`]s, including the exchange
 /// specific subscription payloads that are sent to the exchange.
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct SubscriptionMeta {
+pub struct SubscriptionMeta<InstrumentId> {
     /// `HashMap` containing the mapping between a [`SubscriptionId`] and
     /// it's associated Barter [`Instrument`].
-    pub instrument_map: Map<Instrument>,
+    pub instrument_map: Map<InstrumentId>,
     /// Collection of [`WsMessage`]s containing exchange specific subscription payloads to be sent.
     pub subscriptions: Vec<WsMessage>,
 }
@@ -142,22 +146,26 @@ impl<T> FromIterator<(SubscriptionId, T)> for Map<T> {
 }
 
 impl<T> Map<T> {
-    /// Find the `T` associated with the provided [`SubscriptionId`].
-    pub fn find(&self, id: &SubscriptionId) -> Result<T, SocketError>
+    /// Find the `InstrumentId` associated with the provided [`SubscriptionId`].
+    pub fn find<SubId>(&self, id: &SubId) -> Result<&T, SocketError>
     where
-        T: Clone,
+        SubscriptionId: Borrow<SubId>,
+        SubId: AsRef<str> + Hash + Eq + ?Sized,
     {
         self.0
             .get(id)
-            .cloned()
-            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
+            .ok_or_else(|| SocketError::Unidentifiable(SubscriptionId(id.as_ref().to_string())))
     }
 
     /// Find the mutable reference to `T` associated with the provided [`SubscriptionId`].
-    pub fn find_mut(&mut self, id: &SubscriptionId) -> Result<&mut T, SocketError> {
+    pub fn find_mut<SubId>(&mut self, id: &SubId) -> Result<&mut T, SocketError>
+    where
+        SubscriptionId: Borrow<SubId>,
+        SubId: AsRef<str> + Hash + Eq + ?Sized,
+    {
         self.0
             .get_mut(id)
-            .ok_or_else(|| SocketError::Unidentifiable(id.clone()))
+            .ok_or_else(|| SocketError::Unidentifiable(SubscriptionId(id.as_ref().to_string())))
     }
 }
 
@@ -196,7 +204,7 @@ mod tests {
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<Okx, PublicTrades>>(input).unwrap();
+                serde_json::from_str::<Subscription<Okx, Instrument, PublicTrades>>(input).unwrap();
             }
 
             #[test]
@@ -211,7 +219,8 @@ mod tests {
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<BinanceSpot, PublicTrades>>(input).unwrap();
+                serde_json::from_str::<Subscription<BinanceSpot, Instrument, PublicTrades>>(input)
+                    .unwrap();
             }
 
             #[test]
@@ -226,8 +235,10 @@ mod tests {
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<BinanceFuturesUsd, OrderBooksL2>>(input)
-                    .unwrap();
+                serde_json::from_str::<Subscription<BinanceFuturesUsd, Instrument, OrderBooksL2>>(
+                    input,
+                )
+                .unwrap();
             }
 
             #[test]
@@ -242,7 +253,7 @@ mod tests {
                 }
                 "#;
 
-                serde_json::from_str::<Subscription<GateioPerpetualsUsd, PublicTrades>>(input)
+                serde_json::from_str::<Subscription<GateioPerpetualsUsd, Instrument, PublicTrades>>(input)
                     .unwrap();
             }
         }
@@ -250,8 +261,8 @@ mod tests {
         #[test]
         fn test_validate_bitfinex_public_trades() {
             struct TestCase {
-                input: Subscription<Coinbase, PublicTrades>,
-                expected: Result<Subscription<Coinbase, PublicTrades>, SocketError>,
+                input: Subscription<Coinbase, Instrument, PublicTrades>,
+                expected: Result<Subscription<Coinbase, Instrument, PublicTrades>, SocketError>,
             }
 
             let tests = vec![
@@ -308,8 +319,8 @@ mod tests {
         #[test]
         fn test_validate_okx_public_trades() {
             struct TestCase {
-                input: Subscription<Okx, PublicTrades>,
-                expected: Result<Subscription<Okx, PublicTrades>, SocketError>,
+                input: Subscription<Okx, Instrument, PublicTrades>,
+                expected: Result<Subscription<Okx, Instrument, PublicTrades>, SocketError>,
             }
 
             let tests = vec![
@@ -403,7 +414,7 @@ mod tests {
                 let actual = ids.find(&test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
-                        assert_eq!(actual, expected, "TC{} failed", index)
+                        assert_eq!(*actual, expected, "TC{} failed", index)
                     }
                     (Err(_), Err(_)) => {
                         // Test passed

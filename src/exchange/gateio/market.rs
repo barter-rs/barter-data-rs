@@ -1,4 +1,5 @@
 use super::Gateio;
+use crate::instrument::MarketInstrumentData;
 use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::instrument::{
     kind::{InstrumentKind, OptionKind},
@@ -17,7 +18,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct GateioMarket(pub String);
 
-impl<Server, Kind> Identifier<GateioMarket> for Subscription<Gateio<Server>, Kind> {
+impl<Server, Kind> Identifier<GateioMarket> for Subscription<Gateio<Server>, Instrument, Kind> {
     fn id(&self) -> GateioMarket {
         use InstrumentKind::*;
         let Instrument { base, quote, kind } = &self.instrument;
@@ -40,6 +41,14 @@ impl<Server, Kind> Identifier<GateioMarket> for Subscription<Gateio<Server>, Kin
             }
             .to_uppercase(),
         )
+    }
+}
+
+impl<Server, Kind> Identifier<GateioMarket>
+    for Subscription<Gateio<Server>, MarketInstrumentData, Kind>
+{
+    fn id(&self) -> GateioMarket {
+        GateioMarket(self.instrument.name_exchange.clone())
     }
 }
 

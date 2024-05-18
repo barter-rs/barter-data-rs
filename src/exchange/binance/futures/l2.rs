@@ -163,7 +163,7 @@ impl OrderBookUpdater for BinanceFuturesBookUpdater {
     async fn init<Exchange, Kind>(
         _: mpsc::UnboundedSender<WsMessage>,
         instrument: Instrument,
-    ) -> Result<InstrumentOrderBook<Self>, DataError>
+    ) -> Result<InstrumentOrderBook<Instrument, Self>, DataError>
     where
         Exchange: Send,
         Kind: Send,

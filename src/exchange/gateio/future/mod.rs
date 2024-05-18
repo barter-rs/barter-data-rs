@@ -1,3 +1,4 @@
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{
         gateio::{perpetual::trade::GateioFuturesTrades, Gateio},
@@ -28,8 +29,13 @@ impl ExchangeServer for GateioServerFuturesUsd {
     }
 }
 
-impl StreamSelector<PublicTrades> for GateioFuturesUsd {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioFuturesTrades>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for GateioFuturesUsd
+where
+    Instrument: InstrumentData,
+{
+    type Stream = ExchangeWsStream<
+        StatelessTransformer<Self, Instrument::Id, PublicTrades, GateioFuturesTrades>,
+    >;
 }
 
 /// [`GateioFuturesBtc`] WebSocket server base url.
@@ -52,6 +58,11 @@ impl ExchangeServer for GateioServerFuturesBtc {
     }
 }
 
-impl StreamSelector<PublicTrades> for GateioFuturesBtc {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, GateioFuturesTrades>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for GateioFuturesBtc
+where
+    Instrument: InstrumentData,
+{
+    type Stream = ExchangeWsStream<
+        StatelessTransformer<Self, Instrument::Id, PublicTrades, GateioFuturesTrades>,
+    >;
 }

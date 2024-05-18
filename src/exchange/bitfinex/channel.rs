@@ -19,7 +19,7 @@ impl BitfinexChannel {
     pub const TRADES: Self = Self("trades");
 }
 
-impl Identifier<BitfinexChannel> for Subscription<Bitfinex, PublicTrades> {
+impl<Instrument> Identifier<BitfinexChannel> for Subscription<Bitfinex, Instrument, PublicTrades> {
     fn id(&self) -> BitfinexChannel {
         BitfinexChannel::TRADES
     }

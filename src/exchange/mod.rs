@@ -1,13 +1,12 @@
 use self::subscription::ExchangeSub;
+use crate::instrument::InstrumentData;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
     subscription::{Map, SubKind},
     MarketStream,
 };
 use barter_integration::{
-    error::SocketError,
-    model::instrument::{kind::InstrumentKind, Instrument},
-    protocol::websocket::WsMessage,
+    error::SocketError, model::instrument::kind::InstrumentKind, protocol::websocket::WsMessage,
     Validator,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -47,21 +46,22 @@ pub mod okx;
 pub mod subscription;
 
 /// Default [`Duration`] the [`Connector::SubValidator`] will wait to receive all success responses to actioned
-/// [`Subscription`](crate::subscription::Subscription) requests.
+/// [`Subscription`](subscription::Subscription) requests.
 pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Defines the [`MarketStream`] kind associated with an exchange
-/// [`Subscription`](crate::subscription::Subscription) [`SubKind`](crate::subscription::SubKind).
+/// [`Subscription`](subscription::Subscription) [`SubKind`].
 ///
 /// ### Notes
 /// Must be implemented by an exchange [`Connector`] if it supports a specific
-/// [`SubKind`](crate::subscription::SubKind).
-pub trait StreamSelector<Kind>
+/// [`SubKind`].
+pub trait StreamSelector<Instrument, Kind>
 where
     Self: Connector,
+    Instrument: InstrumentData,
     Kind: SubKind,
 {
-    type Stream: MarketStream<Self, Kind>;
+    type Stream: MarketStream<Self, Instrument, Kind>;
 }
 
 /// Primary exchange abstraction. Defines how to translate Barter types into exchange specific
@@ -77,7 +77,7 @@ where
     const ID: ExchangeId;
 
     /// Type that defines how to translate a Barter
-    /// [`Subscription`](crate::subscription::Subscription) into an exchange specific channel
+    /// [`Subscription`](ubscription::Subscription) into an exchange specific channel
     /// to be subscribed to.
     ///
     /// ### Examples
@@ -86,7 +86,7 @@ where
     type Channel: AsRef<str>;
 
     /// Type that defines how to translate a Barter
-    /// [`Subscription`](crate::subscription::Subscription) into an exchange specific market that
+    /// [`Subscription`](subscription::Subscription) into an exchange specific market that
     /// can be subscribed to.
     ///
     /// ### Examples
@@ -95,19 +95,19 @@ where
     type Market: AsRef<str>;
 
     /// [`Subscriber`] type that establishes a connection with the exchange server, and actions
-    /// [`Subscription`](crate::subscription::Subscription)s over the socket.
+    /// [`Subscription`](subscription::Subscription)s over the socket.
     type Subscriber: Subscriber;
 
     /// [`SubscriptionValidator`] type that listens to responses from the exchange server and
-    /// validates if the actioned [`Subscription`](crate::subscription::Subscription)s were
+    /// validates if the actioned [`Subscription`](subscription::Subscription)s were
     /// successful.
     type SubValidator: SubscriptionValidator;
 
     /// Deserialisable type that the [`Self::SubValidator`] expects to receive from the exchange server in
-    /// response to the [`Subscription`](crate::subscription::Subscription) [`Self::requests`]
+    /// response to the [`Subscription`](subscription::Subscription) [`Self::requests`]
     /// sent over the [`WebSocket`](barter_integration::protocol::websocket::WebSocket). Implements
-    /// [`Validator`](barter_integration::Validator) in order to determine if [`Self`]
-    /// communicates a successful [`Subscription`](crate::subscription::Subscription) outcome.
+    /// [`Validator`] in order to determine if [`Self`]
+    /// communicates a successful [`Subscription`](subscription::Subscription) outcome.
     type SubResponse: Validator + Debug + DeserializeOwned;
 
     /// Base [`Url`] of the exchange server being connected with.
@@ -126,22 +126,22 @@ where
     /// subscription payloads sent to the exchange server.
     fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
 
-    /// Number of [`Subscription`](crate::subscription::Subscription) responses expected from the
+    /// Number of [`Subscription`](subscription::Subscription) responses expected from the
     /// exchange server in responses to the requests send. Used to validate all
-    /// [`Subscription`](crate::subscription::Subscription)s were accepted.
-    fn expected_responses(map: &Map<Instrument>) -> usize {
+    /// [`Subscription`](subscription::Subscription)s were accepted.
+    fn expected_responses<InstrumentId>(map: &Map<InstrumentId>) -> usize {
         map.0.len()
     }
 
     /// Expected [`Duration`] the [`SubscriptionValidator`] will wait to receive all success
-    /// responses to actioned [`Subscription`](crate::subscription::Subscription) requests.
+    /// responses to actioned [`Subscription`](subscription::Subscription) requests.
     fn subscription_timeout() -> Duration {
         DEFAULT_SUBSCRIPTION_TIMEOUT
     }
 }
 
 /// Used when an exchange has servers different
-/// [`InstrumentKind`](barter_integration::model::InstrumentKind) market data on distinct servers,
+/// [`InstrumentKind`] market data on distinct servers,
 /// allowing all the [`Connector`] logic to be identical apart from what this trait provides.
 ///
 /// ### Examples
@@ -164,7 +164,7 @@ pub struct PingInterval {
 /// Unique identifier an exchange server [`Connector`].
 ///
 /// ### Notes
-/// An exchange may server different [`InstrumentKind`](barter_integration::model::InstrumentKind)
+/// An exchange may server different [`InstrumentKind`]
 /// market data on distinct servers (eg/ Binance, Gateio). Such exchanges have multiple [`Self`]
 /// variants, and often utilise the [`ExchangeServer`] trait.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]

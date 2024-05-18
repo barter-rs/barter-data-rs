@@ -1,4 +1,5 @@
 use super::subscription::{BitfinexPlatformEvent, BitfinexSubResponse};
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeSub},
     subscriber::validator::SubscriptionValidator,
@@ -8,7 +9,7 @@ use crate::{
 use async_trait::async_trait;
 use barter_integration::{
     error::SocketError,
-    model::{instrument::Instrument, SubscriptionId},
+    model::SubscriptionId,
     protocol::{
         websocket::{WebSocket, WebSocketParser},
         StreamParser,
@@ -37,12 +38,13 @@ pub struct BitfinexWebSocketSubValidator;
 impl SubscriptionValidator for BitfinexWebSocketSubValidator {
     type Parser = WebSocketParser;
 
-    async fn validate<Exchange, Kind>(
-        mut map: Map<Instrument>,
+    async fn validate<Exchange, Instrument, Kind>(
+        mut map: Map<Instrument::Id>,
         websocket: &mut WebSocket,
-    ) -> Result<Map<Instrument>, SocketError>
+    ) -> Result<Map<Instrument::Id>, SocketError>
     where
         Exchange: Connector + Send,
+        Instrument: InstrumentData,
         Kind: SubKind + Send,
     {
         // Establish exchange specific subscription validation parameters

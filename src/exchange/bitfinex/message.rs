@@ -2,10 +2,7 @@ use super::trade::BitfinexTrade;
 use crate::{
     event::MarketIter, exchange::ExchangeId, subscription::trade::PublicTrade, Identifier,
 };
-use barter_integration::{
-    de::extract_next,
-    model::{instrument::Instrument, SubscriptionId},
-};
+use barter_integration::{de::extract_next, model::SubscriptionId};
 use serde::Serialize;
 
 /// [`Bitfinex`](super::Bitfinex) message received over
@@ -13,7 +10,7 @@ use serde::Serialize;
 /// [`Subscription`](crate::Subscription).
 ///
 /// The message is associated with the original [`Subscription`](crate::Subscription) using the
-/// `channel_id` field as the [`SubscriptionId`](barter_integration::model::SubscriptionId).
+/// `channel_id` field as the [`SubscriptionId`].
 ///
 /// ### Raw Payload Examples
 /// #### Heartbeat
@@ -60,8 +57,12 @@ impl Identifier<Option<SubscriptionId>> for BitfinexMessage {
     }
 }
 
-impl From<(ExchangeId, Instrument, BitfinexMessage)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, message): (ExchangeId, Instrument, BitfinexMessage)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, BitfinexMessage)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from(
+        (exchange_id, instrument, message): (ExchangeId, InstrumentId, BitfinexMessage),
+    ) -> Self {
         match message.payload {
             BitfinexPayload::Heartbeat => Self(vec![]),
             BitfinexPayload::Trade(trade) => Self::from((exchange_id, instrument, trade)),

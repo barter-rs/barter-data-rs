@@ -4,9 +4,7 @@ use crate::{
     subscription::{Map, SubKind},
 };
 use async_trait::async_trait;
-use barter_integration::{
-    model::instrument::Instrument, protocol::websocket::WsMessage, Transformer,
-};
+use barter_integration::{protocol::websocket::WsMessage, Transformer};
 use tokio::sync::mpsc;
 
 /// Generic OrderBook [`ExchangeTransformer`]s.
@@ -19,9 +17,9 @@ pub mod stateless;
 /// Defines how to construct a [`Transformer`] used by [`MarketStream`](super::MarketStream)s to
 /// translate exchange specific types to normalised Barter types.
 #[async_trait]
-pub trait ExchangeTransformer<Exchange, Kind>
+pub trait ExchangeTransformer<Exchange, InstrumentId, Kind>
 where
-    Self: Transformer<Output = MarketEvent<Kind::Event>, Error = DataError> + Sized,
+    Self: Transformer<Output = MarketEvent<InstrumentId, Kind::Event>, Error = DataError> + Sized,
     Kind: SubKind,
 {
     /// Construct a new [`Self`].
@@ -29,6 +27,6 @@ where
     /// The [`mpsc::UnboundedSender`] can be used by [`Self`] to send messages back to the exchange.
     async fn new(
         ws_sink_tx: mpsc::UnboundedSender<WsMessage>,
-        instrument_map: Map<Instrument>,
+        instrument_map: Map<InstrumentId>,
     ) -> Result<Self, DataError>;
 }

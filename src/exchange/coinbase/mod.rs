@@ -2,6 +2,7 @@ use self::{
     channel::CoinbaseChannel, market::CoinbaseMarket, subscription::CoinbaseSubResponse,
     trade::CoinbaseTrade,
 };
+use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeId, ExchangeSub, StreamSelector},
     subscriber::{validator::WebSocketSubValidator, WebSocketSubscriber},
@@ -71,6 +72,10 @@ impl Connector for Coinbase {
     }
 }
 
-impl StreamSelector<PublicTrades> for Coinbase {
-    type Stream = ExchangeWsStream<StatelessTransformer<Self, PublicTrades, CoinbaseTrade>>;
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Coinbase
+where
+    Instrument: InstrumentData,
+{
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, CoinbaseTrade>>;
 }

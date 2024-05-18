@@ -12,6 +12,7 @@ use barter_data::{
     },
 };
 use barter_integration::model::instrument::kind::InstrumentKind;
+use barter_integration::model::instrument::Instrument;
 use tokio_stream::StreamExt;
 use tracing::info;
 
@@ -27,7 +28,7 @@ async fn main() {
     //   Subscriptions passed.
 
     // Initialise MarketEvent<DataKind> Streams for various exchanges
-    let streams: Streams<MarketEvent<DataKind>> = Streams::builder_multi()
+    let streams: Streams<MarketEvent<Instrument, DataKind>> = Streams::builder_multi()
 
         // Add PublicTrades Streams for various exchanges
         .add(Streams::<PublicTrades>::builder()

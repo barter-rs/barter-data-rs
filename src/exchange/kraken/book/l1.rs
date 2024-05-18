@@ -7,7 +7,7 @@ use crate::{
 };
 use barter_integration::{
     de::extract_next,
-    model::{instrument::Instrument, Exchange, SubscriptionId},
+    model::{Exchange, SubscriptionId},
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -53,8 +53,12 @@ impl Identifier<Option<SubscriptionId>> for KrakenOrderBookL1Inner {
     }
 }
 
-impl From<(ExchangeId, Instrument, KrakenOrderBookL1)> for MarketIter<OrderBookL1> {
-    fn from((exchange_id, instrument, book): (ExchangeId, Instrument, KrakenOrderBookL1)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, KrakenOrderBookL1)>
+    for MarketIter<InstrumentId, OrderBookL1>
+{
+    fn from(
+        (exchange_id, instrument, book): (ExchangeId, InstrumentId, KrakenOrderBookL1),
+    ) -> Self {
         match book {
             KrakenOrderBookL1::Data(book) => Self(vec![Ok(MarketEvent {
                 exchange_time: book.spread.time,

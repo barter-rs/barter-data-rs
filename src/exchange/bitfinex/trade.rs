@@ -5,7 +5,7 @@ use crate::{
 };
 use barter_integration::{
     de::{datetime_utc_from_epoch_duration, extract_next},
-    model::{instrument::Instrument, Exchange, Side},
+    model::{Exchange, Side},
 };
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -45,8 +45,10 @@ pub struct BitfinexTrade {
     pub amount: f64,
 }
 
-impl From<(ExchangeId, Instrument, BitfinexTrade)> for MarketIter<PublicTrade> {
-    fn from((exchange_id, instrument, trade): (ExchangeId, Instrument, BitfinexTrade)) -> Self {
+impl<InstrumentId> From<(ExchangeId, InstrumentId, BitfinexTrade)>
+    for MarketIter<InstrumentId, PublicTrade>
+{
+    fn from((exchange_id, instrument, trade): (ExchangeId, InstrumentId, BitfinexTrade)) -> Self {
         Self(vec![Ok(MarketEvent {
             exchange_time: trade.time,
             received_time: Utc::now(),
