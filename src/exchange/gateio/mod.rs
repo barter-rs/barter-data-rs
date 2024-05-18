@@ -48,7 +48,7 @@ pub mod subscription;
 /// Generic [`Gateio<Server>`](Gateio) exchange.
 ///
 /// ### Notes
-/// A `Server` [`ExchangeServer`](super::ExchangeServer) implementations exists for
+/// A `Server` [`ExchangeServer`] implementations exists for
 /// [`GateioSpot`](spot::GateioSpot), [`GateioPerpetualUsdt`](perpetual::GateioPerpetualsUsd) and
 /// [`GateioPerpetualBtc`](perpetual::GateioPerpetualsBtc).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
@@ -71,7 +71,9 @@ where
         Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         exchange_subs
             .into_iter()
             .map(|ExchangeSub { channel, market }| {
@@ -85,7 +87,6 @@ where
                     .to_string(),
                 )
             })
-            .collect()
     }
 }
 

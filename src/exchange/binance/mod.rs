@@ -68,7 +68,9 @@ where
         Url::parse(Server::websocket_url()).map_err(SocketError::UrlParse)
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         let stream_names = exchange_subs
             .into_iter()
             .map(|sub| {

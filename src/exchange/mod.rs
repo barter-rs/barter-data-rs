@@ -124,7 +124,10 @@ where
 
     /// Defines how to translate a collection of [`ExchangeSub`]s into the [`WsMessage`]
     /// subscription payloads sent to the exchange server.
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
+    // fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage>;
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage>;
 
     /// Number of [`Subscription`](subscription::Subscription) responses expected from the
     /// exchange server in responses to the requests send. Used to validate all

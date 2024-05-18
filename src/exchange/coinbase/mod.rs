@@ -55,7 +55,9 @@ impl Connector for Coinbase {
         Url::parse(BASE_URL_COINBASE).map_err(SocketError::UrlParse)
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         exchange_subs
             .into_iter()
             .map(|ExchangeSub { channel, market }| {
@@ -68,7 +70,6 @@ impl Connector for Coinbase {
                     .to_string(),
                 )
             })
-            .collect()
     }
 }
 

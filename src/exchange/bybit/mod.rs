@@ -87,7 +87,9 @@ where
         })
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         let stream_names = exchange_subs
             .into_iter()
             .map(|sub| format!("{}.{}", sub.channel.as_ref(), sub.market.as_ref(),))

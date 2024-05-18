@@ -26,7 +26,7 @@ pub mod channel;
 /// into an exchange [`Connector`]  specific market used for generating [`Connector::requests`].
 pub mod market;
 
-/// [`KrakenMessage`](message::KrakenMessage) type for [`Kraken`].
+/// [`KrakenMessage`] type for [`Kraken`].
 pub mod message;
 
 /// [`Subscription`](crate::subscription::Subscription) response type and response
@@ -61,7 +61,9 @@ impl Connector for Kraken {
         Url::parse(BASE_URL_KRAKEN).map_err(SocketError::UrlParse)
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         exchange_subs
             .into_iter()
             .map(|ExchangeSub { channel, market }| {
@@ -76,7 +78,6 @@ impl Connector for Kraken {
                     .to_string(),
                 )
             })
-            .collect()
     }
 }
 

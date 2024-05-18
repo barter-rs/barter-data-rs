@@ -66,7 +66,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
 
         SubscriptionMeta {
             instrument_map,
-            subscriptions,
+            subscriptions: subscriptions.into_iter().collect(),
         }
     }
 }

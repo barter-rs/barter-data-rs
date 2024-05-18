@@ -67,7 +67,9 @@ impl Connector for Okx {
         })
     }
 
-    fn requests(exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>) -> Vec<WsMessage> {
+    fn requests(
+        exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
+    ) -> impl IntoIterator<Item = WsMessage> {
         vec![WsMessage::Text(
             json!({
                 "op": "subscribe",
