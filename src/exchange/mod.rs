@@ -42,8 +42,7 @@ pub mod kraken;
 pub mod okx;
 
 /// `Deribit` [`Connector`] and [`StreamSelectr`] implementations.
-mod deribit;
-
+pub mod deribit;
 
 /// Defines the generic [`ExchangeSub`] containing a market and channel combination used by an
 /// exchange [`Connector`] to build [`WsMessage`] subscription payloads.
@@ -247,19 +246,19 @@ impl ExchangeId {
             (_, Spot) => true,
 
             // Future
-            (GateioFuturesUsd | GateioFuturesBtc | Okx, Future(_)) => true,
+            (Deribit | GateioFuturesUsd | GateioFuturesBtc | Okx, Future(_)) => true,
             (_, Future(_)) => false,
 
             // Future Perpetual Swaps
             (
-                BinanceFuturesUsd | Bitmex | Okx | BybitPerpetualsUsd | GateioPerpetualsUsd
-                | GateioPerpetualsBtc,
+                BinanceFuturesUsd | Bitmex | Deribit | Okx | BybitPerpetualsUsd
+                | GateioPerpetualsUsd | GateioPerpetualsBtc,
                 Perpetual,
             ) => true,
             (_, Perpetual) => false,
 
             // Option
-            (GateioOptions | Okx, Option(_)) => true,
+            (Deribit | GateioOptions | Okx, Option(_)) => true,
             (_, Option(_)) => false,
         }
     }

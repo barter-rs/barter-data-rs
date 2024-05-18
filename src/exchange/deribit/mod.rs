@@ -1,25 +1,33 @@
 use crate::exchange::deribit::channel::DeribitChannel;
 use crate::exchange::deribit::market::DeribitMarket;
+use crate::exchange::deribit::request::{DeribitRequest, DeribitSubParams};
+use crate::exchange::deribit::subscription::DeribitResponse;
+use crate::exchange::deribit::trade::DeribitTrades;
 use crate::exchange::subscription::ExchangeSub;
-use crate::exchange::{Connector, ExchangeId};
+use crate::exchange::{Connector, ExchangeId, StreamSelector};
+use crate::instrument::InstrumentData;
 use crate::subscriber::validator::WebSocketSubValidator;
 use crate::subscriber::WebSocketSubscriber;
+use crate::subscription::trade::PublicTrades;
+use crate::transformer::stateless::StatelessTransformer;
+use crate::ExchangeWsStream;
 use barter_integration::error::SocketError;
 use barter_integration::model::SubscriptionId;
 use barter_integration::protocol::websocket::WsMessage;
-use barter_integration::Validator;
 use barter_macro::{DeExchange, SerExchange};
-use serde::{Deserialize, Serialize};
 use url::Url;
 
 pub mod channel;
 pub mod market;
+pub mod message;
+pub mod request;
 pub mod subscription;
+pub mod trade;
 
 /// [`Kraken`] server base url.
 ///
 /// See docs: <https://docs.kraken.com/websockets/#overview>
-pub const BASE_URL_DERIBIT: &str = "www.deribit.com";
+pub const BASE_URL_DERIBIT: &str = "wss://www.deribit.com/ws/api/v2";
 
 /// [`Deribit`] exchange.
 ///
@@ -31,11 +39,11 @@ pub struct Deribit;
 
 impl Connector for Deribit {
     const ID: ExchangeId = ExchangeId::Deribit;
-    type Channel = DeribitChannel;
+    type Channel = DeribitChannel<'static>;
     type Market = DeribitMarket;
     type Subscriber = WebSocketSubscriber;
     type SubValidator = WebSocketSubValidator;
-    type SubResponse = DeribitResponse<Vec<SubscriptionId>>; // Todo:
+    type SubResponse = DeribitResponse<Vec<String>>;
 
     fn url() -> Result<Url, SocketError> {
         Url::parse(BASE_URL_DERIBIT).map_err(SocketError::UrlParse)
@@ -44,81 +52,31 @@ impl Connector for Deribit {
     fn requests(
         exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
     ) -> impl IntoIterator<Item = WsMessage> {
-        [
-            WsMessage::try_from(&DeribitRequest::<DeribitSubParams>::from_iter(
+        let x = [WsMessage::Text(
+            serde_json::to_string(&DeribitRequest::<DeribitSubParams>::from_iter(
                 exchange_subs,
             ))
             .expect("failed to serialise DeribitRequest<DeribitSubParams>"),
-        ]
+        )];
+
+        let y = x.iter().cloned().collect::<Vec<_>>();
+
+        println!("{}", y[0].to_string());
+        x
     }
 }
 
-impl FromIterator<ExchangeSub<DeribitChannel, DeribitMarket>>
-    for DeribitRequest<'_, DeribitSubParams>
-{
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = ExchangeSub<DeribitChannel, DeribitMarket>>,
-    {
-        Self {
-            jsonrpc: "2.0",
-            id: 0,
-            method: "public/subscribe",
-            params: DeribitSubParams {
-                channels: iter
-                    .into_iter()
-                    .map(|ExchangeSub { channel, market }| {
-                        format!("{}{}.raw", channel.as_ref(), market.as_ref())
-                    })
-                    .collect::<Vec<_>>(),
-            },
-        }
-    }
-}
-
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct DeribitRequest<'a, T> {
-    jsonrpc: &'a str,
-    id: u32,
-    method: &'a str,
-    params: T,
-}
-
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct DeribitSubParams {
-    channels: Vec<String>,
-}
-
-impl<'a, T> TryFrom<&'a DeribitRequest<'a, T>> for WsMessage
+impl<Instrument> StreamSelector<Instrument, PublicTrades> for Deribit
 where
-    T: Serialize,
+    Instrument: InstrumentData,
 {
-    type Error = SocketError;
-
-    fn try_from(value: &'a DeribitRequest<'a, T>) -> Result<Self, Self::Error> {
-        serde_json::to_string(value)
-            .map(WsMessage::Text)
-            .map_err(SocketError::Serialise)
-    }
+    type Stream =
+        ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, PublicTrades, DeribitTrades>>;
 }
 
-#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
-pub struct DeribitResponse<T> {
-    id: u32,
-    result: T,
-}
-
-impl Validator for DeribitResponse<Vec<SubscriptionId>> {
-    fn validate(self) -> Result<Self, SocketError>
-    where
-        Self: Sized,
-    {
-        if self.result.is_empty() {
-            Err(SocketError::Subscribe(format!(
-                "received failure subscription response: {self:?}",
-            )))
-        } else {
-            Ok(self)
-        }
-    }
-}
+// impl<Instrument> StreamSelector<Instrument, OrderBooksL1> for Deribit
+// where
+//     Instrument: InstrumentData,
+// {
+//     type Stream = ExchangeWsStream<StatelessTransformer<Self, Instrument::Id, OrderBooksL1, DeribitOrderBookL1>>;
+// }

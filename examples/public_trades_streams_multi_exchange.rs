@@ -1,3 +1,4 @@
+use barter_data::exchange::deribit::Deribit;
 use barter_data::{
     exchange::{
         binance::{futures::BinanceFuturesUsd, spot::BinanceSpot},
@@ -30,46 +31,51 @@ async fn main() {
     // Initialise PublicTrades Streams for various exchanges
     // '--> each call to StreamBuilder::subscribe() creates a separate WebSocket connection
     let streams = Streams::<PublicTrades>::builder()
+        // .subscribe([
+        //     (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        //     (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
+        //     (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
+        // ])
+
         .subscribe([
-            (BinanceSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (BinanceSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+            (Deribit, "btc", "usd", InstrumentKind::Future(future_contract()), PublicTrades)
         ])
-        .subscribe([
-            (BinanceFuturesUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
-            (BinanceFuturesUsd::default(), "eth", "usdt", InstrumentKind::Perpetual, PublicTrades),
-        ])
-        .subscribe([
-            (Coinbase, "btc", "usd", InstrumentKind::Spot, PublicTrades),
-            (Coinbase, "eth", "usd", InstrumentKind::Spot, PublicTrades),
-        ])
-        .subscribe([
-            (GateioSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-        ])
-        .subscribe([
-            (GateioPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
-        ])
-        .subscribe([
-            (GateioPerpetualsBtc::default(), "btc", "usd", InstrumentKind::Perpetual, PublicTrades),
-        ])
-        .subscribe([
-            (GateioOptions::default(), "btc", "usdt", InstrumentKind::Option(put_contract()), PublicTrades),
-        ])
-        .subscribe([
-            (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
-            (Okx, "btc", "usd", InstrumentKind::Future(future_contract()), PublicTrades),
-            (Okx, "btc", "usd", InstrumentKind::Option(call_contract()), PublicTrades),
-        ])
-        .subscribe([
-            (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
-            (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
-        ])
-        .subscribe([
-            (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
-        ])
-        .subscribe([
-            (Bitmex, "xbt", "usd", InstrumentKind::Perpetual, PublicTrades)
-        ])
+
+        // .subscribe([
+        //     (GateioSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (GateioPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (GateioPerpetualsBtc::default(), "btc", "usd", InstrumentKind::Perpetual, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (GateioOptions::default(), "btc", "usdt", InstrumentKind::Option(put_contract()), PublicTrades),
+        // ])
+        // .subscribe([
+        //     (Okx, "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (Okx, "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        //     (Okx, "btc", "usd", InstrumentKind::Future(future_contract()), PublicTrades),
+        //     (Okx, "btc", "usd", InstrumentKind::Option(call_contract()), PublicTrades),
+        // ])
+        // .subscribe([
+        //     (BybitSpot::default(), "btc", "usdt", InstrumentKind::Spot, PublicTrades),
+        //     (BybitSpot::default(), "eth", "usdt", InstrumentKind::Spot, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (BybitPerpetualsUsd::default(), "btc", "usdt", InstrumentKind::Perpetual, PublicTrades),
+        // ])
+        // .subscribe([
+        //     (Bitmex, "xbt", "usd", InstrumentKind::Perpetual, PublicTrades)
+        // ])
         .init()
         .await
         .unwrap();
@@ -106,14 +112,14 @@ fn put_contract() -> OptionContract {
     OptionContract {
         kind: OptionKind::Put,
         exercise: OptionExercise::European,
-        expiry: Utc.timestamp_millis_opt(1703808000000).unwrap(),
+        expiry: Utc.timestamp_millis_opt(1735261200000).unwrap(),
         strike: rust_decimal_macros::dec!(50000),
     }
 }
 
 fn future_contract() -> FutureContract {
     FutureContract {
-        expiry: Utc.timestamp_millis_opt(1695945600000).unwrap(),
+        expiry: Utc.timestamp_millis_opt(1735261200000).unwrap(),
     }
 }
 
@@ -121,7 +127,7 @@ fn call_contract() -> OptionContract {
     OptionContract {
         kind: OptionKind::Call,
         exercise: OptionExercise::American,
-        expiry: Utc.timestamp_millis_opt(1703808000000).unwrap(),
+        expiry: Utc.timestamp_millis_opt(1735261200000).unwrap(),
         strike: rust_decimal_macros::dec!(35000),
     }
 }
