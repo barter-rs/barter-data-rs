@@ -9,6 +9,7 @@ use crate::instrument::InstrumentData;
 use crate::subscriber::validator::WebSocketSubValidator;
 use crate::subscriber::WebSocketSubscriber;
 use crate::subscription::trade::PublicTrades;
+use crate::subscription::Map;
 use crate::transformer::stateless::StatelessTransformer;
 use crate::ExchangeWsStream;
 use barter_integration::error::SocketError;
@@ -52,17 +53,16 @@ impl Connector for Deribit {
     fn requests(
         exchange_subs: Vec<ExchangeSub<Self::Channel, Self::Market>>,
     ) -> impl IntoIterator<Item = WsMessage> {
-        let x = [WsMessage::Text(
+        [WsMessage::Text(
             serde_json::to_string(&DeribitRequest::<DeribitSubParams>::from_iter(
                 exchange_subs,
             ))
             .expect("failed to serialise DeribitRequest<DeribitSubParams>"),
-        )];
+        )]
+    }
 
-        let y = x.iter().cloned().collect::<Vec<_>>();
-
-        println!("{}", y[0].to_string());
-        x
+    fn expected_responses<InstrumentId>(_: &Map<InstrumentId>) -> usize {
+        1
     }
 }
 

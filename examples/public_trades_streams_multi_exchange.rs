@@ -45,6 +45,7 @@ async fn main() {
         // ])
 
         .subscribe([
+            (Deribit, "sol", "usdc", InstrumentKind::Spot, PublicTrades),
             (Deribit, "btc", "usd", InstrumentKind::Future(future_contract()), PublicTrades)
         ])
 
