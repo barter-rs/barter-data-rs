@@ -11,7 +11,7 @@ use barter_integration::{
     model::{instrument::Instrument, SubscriptionId},
     protocol::websocket::WsMessage,
 };
-use chrono::Utc;
+use chrono::{Utc, DateTime};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
@@ -53,6 +53,12 @@ pub struct BinanceSpotOrderBookL2Delta {
     pub bids: Vec<BinanceLevel>,
     #[serde(alias = "a")]
     pub asks: Vec<BinanceLevel>,
+    #[serde(
+        alias = "E",
+        deserialize_with = "barter_integration::de::de_u64_epoch_ms_as_datetime_utc",
+        default = "Utc::now"
+    )]
+    pub time: DateTime<Utc>,
 }
 
 impl Identifier<Option<SubscriptionId>> for BinanceSpotOrderBookL2Delta {
@@ -230,6 +236,10 @@ mod tests {
     use super::*;
 
     mod de {
+        use std::time::Duration;
+
+        use barter_integration::de::datetime_utc_from_epoch_duration;
+
         use super::*;
 
         #[test]
@@ -265,7 +275,8 @@ mod tests {
                             amount: 20.68790000
                         },
                     ],
-                    asks: vec![]
+                    asks: vec![],
+                    time: datetime_utc_from_epoch_duration(Duration::from_millis(1671656397761))
                 }
             );
         }
@@ -332,6 +343,7 @@ mod tests {
                         last_update_id: 110,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -348,6 +360,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -367,6 +380,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -386,6 +400,7 @@ mod tests {
                         last_update_id: 90,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -433,6 +448,7 @@ mod tests {
                         last_update_id: 110,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(()),
                 },
@@ -449,6 +465,7 @@ mod tests {
                         last_update_id: 130,
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Err(DataError::InvalidSequence {
                         prev_last_update_id: 100,
@@ -483,6 +500,7 @@ mod tests {
                 expected: Result<Option<OrderBook>, DataError>,
             }
 
+            let exchange_time = Utc::now();
             let time = Utc::now();
 
             let tests = vec![
@@ -494,6 +512,7 @@ mod tests {
                         prev_last_update_id: 0,
                     },
                     book: OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(Side::Buy, vec![Level::new(50, 1)]),
                         asks: OrderBookSide::new(Side::Sell, vec![Level::new(100, 1)]),
@@ -504,6 +523,7 @@ mod tests {
                         last_update_id: 100, // u == updater.lastUpdateId
                         bids: vec![],
                         asks: vec![],
+                        time: Default::default(),
                     },
                     expected: Ok(None),
                 },
@@ -515,6 +535,7 @@ mod tests {
                         prev_last_update_id: 100,
                     },
                     book: OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,
@@ -553,8 +574,10 @@ mod tests {
                                 amount: 0.0,
                             },
                         ],
+                        time: Default::default(),
                     },
                     expected: Ok(Some(OrderBook {
+                        exchange_update_time: exchange_time,
                         last_update_time: time,
                         bids: OrderBookSide::new(
                             Side::Buy,
