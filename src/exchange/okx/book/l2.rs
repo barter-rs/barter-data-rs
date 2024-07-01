@@ -5,7 +5,7 @@ use crate::{
     Identifier,
 };
 use barter_integration::model::{Side, SubscriptionId};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
@@ -18,7 +18,11 @@ pub enum OkxOrderBookAction {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct OkxOrderBookData {
-    pub ts: String,
+    #[serde(
+        alias = "ts",
+        deserialize_with = "barter_integration::de::de_str_u64_epoch_ms_as_datetime_utc"
+    )]
+    pub time: DateTime<Utc>,
     pub asks: Vec<OkxLevel>,
     pub bids: Vec<OkxLevel>,
     pub checksum: i64,

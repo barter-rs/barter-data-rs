@@ -15,7 +15,7 @@ impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, OkxOrderBookL1)>
             .into_iter()
             .map(|data| {
                 return Ok(MarketEvent {
-                    exchange_time: Utc::now(), // TODO: Use timestamp from ts
+                    exchange_time: data.time,
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),
                     instrument: instrument.clone(),

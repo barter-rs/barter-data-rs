@@ -69,7 +69,7 @@ impl OrderBookUpdater for OkxFuturesBookUpdater {
                 // All consecutive messages will be deltas
                 OkxOrderBookAction::UPDATE => {
                     // Update OrderBook metadata & Levels:
-                    book.last_update_time = Utc::now(); // TODO: Use timestamp from ts (this becomes "exchange_time")
+                    book.last_update_time = data.time;
                     book.bids.upsert(data.bids);
                     book.asks.upsert(data.asks);
 
