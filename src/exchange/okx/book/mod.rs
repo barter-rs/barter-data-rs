@@ -76,18 +76,21 @@ impl From<OkxLevel> for Level {
     }
 }
 
-// TODO: maybe use `ExchangeSub` deserializer?
 fn de_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
 where
     D: Deserializer<'de>,
 {
-    let value = Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-    if let Some(inst_id) = value.get("instId").and_then(|inst_id| inst_id.as_str()) {
-        if let Some(channel) = value.get("channel").and_then(|channel| channel.as_str()) {
-            return Ok(SubscriptionId::from(format!("{}|{}", channel, inst_id)));
+    let value: Value = Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
+
+    match (
+        value.get("instId").and_then(|v| v.as_str()),
+        value.get("channel").and_then(|v| v.as_str()),
+    ) {
+        (Some(inst_id), Some(channel)) => {
+            Ok(SubscriptionId::from(format!("{}|{}", inst_id, channel)))
         }
+        _ => Err(serde::de::Error::custom("missing instId or channel in arg")),
     }
-    Err(serde::de::Error::custom("channel or instId missing in arg"))
 }
 
 #[cfg(test)]
