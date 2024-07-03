@@ -14,11 +14,15 @@ pub mod l2;
 
 /// [`Okx`](super::Okx) levels
 ///
-/// An example of the array of asks and bids values: `["411.8", "10", "0", "4"]`
-/// - `"411.8"` is the depth price
-/// - `"10"` is the quantity at the price (number of contracts for derivatives, quantity in base currency for Spot and Spot Margin)
-/// - `"0"` is part of a deprecated feature and it is always "0"
-/// - `"4"` is the number of orders at the price.
+/// From OKX docs:
+/// > An example of the array of asks and bids values: ["411.8", "10", "0", "4"]
+/// > "411.8" is the depth price
+/// > "10" is the quantity at the price (number of contracts for derivatives, quantity in base currency for Spot and Spot Margin)
+/// > "0" is part of a deprecated feature and it is always "0"
+/// > "4" is the number of orders at the price.
+///
+/// Note:
+/// We are only interested in the depth and quantity
 ///
 /// See docs: <https://www.okx.com/docs-v5/en/#order-book-trading-market-data-ws-order-book-channel>
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
@@ -87,7 +91,7 @@ where
         value.get("channel").and_then(|v| v.as_str()),
     ) {
         (Some(inst_id), Some(channel)) => {
-            Ok(SubscriptionId::from(format!("{}|{}", inst_id, channel)))
+            Ok(SubscriptionId::from(format!("{}|{}", channel, inst_id)))
         }
         _ => Err(serde::de::Error::custom("missing instId or channel in arg")),
     }
