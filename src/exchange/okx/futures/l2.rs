@@ -216,7 +216,7 @@ mod tests {
                 let actual = test.updater.validate_update_sequence(&test.input);
                 match (actual, test.expected) {
                     (Ok(actual), Ok(expected)) => {
-                        assert_eq!(actual, expected, "TC{} failed", index)
+                        assert_eq!(actual, expected, "TC{index} failed")
                     }
                     (Err(_), Err(_)) => {
                         // Test passed
