@@ -18,6 +18,7 @@ use tokio::sync::mpsc;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
 pub struct OkxFuturesBookUpdater {
+    /// The smallest possible sequence ID value is 0, except in snapshot messages where the prevSeqId is always -1.
     pub prev_seq_id: i64,
 }
 
@@ -127,5 +128,75 @@ impl OrderBookUpdater for OkxFuturesBookUpdater {
         }
 
         Ok(Some(book.snapshot()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod de {
+        use super::*;
+        use crate::exchange::okx::book::l2::OkxOrderBookData;
+        use barter_integration::model::SubscriptionId;
+        use chrono::DateTime;
+
+        #[test]
+        fn test_okx_futures_order_book_l2_deltas() {
+            let input = r#"
+            {
+              "arg": {
+                "channel": "books",
+                "instId": "BTC-USDT"
+              },
+              "action": "update",
+              "data": [
+                {
+                  "asks": [
+                    ["8476.98", "415", "0", "13"],
+                  ],
+                  "bids": [
+                    ["8476.97", "256", "0", "12"],
+                  ],
+                  "ts": "1597026383085",
+                  "checksum": -855196043,
+                  "prevSeqId": 123456,
+                  "seqId": 123457
+                }
+              ]
+            }
+            "#;
+
+            assert_eq!(
+                serde_json::from_str::<OkxFuturesOrderBookDelta>(input).unwrap(),
+                OkxFuturesOrderBookDelta {
+                    subscription_id: SubscriptionId::from("TODO"),
+                    action: OkxOrderBookAction::UPDATE,
+                    data: vec![OkxOrderBookData {
+                        time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
+                        asks: vec![OkxLevel {
+                            price: 8476.98,
+                            amount: 415.0
+                        }],
+                        bids: vec![OkxLevel {
+                            price: 8476.97,
+                            amount: 256.0
+                        }],
+                        checksum: -855196043,
+                        prev_seq_id: 123456,
+                        seq_id: 123457
+                    }]
+                }
+            )
+        }
+    }
+
+    mod okx_futures_book_updater {
+        use super::*;
+
+        #[test]
+        fn test_validate_update() {
+            todo!()
+        }
     }
 }

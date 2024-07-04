@@ -1,5 +1,8 @@
 use super::OkxLevel;
-use crate::{exchange::okx::book::de_subscription_id, subscription::book::OrderBookL1, Identifier};
+use crate::{
+    exchange::okx::trade::de_okx_message_arg_as_subscription_id, subscription::book::OrderBookL1,
+    Identifier,
+};
 use barter_integration::model::SubscriptionId;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -19,7 +22,10 @@ pub struct OkxOrderBookDataL1 {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OkxOrderBookL1 {
-    #[serde(rename = "arg", deserialize_with = "de_subscription_id")]
+    #[serde(
+        rename = "arg",
+        deserialize_with = "de_okx_message_arg_as_subscription_id"
+    )]
     pub subscription_id: SubscriptionId,
     pub data: Vec<OkxOrderBookDataL1>,
 }

@@ -1,6 +1,6 @@
 use super::OkxLevel;
 use crate::{
-    exchange::okx::book::de_subscription_id,
+    exchange::okx::trade::de_okx_message_arg_as_subscription_id,
     subscription::book::{OrderBook, OrderBookSide},
     Identifier,
 };
@@ -8,7 +8,7 @@ use barter_integration::model::{Side, SubscriptionId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, Eq, PartialEq)]
 pub enum OkxOrderBookAction {
     #[serde(rename = "snapshot")]
     SNAPSHOT,
@@ -16,7 +16,7 @@ pub enum OkxOrderBookAction {
     UPDATE,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct OkxOrderBookData {
     #[serde(
         alias = "ts",
@@ -42,9 +42,12 @@ impl From<OkxOrderBookData> for OrderBook {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct OkxFuturesOrderBookDelta {
-    #[serde(rename = "arg", deserialize_with = "de_subscription_id")]
+    #[serde(
+        rename = "arg",
+        deserialize_with = "de_okx_message_arg_as_subscription_id"
+    )]
     pub subscription_id: SubscriptionId,
     pub action: OkxOrderBookAction,
     pub data: Vec<OkxOrderBookData>,

@@ -1,10 +1,8 @@
 use crate::subscription::book::Level;
-use barter_integration::model::SubscriptionId;
 use serde::{
     de::{SeqAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
-use serde_json::Value;
 
 /// [`Okx`](super::Okx) OrderBookL1 types
 pub mod l1;
@@ -77,23 +75,6 @@ impl From<OkxLevel> for Level {
             price: level.price,
             amount: level.amount,
         }
-    }
-}
-
-fn de_subscription_id<'de, D>(deserializer: D) -> Result<SubscriptionId, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: Value = Value::deserialize(deserializer).map_err(serde::de::Error::custom)?;
-
-    match (
-        value.get("instId").and_then(|v| v.as_str()),
-        value.get("channel").and_then(|v| v.as_str()),
-    ) {
-        (Some(inst_id), Some(channel)) => {
-            Ok(SubscriptionId::from(format!("{}|{}", channel, inst_id)))
-        }
-        _ => Err(serde::de::Error::custom("missing instId or channel in arg")),
     }
 }
 
