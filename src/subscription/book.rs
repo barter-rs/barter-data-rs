@@ -119,9 +119,7 @@ impl OrderBook {
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub struct OrderBookSide {
     side: Side,
-    // TODO: make private again
-    // using this to calc OKX orderbook checksum
-    pub levels: Vec<Level>,
+    levels: Vec<Level>,
 }
 
 impl OrderBookSide {

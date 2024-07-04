@@ -96,36 +96,6 @@ impl OrderBookUpdater for OkxFuturesBookUpdater {
                     book.last_update_time = data.time;
                     book.bids.upsert(data.bids);
                     book.asks.upsert(data.asks);
-
-                    //
-                    // Verify checksum
-                    // TODO: Remove this + crc32 dependency
-                    //
-                    book.bids.sort();
-                    book.asks.sort();
-
-                    // Calc checksum
-                    let expected_checksum = data.checksum;
-                    let checksum = book
-                        .bids
-                        .levels
-                        .iter()
-                        .take(25)
-                        .zip(book.asks.levels.iter().take(25))
-                        .map(|(bid, ask)| {
-                            format!("{}:{}:{}:{}", bid.price, bid.amount, ask.price, ask.amount)
-                        })
-                        .collect::<Vec<_>>()
-                        .join(":");
-
-                    println!("{checksum}");
-                    let mut hasher = crc32fast::Hasher::new();
-                    hasher.update(checksum.as_bytes());
-                    let checksum = hasher.finalize() as i32;
-
-                    println!("\n\n\n -----------------");
-                    println!("expected {expected_checksum} actual {checksum}");
-                    println!("\n\n\n -----------------");
                 }
             };
 
