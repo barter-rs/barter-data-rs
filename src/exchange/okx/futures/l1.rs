@@ -14,13 +14,13 @@ impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, OkxOrderBookL1)>
             .data
             .into_iter()
             .map(|data| {
-                return Ok(MarketEvent {
+                Ok(MarketEvent {
                     exchange_time: data.time,
                     received_time: Utc::now(),
                     exchange: Exchange::from(exchange_id),
                     instrument: instrument.clone(),
                     kind: OrderBookL1::from(data),
-                });
+                })
             })
             .collect::<Vec<_>>();
         Self(events)

@@ -1,7 +1,7 @@
 use crate::{
     error::DataError,
     exchange::okx::book::{
-        l2::{OkxFuturesOrderBookDelta, OkxOrderBookAction},
+        l2::{OkxFuturesOrderBookDelta, OkxOrderBookAction, OkxOrderBookData},
         OkxLevel,
     },
     subscription::book::{OrderBook, OrderBookSide},
@@ -16,7 +16,9 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize, Default,
+)]
 pub struct OkxFuturesBookUpdater {
     /// The smallest possible sequence ID value is 0, except in snapshot messages where the prevSeqId is always -1.
     pub prev_seq_id: i64,
@@ -24,7 +26,17 @@ pub struct OkxFuturesBookUpdater {
 
 impl OkxFuturesBookUpdater {
     pub fn new() -> Self {
-        Self { prev_seq_id: 0 }
+        Default::default()
+    }
+
+    fn validate_update_sequence(&self, update: &OkxOrderBookData) -> Result<(), DataError> {
+        if self.prev_seq_id != update.prev_seq_id {
+            return Err(DataError::InvalidSequence {
+                prev_last_update_id: self.prev_seq_id as u64,
+                first_update_id: update.seq_id as u64,
+            });
+        }
+        Ok(())
     }
 }
 
@@ -69,18 +81,7 @@ impl OrderBookUpdater for OkxFuturesBookUpdater {
                 }
                 // All consecutive messages will be deltas
                 OkxOrderBookAction::UPDATE => {
-                    // Update OrderBook metadata & Levels:
-                    book.last_update_time = data.time;
-                    book.bids.upsert(data.bids);
-                    book.asks.upsert(data.asks);
-
-                    // Missed a message
-                    if self.prev_seq_id != data.prev_seq_id {
-                        return Err(DataError::InvalidSequence {
-                            prev_last_update_id: self.prev_seq_id as u64,
-                            first_update_id: data.seq_id as u64,
-                        });
-                    }
+                    self.validate_update_sequence(&data)?;
 
                     // If there are no updates to the depth for an extended period, OKX will send a message
                     // with 'asks': [], 'bids': [] to inform users that the connection is still active.
@@ -90,6 +91,11 @@ impl OrderBookUpdater for OkxFuturesBookUpdater {
                     if data.seq_id == data.prev_seq_id {
                         return Ok(None);
                     }
+
+                    // Update OrderBook metadata & Levels:
+                    book.last_update_time = data.time;
+                    book.bids.upsert(data.bids);
+                    book.asks.upsert(data.asks);
 
                     //
                     // Verify checksum
@@ -153,10 +159,10 @@ mod tests {
               "data": [
                 {
                   "asks": [
-                    ["8476.98", "415", "0", "13"],
+                    ["8476.98", "415", "0", "13"]
                   ],
                   "bids": [
-                    ["8476.97", "256", "0", "12"],
+                    ["8476.97", "256", "0", "12"]
                   ],
                   "ts": "1597026383085",
                   "checksum": -855196043,
@@ -170,7 +176,7 @@ mod tests {
             assert_eq!(
                 serde_json::from_str::<OkxFuturesOrderBookDelta>(input).unwrap(),
                 OkxFuturesOrderBookDelta {
-                    subscription_id: SubscriptionId::from("TODO"),
+                    subscription_id: SubscriptionId::from("books|BTC-USDT"),
                     action: OkxOrderBookAction::UPDATE,
                     data: vec![OkxOrderBookData {
                         time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
@@ -193,10 +199,64 @@ mod tests {
 
     mod okx_futures_book_updater {
         use super::*;
+        use crate::exchange::okx::book::l2::OkxOrderBookData;
+        use chrono::DateTime;
 
         #[test]
-        fn test_validate_update() {
-            todo!()
+        fn test_validate_update_sequence() {
+            struct TestCase {
+                updater: OkxFuturesBookUpdater,
+                input: OkxOrderBookData,
+                expected: Result<(), DataError>,
+            }
+
+            let tests = vec![
+                TestCase {
+                    // TC0: valid sequence
+                    updater: OkxFuturesBookUpdater { prev_seq_id: 1 },
+                    input: OkxOrderBookData {
+                        time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
+                        asks: vec![],
+                        bids: vec![],
+                        checksum: 123,
+                        prev_seq_id: 1,
+                        seq_id: 2,
+                    },
+                    expected: Ok(()),
+                },
+                TestCase {
+                    // TC1: invalid sequence
+                    updater: OkxFuturesBookUpdater { prev_seq_id: 1 },
+                    input: OkxOrderBookData {
+                        time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
+                        asks: vec![],
+                        bids: vec![],
+                        checksum: 123,
+                        prev_seq_id: 2,
+                        seq_id: 3,
+                    },
+                    expected: Err(DataError::InvalidSequence {
+                        prev_last_update_id: 1,
+                        first_update_id: 3,
+                    }),
+                },
+            ];
+
+            for (index, test) in tests.into_iter().enumerate() {
+                let actual = test.updater.validate_update_sequence(&test.input);
+                match (actual, test.expected) {
+                    (Ok(actual), Ok(expected)) => {
+                        assert_eq!(actual, expected, "TC{} failed", index)
+                    }
+                    (Err(_), Err(_)) => {
+                        // Test passed
+                    }
+                    (actual, expected) => {
+                        // Test failed
+                        panic!("TC{index} failed because actual != expected. \nActual: {actual:?}\nExpected: {expected:?}\n");
+                    }
+                }
+            }
         }
     }
 }
