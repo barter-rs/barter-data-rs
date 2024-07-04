@@ -1,4 +1,5 @@
-use crate::exchange::StreamSelector;
+use crate::exchange::{Connector, ExchangeId};
+use crate::instrument::{InstrumentData, KeyedInstrument};
 use barter_integration::{
     error::SocketError,
     model::{
@@ -8,6 +9,7 @@ use barter_integration::{
     protocol::websocket::WsMessage,
     Validator,
 };
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
 use std::hash::Hash;
@@ -16,35 +18,47 @@ use std::{
     fmt::{Debug, Display, Formatter},
 };
 
-/// OrderBook [`SubKind`]s and the associated Barter output data models.
+/// OrderBook [`SubscriptionKind`]s and the associated Barter output data models.
 pub mod book;
 
-/// Candle [`SubKind`] and the associated Barter output data model.
+/// Candle [`SubscriptionKind`] and the associated Barter output data model.
 pub mod candle;
 
-/// Liquidation [`SubKind`] and the associated Barter output data model.
+/// Liquidation [`SubscriptionKind`] and the associated Barter output data model.
 pub mod liquidation;
 
-/// Public trade [`SubKind`] and the associated Barter output data model.
+/// Public trade [`SubscriptionKind`] and the associated Barter output data model.
 pub mod trade;
 
 /// Defines the type of a [`Subscription`], and the output [`Self::Event`] that it yields.
-pub trait SubKind
+pub trait SubscriptionKind
 where
     Self: Debug + Clone,
 {
     type Event: Debug;
 }
 
-/// Barter [`Subscription`] used to subscribe to a [`SubKind`] for a particular exchange
+/// Barter [`Subscription`] used to subscribe to a [`SubscriptionKind`] for a particular exchange
 /// [`Instrument`].
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
-pub struct Subscription<Exchange, Instrument, Kind> {
+pub struct Subscription<Exchange = ExchangeId, Inst = Instrument, Kind = SubKind> {
     pub exchange: Exchange,
     #[serde(flatten)]
-    pub instrument: Instrument,
+    pub instrument: Inst,
     #[serde(alias = "type")]
     pub kind: Kind,
+}
+
+#[derive(
+    Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Deserialize, Serialize, Display,
+)]
+pub enum SubKind {
+    PublicTrades,
+    OrderBooksL1,
+    OrderBooksL2,
+    OrderBooksL3,
+    Liquidations,
+    Candles,
 }
 
 impl<Exchange, Instrument, Kind> Display for Subscription<Exchange, Instrument, Kind>
@@ -70,6 +84,27 @@ where
     }
 }
 
+impl<InstrumentId, Exchange, S, Kind> From<(InstrumentId, Exchange, S, S, InstrumentKind, Kind)>
+    for Subscription<Exchange, KeyedInstrument<InstrumentId>, Kind>
+where
+    S: Into<Symbol>,
+{
+    fn from(
+        (instrument_id, exchange, base, quote, instrument_kind, kind): (
+            InstrumentId,
+            Exchange,
+            S,
+            S,
+            InstrumentKind,
+            Kind,
+        ),
+    ) -> Self {
+        let instrument = KeyedInstrument::new(instrument_id, (base, quote, instrument_kind).into());
+
+        Self::new(exchange, instrument, kind)
+    }
+}
+
 impl<Exchange, I, Instrument, Kind> From<(Exchange, I, Kind)>
     for Subscription<Exchange, Instrument, Kind>
 where
@@ -80,7 +115,7 @@ where
     }
 }
 
-impl<Exchange, Instrument, Kind> Subscription<Exchange, Instrument, Kind> {
+impl<Instrument, Exchange, Kind> Subscription<Exchange, Instrument, Kind> {
     /// Constructs a new [`Subscription`] using the provided configuration.
     pub fn new<I>(exchange: Exchange, instrument: I, kind: Kind) -> Self
     where
@@ -96,8 +131,7 @@ impl<Exchange, Instrument, Kind> Subscription<Exchange, Instrument, Kind> {
 
 impl<Exchange, Kind> Validator for &Subscription<Exchange, Instrument, Kind>
 where
-    Exchange: StreamSelector<Instrument, Kind>,
-    Kind: SubKind,
+    Exchange: Connector,
 {
     fn validate(self) -> Result<Self, SocketError>
     where
@@ -107,12 +141,32 @@ where
         let exchange = Exchange::ID;
 
         // Validate the Exchange supports the Subscription InstrumentKind
-        if exchange.supports(self.instrument.kind) {
+        if exchange.supports_instrument_kind(self.instrument.kind) {
             Ok(self)
         } else {
             Err(SocketError::Unsupported {
                 entity: exchange.as_str(),
                 item: self.instrument.kind.to_string(),
+            })
+        }
+    }
+}
+
+impl<Instrument> Validator for Subscription<ExchangeId, Instrument, SubKind>
+where
+    Instrument: InstrumentData,
+{
+    fn validate(self) -> Result<Self, SocketError>
+    where
+        Self: Sized,
+    {
+        // Validate the Exchange supports the Subscription InstrumentKind
+        if self.exchange.supports(self.instrument.kind(), self.kind) {
+            Ok(self)
+        } else {
+            Err(SocketError::Unsupported {
+                entity: self.exchange.as_str(),
+                item: self.instrument.kind().to_string(),
             })
         }
     }

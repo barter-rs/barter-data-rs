@@ -1,4 +1,4 @@
-use super::SubKind;
+use super::SubscriptionKind;
 use crate::{
     event::{MarketEvent, MarketIter},
     exchange::ExchangeId,
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use tracing::debug;
 
-/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 1 [`OrderBook`]
+/// Barter [`Subscription`](super::Subscription) [`SubscriptionKind`] that yields level 1 [`OrderBook`]
 /// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 1 refers to the best non-aggregated bid and ask [`Level`] on each side of the
@@ -18,7 +18,7 @@ use tracing::debug;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL1;
 
-impl SubKind for OrderBooksL1 {
+impl SubscriptionKind for OrderBooksL1 {
     type Event = OrderBookL1;
 }
 
@@ -47,18 +47,18 @@ impl OrderBookL1 {
     }
 }
 
-/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 2 [`OrderBook`]
+/// Barter [`Subscription`](super::Subscription) [`SubscriptionKind`] that yields level 2 [`OrderBook`]
 /// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 2 refers to the [`OrderBook`] aggregated by price.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL2;
 
-impl SubKind for OrderBooksL2 {
+impl SubscriptionKind for OrderBooksL2 {
     type Event = OrderBook;
 }
 
-/// Barter [`Subscription`](super::Subscription) [`SubKind`] that yields level 3 [`OrderBook`]
+/// Barter [`Subscription`](super::Subscription) [`SubscriptionKind`] that yields level 3 [`OrderBook`]
 /// [`MarketEvent<T>`](MarketEvent) events.
 ///
 /// Level 3 refers to the non-aggregated [`OrderBook`]. This is a direct replication of the exchange
@@ -66,7 +66,7 @@ impl SubKind for OrderBooksL2 {
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, DeSubKind, SerSubKind)]
 pub struct OrderBooksL3;
 
-impl SubKind for OrderBooksL3 {
+impl SubscriptionKind for OrderBooksL3 {
     type Event = OrderBook;
 }
 

@@ -1,5 +1,5 @@
 use self::builder::{multi::MultiStreamBuilder, StreamBuilder};
-use crate::{exchange::ExchangeId, subscription::SubKind};
+use crate::{exchange::ExchangeId, subscription::SubscriptionKind};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tokio_stream::{wrappers::UnboundedReceiverStream, StreamMap};
@@ -21,10 +21,10 @@ pub struct Streams<T> {
 
 impl<T> Streams<T> {
     /// Construct a [`StreamBuilder`] for configuring new
-    /// [`MarketEvent<SubKind::Event>`](crate::event::MarketEvent) [`Streams`].
+    /// [`MarketEvent<SubscriptionKind::Event>`](crate::event::MarketEvent) [`Streams`].
     pub fn builder<Kind>() -> StreamBuilder<Kind>
     where
-        Kind: SubKind,
+        Kind: SubscriptionKind,
     {
         StreamBuilder::<Kind>::new()
     }

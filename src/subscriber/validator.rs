@@ -1,7 +1,7 @@
 use crate::instrument::InstrumentData;
 use crate::{
     exchange::Connector,
-    subscription::{Map, SubKind},
+    subscription::{Map, SubscriptionKind},
 };
 use async_trait::async_trait;
 use barter_integration::{
@@ -29,7 +29,7 @@ pub trait SubscriptionValidator {
     where
         Exchange: Connector + Send,
         Instrument: InstrumentData,
-        Kind: SubKind + Send;
+        Kind: SubscriptionKind + Send;
 }
 
 /// Standard [`SubscriptionValidator`] for [`WebSocket`]s suitable for most exchanges.
@@ -47,7 +47,7 @@ impl SubscriptionValidator for WebSocketSubValidator {
     where
         Exchange: Connector + Send,
         Instrument: InstrumentData,
-        Kind: SubKind + Send,
+        Kind: SubscriptionKind + Send,
     {
         // Establish exchange specific subscription validation parameters
         let timeout = Exchange::subscription_timeout();

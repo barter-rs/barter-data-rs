@@ -1,7 +1,7 @@
 use crate::{
     error::DataError,
     event::MarketEvent,
-    subscription::{Map, SubKind},
+    subscription::{Map, SubscriptionKind},
 };
 use async_trait::async_trait;
 use barter_integration::{protocol::websocket::WsMessage, Transformer};
@@ -20,7 +20,7 @@ pub mod stateless;
 pub trait ExchangeTransformer<Exchange, InstrumentId, Kind>
 where
     Self: Transformer<Output = MarketEvent<InstrumentId, Kind::Event>, Error = DataError> + Sized,
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     /// Construct a new [`Self`].
     ///
