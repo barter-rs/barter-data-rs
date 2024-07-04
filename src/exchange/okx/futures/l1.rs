@@ -1,15 +1,17 @@
 use crate::{
     event::{MarketEvent, MarketIter},
-    exchange::{okx::book::l1::OkxOrderBookL1, ExchangeId},
+    exchange::{okx::book::l1::OkxFuturesOrderBookL1, ExchangeId},
     subscription::book::OrderBookL1,
 };
 use barter_integration::model::Exchange;
 use chrono::Utc;
 
-impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, OkxOrderBookL1)>
+impl<InstrumentId: Clone> From<(ExchangeId, InstrumentId, OkxFuturesOrderBookL1)>
     for MarketIter<InstrumentId, OrderBookL1>
 {
-    fn from((exchange_id, instrument, book): (ExchangeId, InstrumentId, OkxOrderBookL1)) -> Self {
+    fn from(
+        (exchange_id, instrument, book): (ExchangeId, InstrumentId, OkxFuturesOrderBookL1),
+    ) -> Self {
         let events = book
             .data
             .into_iter()

@@ -1,7 +1,7 @@
 use crate::{
     error::DataError,
     exchange::okx::book::{
-        l2::{OkxFuturesOrderBookDelta, OkxOrderBookAction, OkxOrderBookData},
+        l2::{OkxFuturesOrderBookL2, OkxOrderBookAction, OkxOrderBookDataL2},
         OkxLevel,
     },
     subscription::book::{OrderBook, OrderBookSide},
@@ -29,7 +29,7 @@ impl OkxFuturesBookUpdater {
         Default::default()
     }
 
-    fn validate_update_sequence(&self, update: &OkxOrderBookData) -> Result<(), DataError> {
+    fn validate_update_sequence(&self, update: &OkxOrderBookDataL2) -> Result<(), DataError> {
         if self.prev_seq_id != update.prev_seq_id {
             return Err(DataError::InvalidSequence {
                 prev_last_update_id: self.prev_seq_id as u64,
@@ -43,7 +43,7 @@ impl OkxFuturesBookUpdater {
 #[async_trait]
 impl OrderBookUpdater for OkxFuturesBookUpdater {
     type OrderBook = OrderBook;
-    type Update = OkxFuturesOrderBookDelta;
+    type Update = OkxFuturesOrderBookL2;
 
     async fn init<Exchange, Kind>(
         _: mpsc::UnboundedSender<WsMessage>,
@@ -113,7 +113,7 @@ mod tests {
 
     mod de {
         use super::*;
-        use crate::exchange::okx::book::l2::OkxOrderBookData;
+        use crate::exchange::okx::book::l2::OkxOrderBookDataL2;
         use barter_integration::model::SubscriptionId;
         use chrono::DateTime;
 
@@ -144,11 +144,11 @@ mod tests {
             "#;
 
             assert_eq!(
-                serde_json::from_str::<OkxFuturesOrderBookDelta>(input).unwrap(),
-                OkxFuturesOrderBookDelta {
+                serde_json::from_str::<OkxFuturesOrderBookL2>(input).unwrap(),
+                OkxFuturesOrderBookL2 {
                     subscription_id: SubscriptionId::from("books|BTC-USDT"),
                     action: OkxOrderBookAction::UPDATE,
-                    data: vec![OkxOrderBookData {
+                    data: vec![OkxOrderBookDataL2 {
                         time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
                         asks: vec![OkxLevel {
                             price: 8476.98,
@@ -169,14 +169,14 @@ mod tests {
 
     mod okx_futures_book_updater {
         use super::*;
-        use crate::exchange::okx::book::l2::OkxOrderBookData;
+        use crate::exchange::okx::book::l2::OkxOrderBookDataL2;
         use chrono::DateTime;
 
         #[test]
         fn test_validate_update_sequence() {
             struct TestCase {
                 updater: OkxFuturesBookUpdater,
-                input: OkxOrderBookData,
+                input: OkxOrderBookDataL2,
                 expected: Result<(), DataError>,
             }
 
@@ -184,7 +184,7 @@ mod tests {
                 TestCase {
                     // TC0: valid sequence
                     updater: OkxFuturesBookUpdater { prev_seq_id: 1 },
-                    input: OkxOrderBookData {
+                    input: OkxOrderBookDataL2 {
                         time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
                         asks: vec![],
                         bids: vec![],
@@ -197,7 +197,7 @@ mod tests {
                 TestCase {
                     // TC1: invalid sequence
                     updater: OkxFuturesBookUpdater { prev_seq_id: 1 },
-                    input: OkxOrderBookData {
+                    input: OkxOrderBookDataL2 {
                         time: DateTime::<Utc>::from_timestamp_millis(1597026383085).unwrap(),
                         asks: vec![],
                         bids: vec![],
