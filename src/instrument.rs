@@ -1,6 +1,6 @@
 use barter_integration::model::instrument::kind::InstrumentKind;
 use barter_integration::model::instrument::Instrument;
-use derive_more::Display;
+use derive_more::{Constructor, Display};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -25,7 +25,9 @@ where
     fn kind(&self) -> InstrumentKind;
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
+#[derive(
+    Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize, Constructor,
+)]
 pub struct KeyedInstrument<Id = InstrumentId> {
     pub id: Id,
     pub data: Instrument,

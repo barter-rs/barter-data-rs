@@ -1,3 +1,5 @@
+use crate::exchange::ExchangeId;
+use crate::subscription::SubKind;
 use barter_integration::error::SocketError;
 use thiserror::Error;
 
@@ -6,6 +8,12 @@ use thiserror::Error;
 pub enum DataError {
     #[error("SocketError: {0}")]
     Socket(#[from] SocketError),
+
+    #[error("unsupported dynamic Subscription for exchange: {exchange}, kind: {sub_kind}")]
+    Unsupported {
+        exchange: ExchangeId,
+        sub_kind: SubKind,
+    },
 
     #[error(
         "\

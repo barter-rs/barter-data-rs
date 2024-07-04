@@ -3,7 +3,7 @@ use crate::instrument::InstrumentData;
 use crate::{
     exchange::{Connector, ExchangeSub},
     subscriber::validator::SubscriptionValidator,
-    subscription::{Map, SubKind},
+    subscription::{Map, SubscriptionKind},
     Identifier,
 };
 use async_trait::async_trait;
@@ -45,7 +45,7 @@ impl SubscriptionValidator for BitfinexWebSocketSubValidator {
     where
         Exchange: Connector + Send,
         Instrument: InstrumentData,
-        Kind: SubKind + Send,
+        Kind: SubscriptionKind + Send,
     {
         // Establish exchange specific subscription validation parameters
         let timeout = Exchange::subscription_timeout();

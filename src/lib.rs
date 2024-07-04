@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
-#![allow(clippy::pedantic)]
 #![warn(clippy::all)]
+#![allow(clippy::pedantic, clippy::type_complexity)]
 #![warn(
     missing_debug_implementations,
     missing_copy_implementations,
@@ -10,18 +10,18 @@
 //! # Barter-Data
 //! A high-performance WebSocket integration library for streaming public market data from leading cryptocurrency
 //! exchanges - batteries included. It is:
-//! * **Easy**: Barter-Data's simple [`StreamBuilder`](streams::builder::StreamBuilder) interface allows for easy & quick setup (see example below!).
+//! * **Easy**: Barter-Data's simple [`StreamBuilder`](streams::builder::StreamBuilder) and [`DynamicStreams`](streams::builder::DynamicStreams) interface allows for easy & quick setup (see example below and /examples!).
 //! * **Normalised**: Barter-Data's unified interface for consuming public WebSocket data means every Exchange returns a normalised data model.
 //! * **Real-Time**: Barter-Data utilises real-time WebSocket integrations enabling the consumption of normalised tick-by-tick data.
 //! * **Extensible**: Barter-Data is highly extensible, and therefore easy to contribute to with coding new integrations!
 //!
 //! ## User API
-//! - [`StreamBuilder`](streams::builder::StreamBuilder) for initialising [`MarketStream`]s of various kinds.
+//! - [`StreamBuilder`](streams::builder::StreamBuilder) for initialising [`MarketStream`]s of specific data kinds.
+//! - [`DynamicStreams`](streams::builder::DynamicStreams) for initialising [`MarketStream`]s of every supported data kind at once.
 //! - Define what exchange market data you want to stream using the [`Subscription`] type.
-//! - Pass [`Subscription`]s to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe) method.
-//! - Each call to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe)
+//! - Pass [`Subscription`]s to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe) or [`DynamicStreams::init`](streams::builder::DynamicStreams::init) methods.
+//! - Each call to the [`StreamBuilder::subscribe`](streams::builder::StreamBuilder::subscribe) (or each batch passed to the [`DynamicStreams::init`](streams::builder::DynamicStreams::init))
 //!   method opens a new WebSocket connection to the exchange - giving you full control.
-//! - Call [`StreamBuilder::init`](streams::builder::StreamBuilder::init) to start streaming!
 //!
 //! ## Examples
 //! For a comprehensive collection of examples, see the /examples directory.
@@ -90,7 +90,7 @@ use crate::{
     event::MarketEvent,
     exchange::{Connector, ExchangeId, PingInterval},
     subscriber::Subscriber,
-    subscription::{SubKind, Subscription},
+    subscription::{Subscription, SubscriptionKind},
     transformer::ExchangeTransformer,
 };
 use async_trait::async_trait;
@@ -151,7 +151,7 @@ pub trait Identifier<T> {
 }
 
 /// [`Stream`] that yields [`Market<Kind>`](MarketEvent) events. The type of [`Market<Kind>`](MarketEvent)
-/// depends on the provided [`SubKind`] of the passed [`Subscription`]s.
+/// depends on the provided [`SubscriptionKind`] of the passed [`Subscription`]s.
 #[async_trait]
 pub trait MarketStream<Exchange, Instrument, Kind>
 where
@@ -161,7 +161,7 @@ where
         + Unpin,
     Exchange: Connector,
     Instrument: InstrumentData,
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     async fn init(
         subscriptions: &[Subscription<Exchange, Instrument, Kind>],
@@ -177,7 +177,7 @@ impl<Exchange, Instrument, Kind, Transformer> MarketStream<Exchange, Instrument,
 where
     Exchange: Connector + Send + Sync,
     Instrument: InstrumentData,
-    Kind: SubKind + Send + Sync,
+    Kind: SubscriptionKind + Send + Sync,
     Transformer: ExchangeTransformer<Exchange, Instrument::Id, Kind> + Send,
     Kind::Event: Send,
 {
@@ -211,7 +211,7 @@ where
             ));
         }
 
-        // Construct Transformer associated with this Exchange and SubKind
+        // Construct Transformer associated with this Exchange and SubscriptionKind
         let transformer = Transformer::new(ws_sink_tx, map).await?;
 
         Ok(ExchangeWsStream::new(ws_stream, transformer))

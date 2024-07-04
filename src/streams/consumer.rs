@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::MarketEvent,
     exchange::StreamSelector,
-    subscription::{SubKind, Subscription},
+    subscription::{Subscription, SubscriptionKind},
     Identifier, MarketStream,
 };
 use futures::StreamExt;
@@ -24,10 +24,10 @@ pub const STARTING_RECONNECT_BACKOFF_MS: u64 = 125;
 pub async fn consume<Exchange, Instrument, Kind>(
     subscriptions: Vec<Subscription<Exchange, Instrument, Kind>>,
     exchange_tx: mpsc::UnboundedSender<MarketEvent<Instrument::Id, Kind::Event>>,
-) -> DataError
+) -> Result<(), DataError>
 where
     Exchange: StreamSelector<Instrument, Kind>,
-    Kind: SubKind,
+    Kind: SubscriptionKind,
     Instrument: InstrumentData,
     Subscription<Exchange, Instrument, Kind>:
         Identifier<Exchange::Channel> + Identifier<Exchange::Market>,
@@ -63,9 +63,9 @@ where
             Err(error) => {
                 error!(%exchange, attempt, ?error, "failed to initialise MarketStream");
 
-                // Exit function function if Stream::init failed the first attempt, else retry
+                // Exit function if Stream::init failed the first attempt, else retry
                 if attempt == 1 {
-                    return error;
+                    return Err(error);
                 } else {
                     continue;
                 }
