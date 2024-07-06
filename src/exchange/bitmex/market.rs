@@ -1,5 +1,6 @@
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{exchange::bitmex::Bitmex, subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -12,9 +13,13 @@ pub struct BitmexMarket(pub String);
 
 impl<Kind> Identifier<BitmexMarket> for Subscription<Bitmex, Instrument, Kind> {
     fn id(&self) -> BitmexMarket {
-        // Notes:
-        // - Must be uppercase since Bitmex sends message with uppercase MARKET (eg/ XBTUSD).
-        BitmexMarket(format!("{}{}", self.instrument.base, self.instrument.quote).to_uppercase())
+        bitmex_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Kind> Identifier<BitmexMarket> for Subscription<Bitmex, KeyedInstrument, Kind> {
+    fn id(&self) -> BitmexMarket {
+        bitmex_market(&self.instrument.data.base, &self.instrument.data.quote)
     }
 }
 
@@ -28,4 +33,10 @@ impl AsRef<str> for BitmexMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn bitmex_market(base: &Symbol, quote: &Symbol) -> BitmexMarket {
+    // Notes:
+    // - Must be uppercase since Bitmex sends message with uppercase MARKET (eg/ XBTUSD).
+    BitmexMarket(format!("{base}{quote}").to_uppercase())
 }

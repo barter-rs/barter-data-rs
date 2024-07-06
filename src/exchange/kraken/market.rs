@@ -1,6 +1,7 @@
 use super::Kraken;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +14,13 @@ pub struct KrakenMarket(pub String);
 
 impl<Kind> Identifier<KrakenMarket> for Subscription<Kraken, Instrument, Kind> {
     fn id(&self) -> KrakenMarket {
-        KrakenMarket(format!("{}/{}", self.instrument.base, self.instrument.quote).to_uppercase())
+        kraken_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Kind> Identifier<KrakenMarket> for Subscription<Kraken, KeyedInstrument, Kind> {
+    fn id(&self) -> KrakenMarket {
+        kraken_market(&self.instrument.data.base, &self.instrument.data.quote)
     }
 }
 
@@ -27,4 +34,8 @@ impl AsRef<str> for KrakenMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn kraken_market(base: &Symbol, quote: &Symbol) -> KrakenMarket {
+    KrakenMarket(format!("{base}/{quote}").to_uppercase())
 }

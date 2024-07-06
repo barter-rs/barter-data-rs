@@ -1,5 +1,6 @@
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{exchange::bybit::Bybit, subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -12,9 +13,13 @@ pub struct BybitMarket(pub String);
 
 impl<Server, Kind> Identifier<BybitMarket> for Subscription<Bybit<Server>, Instrument, Kind> {
     fn id(&self) -> BybitMarket {
-        // Notes:
-        // - Must be uppercase since Bybit sends message with uppercase MARKET (eg/ BTCUSDT).
-        BybitMarket(format!("{}{}", self.instrument.base, self.instrument.quote).to_uppercase())
+        bybit_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Server, Kind> Identifier<BybitMarket> for Subscription<Bybit<Server>, KeyedInstrument, Kind> {
+    fn id(&self) -> BybitMarket {
+        bybit_market(&self.instrument.data.base, &self.instrument.data.quote)
     }
 }
 
@@ -30,4 +35,10 @@ impl AsRef<str> for BybitMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn bybit_market(base: &Symbol, quote: &Symbol) -> BybitMarket {
+    // Notes:
+    // - Must be uppercase since Bybit sends message with uppercase MARKET (eg/ BTCUSDT).
+    BybitMarket(format!("{base}{quote}").to_uppercase())
 }

@@ -1,6 +1,7 @@
 use super::Binance;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -14,10 +15,18 @@ pub struct BinanceMarket(pub String);
 
 impl<Server, Kind> Identifier<BinanceMarket> for Subscription<Binance<Server>, Instrument, Kind> {
     fn id(&self) -> BinanceMarket {
-        // Notes:
-        // - Must be lowercase when subscribing (transformed to lowercase by Binance fn requests).
-        // - Must be uppercase since Binance sends message with uppercase MARKET (eg/ BTCUSDT).
-        BinanceMarket(format!("{}{}", self.instrument.base, self.instrument.quote).to_uppercase())
+        binance_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Server, Kind> Identifier<BinanceMarket>
+    for Subscription<Binance<Server>, KeyedInstrument, Kind>
+{
+    fn id(&self) -> BinanceMarket {
+        binance_market(
+            &self.instrument.as_ref().base,
+            &self.instrument.as_ref().quote,
+        )
     }
 }
 
@@ -33,4 +42,11 @@ impl AsRef<str> for BinanceMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn binance_market(base: &Symbol, quote: &Symbol) -> BinanceMarket {
+    // Notes:
+    // - Must be lowercase when subscribing (transformed to lowercase by Binance fn requests).
+    // - Must be uppercase since Binance sends message with uppercase MARKET (eg/ BTCUSDT).
+    BinanceMarket(format!("{base}{quote}").to_uppercase())
 }

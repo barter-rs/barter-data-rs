@@ -1,6 +1,7 @@
 use super::Coinbase;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +14,13 @@ pub struct CoinbaseMarket(pub String);
 
 impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, Instrument, Kind> {
     fn id(&self) -> CoinbaseMarket {
-        CoinbaseMarket(format!("{}-{}", self.instrument.base, self.instrument.quote).to_uppercase())
+        coinbase_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Kind> Identifier<CoinbaseMarket> for Subscription<Coinbase, KeyedInstrument, Kind> {
+    fn id(&self) -> CoinbaseMarket {
+        coinbase_market(&self.instrument.data.base, &self.instrument.data.quote)
     }
 }
 
@@ -27,4 +34,8 @@ impl AsRef<str> for CoinbaseMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn coinbase_market(base: &Symbol, quote: &Symbol) -> CoinbaseMarket {
+    CoinbaseMarket(format!("{base}-{quote}").to_uppercase())
 }

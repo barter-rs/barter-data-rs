@@ -1,5 +1,5 @@
 use super::Gateio;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::instrument::{
     kind::{InstrumentKind, OptionKind},
@@ -20,27 +20,15 @@ pub struct GateioMarket(pub String);
 
 impl<Server, Kind> Identifier<GateioMarket> for Subscription<Gateio<Server>, Instrument, Kind> {
     fn id(&self) -> GateioMarket {
-        use InstrumentKind::*;
-        let Instrument { base, quote, kind } = &self.instrument;
+        gateio_market(&self.instrument)
+    }
+}
 
-        GateioMarket(
-            match kind {
-                Spot | Perpetual => format!("{base}_{quote}"),
-                Future(future) => {
-                    format!("{base}_{quote}_QUARTERLY_{}", format_expiry(future.expiry))
-                }
-                Option(option) => format!(
-                    "{base}_{quote}-{}-{}-{}",
-                    format_expiry(option.expiry),
-                    option.strike,
-                    match option.kind {
-                        OptionKind::Call => "C",
-                        OptionKind::Put => "P",
-                    },
-                ),
-            }
-            .to_uppercase(),
-        )
+impl<Server, Kind> Identifier<GateioMarket>
+    for Subscription<Gateio<Server>, KeyedInstrument, Kind>
+{
+    fn id(&self) -> GateioMarket {
+        gateio_market(&self.instrument.data)
     }
 }
 
@@ -56,6 +44,30 @@ impl AsRef<str> for GateioMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn gateio_market(instrument: &Instrument) -> GateioMarket {
+    use InstrumentKind::*;
+    let Instrument { base, quote, kind } = instrument;
+
+    GateioMarket(
+        match kind {
+            Spot | Perpetual => format!("{base}_{quote}"),
+            Future(future) => {
+                format!("{base}_{quote}_QUARTERLY_{}", format_expiry(future.expiry))
+            }
+            Option(option) => format!(
+                "{base}_{quote}-{}-{}-{}",
+                format_expiry(option.expiry),
+                option.strike,
+                match option.kind {
+                    OptionKind::Call => "C",
+                    OptionKind::Put => "P",
+                },
+            ),
+        }
+        .to_uppercase(),
+    )
 }
 
 /// Format the expiry DateTime<Utc> to be Gateio API compatible.

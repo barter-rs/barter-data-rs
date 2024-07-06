@@ -1,6 +1,7 @@
 use super::Bitfinex;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
+use barter_integration::model::instrument::symbol::Symbol;
 use barter_integration::model::instrument::Instrument;
 use serde::{Deserialize, Serialize};
 
@@ -13,11 +14,13 @@ pub struct BitfinexMarket(pub String);
 
 impl<Kind> Identifier<BitfinexMarket> for Subscription<Bitfinex, Instrument, Kind> {
     fn id(&self) -> BitfinexMarket {
-        BitfinexMarket(format!(
-            "t{}{}",
-            self.instrument.base.to_string().to_uppercase(),
-            self.instrument.quote.to_string().to_uppercase()
-        ))
+        bitfinex_market(&self.instrument.base, &self.instrument.quote)
+    }
+}
+
+impl<Kind> Identifier<BitfinexMarket> for Subscription<Bitfinex, KeyedInstrument, Kind> {
+    fn id(&self) -> BitfinexMarket {
+        bitfinex_market(&self.instrument.data.base, &self.instrument.data.quote)
     }
 }
 
@@ -31,4 +34,12 @@ impl AsRef<str> for BitfinexMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn bitfinex_market(base: &Symbol, quote: &Symbol) -> BitfinexMarket {
+    BitfinexMarket(format!(
+        "t{}{}",
+        base.to_string().to_uppercase(),
+        quote.to_string().to_uppercase()
+    ))
 }

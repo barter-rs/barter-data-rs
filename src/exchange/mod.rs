@@ -1,5 +1,6 @@
 use self::subscription::ExchangeSub;
 use crate::instrument::InstrumentData;
+use crate::streams::builder::dynamic::SubscriptionKind;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
     subscription::{Map, SubKind},
