@@ -46,7 +46,7 @@ where
     let mut attempt: u32 = 0;
     let mut backoff_ms: u64 = STARTING_RECONNECT_BACKOFF_MS;
 
-    loop {
+    'retry: loop {
         // Increment retry parameters at start of every iteration
         attempt += 1;
         backoff_ms *= 2;
@@ -77,13 +77,16 @@ where
             match event_result {
                 // If Ok: send MarketEvent<T> to exchange receiver
                 Ok(market_event) => {
-                    let _ = exchange_tx.send(market_event).map_err(|err| {
+                    if let Err(_) = exchange_tx.send(market_event).map_err(|err| {
                         error!(
                             payload = ?err.0,
                             why = "receiver dropped",
+                            action = "shutting down Stream",
                             "failed to send Event<MarketData> to Exchange receiver"
                         );
-                    });
+                    }) {
+                        break 'retry Ok(());
+                    }
                 }
                 // If terminal DataError: break
                 Err(error) if error.is_terminal() => {
