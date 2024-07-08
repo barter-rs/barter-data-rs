@@ -9,7 +9,7 @@ use crate::{
 use futures::StreamExt;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// Initial duration that the [`consume`] function should wait after disconnecting before attempting
 /// to re-initialise a [`MarketStream`]. This duration will increase exponentially as a result
@@ -46,7 +46,7 @@ where
     let mut attempt: u32 = 0;
     let mut backoff_ms: u64 = STARTING_RECONNECT_BACKOFF_MS;
 
-    loop {
+    'retry: loop {
         // Increment retry parameters at start of every iteration
         attempt += 1;
         backoff_ms *= 2;
@@ -77,13 +77,15 @@ where
             match event_result {
                 // If Ok: send MarketEvent<T> to exchange receiver
                 Ok(market_event) => {
-                    let _ = exchange_tx.send(market_event).map_err(|err| {
-                        error!(
-                            payload = ?err.0,
+                    if let Err(error) = exchange_tx.send(market_event) {
+                        debug!(
+                            payload = ?error.0,
                             why = "receiver dropped",
+                            action = "shutting down Stream",
                             "failed to send Event<MarketData> to Exchange receiver"
                         );
-                    });
+                        break 'retry Ok(());
+                    }
                 }
                 // If terminal DataError: break
                 Err(error) if error.is_terminal() => {
