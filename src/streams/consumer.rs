@@ -9,7 +9,7 @@ use crate::{
 use futures::StreamExt;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 /// Initial duration that the [`consume`] function should wait after disconnecting before attempting
 /// to re-initialise a [`MarketStream`]. This duration will increase exponentially as a result
@@ -78,7 +78,7 @@ where
                 // If Ok: send MarketEvent<T> to exchange receiver
                 Ok(market_event) => {
                     if let Err(_) = exchange_tx.send(market_event).map_err(|err| {
-                        error!(
+                        debug!(
                             payload = ?err.0,
                             why = "receiver dropped",
                             action = "shutting down Stream",
