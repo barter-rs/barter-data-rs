@@ -7,6 +7,7 @@ use crate::{
         trade::PublicTrade,
     },
 };
+use barter_integration::model::instrument::Instrument;
 use barter_integration::model::Exchange;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -37,7 +38,7 @@ impl<InstrumentId, T> FromIterator<Result<MarketEvent<InstrumentId, T>, DataErro
 /// - [`MarketEvent<OrderBookL1>`](OrderBookL1)
 /// - [`MarketEvent<DataKind>`](DataKind)
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
-pub struct MarketEvent<InstrumentId, T> {
+pub struct MarketEvent<InstrumentId = Instrument, T = DataKind> {
     pub exchange_time: DateTime<Utc>,
     pub received_time: DateTime<Utc>,
     pub exchange: Exchange,
