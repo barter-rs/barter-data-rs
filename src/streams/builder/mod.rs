@@ -1,9 +1,10 @@
 use super::{consumer::consume, Streams};
+use crate::exchange::Connector;
 use crate::{
     error::DataError,
     event::MarketEvent,
     exchange::{ExchangeId, StreamSelector},
-    subscription::{SubKind, Subscription},
+    subscription::{Subscription, SubscriptionKind},
     Identifier,
 };
 use barter_integration::model::instrument::Instrument;
@@ -13,19 +14,21 @@ use tokio::sync::mpsc;
 
 /// Defines the [`MultiStreamBuilder`](multi::MultiStreamBuilder) API for ergonomically
 /// initialising a common [`Streams<Output>`](Streams) from multiple
-/// [`StreamBuilder<SubKind>`](StreamBuilder)s.
+/// [`StreamBuilder<SubscriptionKind>`](StreamBuilder)s.
 pub mod multi;
+
+pub mod dynamic;
 
 /// Communicative type alias representing the [`Future`] result of a [`Subscription`] [`validate`]
 /// call generated whilst executing [`StreamBuilder::subscribe`].
 pub type SubscribeFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
-/// Builder to configure and initialise a [`Streams<MarketEvent<SubKind::Event>`](Streams) instance
-/// for a specific [`SubKind`].
+/// Builder to configure and initialise a [`Streams<MarketEvent<SubscriptionKind::Event>`](Streams) instance
+/// for a specific [`SubscriptionKind`].
 #[derive(Default)]
 pub struct StreamBuilder<Kind>
 where
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     pub channels: HashMap<ExchangeId, ExchangeChannel<MarketEvent<Instrument, Kind::Event>>>,
     pub futures: Vec<SubscribeFuture>,
@@ -33,10 +36,10 @@ where
 
 impl<Kind> Debug for StreamBuilder<Kind>
 where
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamBuilder<SubKind>")
+        f.debug_struct("StreamBuilder<SubscriptionKind>")
             .field("channels", &self.channels)
             .field("num_futures", &self.futures.len())
             .finish()
@@ -45,7 +48,7 @@ where
 
 impl<Kind> StreamBuilder<Kind>
 where
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     /// Construct a new [`Self`].
     pub fn new() -> Self {
@@ -74,7 +77,7 @@ where
         let mut subscriptions = subscriptions.into_iter().map(Sub::into).collect::<Vec<_>>();
 
         // Acquire channel Sender to send Market<Kind::Event> from consumer loop to user
-        // '--> Add ExchangeChannel Entry if this Exchange <--> SubKind combination is new
+        // '--> Add ExchangeChannel Entry if this Exchange <--> SubscriptionKind combination is new
         let exchange_tx = self.channels.entry(Exchange::ID).or_default().tx.clone();
 
         // Add Future that once awaited will yield the Result<(), SocketError> of subscribing
@@ -95,11 +98,11 @@ where
         self
     }
 
-    /// Spawn a [`MarketEvent<SubKind::Event>`](MarketEvent) consumer loop for each collection of
+    /// Spawn a [`MarketEvent<SubscriptionKind::Event>`](MarketEvent) consumer loop for each collection of
     /// [`Subscription`]s added to [`StreamBuilder`] via the
     /// [`subscribe()`](StreamBuilder::subscribe()) method.
     ///
-    /// Each consumer loop distributes consumed [`MarketEvent<SubKind::Event>s`](MarketEvent) to
+    /// Each consumer loop distributes consumed [`MarketEvent<SubscriptionKind::Event>s`](MarketEvent) to
     /// the [`Streams`] `HashMap` returned by this method.
     pub async fn init(self) -> Result<Streams<MarketEvent<Instrument, Kind::Event>>, DataError> {
         // Await Stream initialisation perpetual and ensure success
@@ -144,8 +147,7 @@ pub fn validate<Exchange, Kind>(
     subscriptions: &[Subscription<Exchange, Instrument, Kind>],
 ) -> Result<(), DataError>
 where
-    Exchange: StreamSelector<Instrument, Kind>,
-    Kind: SubKind,
+    Exchange: Connector,
 {
     // Ensure at least one Subscription has been provided
     if subscriptions.is_empty() {

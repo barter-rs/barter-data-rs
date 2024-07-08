@@ -1,7 +1,7 @@
 use crate::instrument::InstrumentData;
 use crate::{
     exchange::{subscription::ExchangeSub, Connector},
-    subscription::{Map, SubKind, Subscription, SubscriptionMeta},
+    subscription::{Map, Subscription, SubscriptionKind, SubscriptionMeta},
     Identifier,
 };
 use barter_integration::model::SubscriptionId;
@@ -17,7 +17,7 @@ pub trait SubscriptionMapper {
     where
         Exchange: Connector,
         Instrument: InstrumentData,
-        Kind: SubKind,
+        Kind: SubscriptionKind,
         Subscription<Exchange, Instrument, Kind>:
             Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
 }
@@ -33,7 +33,7 @@ impl SubscriptionMapper for WebSocketSubMapper {
     ) -> SubscriptionMeta<Instrument::Id>
     where
         Exchange: Connector,
-        Kind: SubKind,
+        Kind: SubscriptionKind,
         Instrument: InstrumentData,
         Subscription<Exchange, Instrument, Kind>:
             Identifier<Exchange::Channel> + Identifier<Exchange::Market>,

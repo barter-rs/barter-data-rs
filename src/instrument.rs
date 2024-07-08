@@ -1,6 +1,6 @@
 use barter_integration::model::instrument::kind::InstrumentKind;
 use barter_integration::model::instrument::Instrument;
-use derive_more::Display;
+use derive_more::{Constructor, Display};
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -22,6 +22,36 @@ where
 {
     type Id: Debug + Clone + Send + Sync;
     fn id(&self) -> &Self::Id;
+    fn kind(&self) -> InstrumentKind;
+}
+
+#[derive(
+    Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize, Constructor,
+)]
+pub struct KeyedInstrument<Id = InstrumentId> {
+    pub id: Id,
+    pub data: Instrument,
+}
+
+impl<Id> InstrumentData for KeyedInstrument<Id>
+where
+    Id: Debug + Clone + Send + Sync,
+{
+    type Id = Id;
+
+    fn id(&self) -> &Self::Id {
+        &self.id
+    }
+
+    fn kind(&self) -> InstrumentKind {
+        self.data.kind
+    }
+}
+
+impl<Id> AsRef<Instrument> for KeyedInstrument<Id> {
+    fn as_ref(&self) -> &Instrument {
+        &self.data
+    }
 }
 
 impl InstrumentData for Instrument {
@@ -29,6 +59,10 @@ impl InstrumentData for Instrument {
 
     fn id(&self) -> &Self::Id {
         self
+    }
+
+    fn kind(&self) -> InstrumentKind {
+        self.kind
     }
 }
 
@@ -44,5 +78,9 @@ impl InstrumentData for MarketInstrumentData {
 
     fn id(&self) -> &Self::Id {
         &self.id
+    }
+
+    fn kind(&self) -> InstrumentKind {
+        self.kind
     }
 }

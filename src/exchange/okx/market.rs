@@ -1,5 +1,5 @@
 use super::Okx;
-use crate::instrument::MarketInstrumentData;
+use crate::instrument::{KeyedInstrument, MarketInstrumentData};
 use crate::{subscription::Subscription, Identifier};
 use barter_integration::model::instrument::{
     kind::{InstrumentKind, OptionKind},
@@ -20,26 +20,13 @@ pub struct OkxMarket(pub String);
 
 impl<Kind> Identifier<OkxMarket> for Subscription<Okx, Instrument, Kind> {
     fn id(&self) -> OkxMarket {
-        use InstrumentKind::*;
-        let Instrument { base, quote, kind } = &self.instrument;
+        okx_market(&self.instrument)
+    }
+}
 
-        OkxMarket(match kind {
-            Spot => format!("{base}-{quote}").to_uppercase(),
-            Future(future) => {
-                format!("{base}-{quote}-{}", format_expiry(future.expiry)).to_uppercase()
-            }
-            Perpetual => format!("{base}-{quote}-SWAP").to_uppercase(),
-            Option(option) => format!(
-                "{base}-{quote}-{}-{}-{}",
-                format_expiry(option.expiry),
-                option.strike,
-                match option.kind {
-                    OptionKind::Call => "C",
-                    OptionKind::Put => "P",
-                },
-            )
-            .to_uppercase(),
-        })
+impl<Kind> Identifier<OkxMarket> for Subscription<Okx, KeyedInstrument, Kind> {
+    fn id(&self) -> OkxMarket {
+        okx_market(&self.instrument.data)
     }
 }
 
@@ -53,6 +40,27 @@ impl AsRef<str> for OkxMarket {
     fn as_ref(&self) -> &str {
         &self.0
     }
+}
+
+fn okx_market(instrument: &Instrument) -> OkxMarket {
+    use InstrumentKind::*;
+    let Instrument { base, quote, kind } = instrument;
+
+    OkxMarket(match kind {
+        Spot => format!("{base}-{quote}").to_uppercase(),
+        Future(future) => format!("{base}-{quote}-{}", format_expiry(future.expiry)).to_uppercase(),
+        Perpetual => format!("{base}-{quote}-SWAP").to_uppercase(),
+        Option(option) => format!(
+            "{base}-{quote}-{}-{}-{}",
+            format_expiry(option.expiry),
+            option.strike,
+            match option.kind {
+                OptionKind::Call => "C",
+                OptionKind::Put => "P",
+            },
+        )
+        .to_uppercase(),
+    })
 }
 
 /// Format the expiry DateTime<Utc> to be Okx API compatible.

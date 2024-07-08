@@ -49,8 +49,9 @@ pub struct MarketEvent<InstrumentId, T> {
 ///
 /// ### Notes
 /// - [`Self`] is only used as the [`MarketEvent<DataKind>`](MarketEvent) `Output` when combining
-///   several [`Streams<SubKind::Event>`](crate::streams::Streams) using the
-///   [`MultiStreamBuilder<Output>`](crate::streams::builder::multi::MultiStreamBuilder).
+///   several [`Streams<SubscriptionKind::Event>`](crate::streams::Streams) using the
+///   [`MultiStreamBuilder<Output>`](crate::streams::builder::multi::MultiStreamBuilder), or via
+///   the [`DynamicStreams::select_all`](crate::streams::builder::dynamic::DynamicStreams) method.
 /// - [`Self`] is purposefully not supported in any
 ///   [`Subscription`](crate::subscription::Subscription)s directly, it is only used to
 ///   make ergonomic [`Streams`](crate::streams::Streams) containing many

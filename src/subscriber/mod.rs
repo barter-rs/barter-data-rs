@@ -5,7 +5,7 @@ use self::{
 use crate::instrument::InstrumentData;
 use crate::{
     exchange::Connector,
-    subscription::{Map, SubKind, Subscription, SubscriptionMeta},
+    subscription::{Map, Subscription, SubscriptionKind, SubscriptionMeta},
     Identifier,
 };
 use async_trait::async_trait;
@@ -35,7 +35,7 @@ pub trait Subscriber {
     ) -> Result<(WebSocket, Map<Instrument::Id>), SocketError>
     where
         Exchange: Connector + Send + Sync,
-        Kind: SubKind + Send + Sync,
+        Kind: SubscriptionKind + Send + Sync,
         Instrument: InstrumentData,
         Subscription<Exchange, Instrument, Kind>:
             Identifier<Exchange::Channel> + Identifier<Exchange::Market>;
@@ -54,7 +54,7 @@ impl Subscriber for WebSocketSubscriber {
     ) -> Result<(WebSocket, Map<Instrument::Id>), SocketError>
     where
         Exchange: Connector + Send + Sync,
-        Kind: SubKind + Send + Sync,
+        Kind: SubscriptionKind + Send + Sync,
         Instrument: InstrumentData,
         Subscription<Exchange, Instrument, Kind>:
             Identifier<Exchange::Channel> + Identifier<Exchange::Market>,

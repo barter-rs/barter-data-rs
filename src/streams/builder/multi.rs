@@ -1,5 +1,7 @@
 use super::{ExchangeChannel, StreamBuilder, Streams};
-use crate::{error::DataError, event::MarketEvent, exchange::ExchangeId, subscription::SubKind};
+use crate::{
+    error::DataError, event::MarketEvent, exchange::ExchangeId, subscription::SubscriptionKind,
+};
 use barter_integration::model::instrument::Instrument;
 use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 
@@ -8,7 +10,7 @@ use std::{collections::HashMap, fmt::Debug, future::Future, pin::Pin};
 pub type BuilderInitFuture = Pin<Box<dyn Future<Output = Result<(), DataError>>>>;
 
 /// Builder to configure and initialise a common [`Streams<Output>`](Streams) instance from
-/// multiple [`StreamBuilder<SubKind>`](StreamBuilder)s.
+/// multiple [`StreamBuilder<SubscriptionKind>`](StreamBuilder)s.
 #[derive(Default)]
 pub struct MultiStreamBuilder<Output> {
     pub channels: HashMap<ExchangeId, ExchangeChannel<Output>>,
@@ -36,8 +38,8 @@ impl<Output> MultiStreamBuilder<Output> {
         }
     }
 
-    /// Add a [`StreamBuilder<SubKind>`](StreamBuilder) to the [`MultiStreamBuilder`]. Creates a
-    /// [`Future`] that calls [`StreamBuilder::init`] and maps the [`SubKind::Event`](SubKind)
+    /// Add a [`StreamBuilder<SubscriptionKind>`](StreamBuilder) to the [`MultiStreamBuilder`]. Creates a
+    /// [`Future`] that calls [`StreamBuilder::init`] and maps the [`SubscriptionKind::Event`](SubscriptionKind)
     /// into a common `Output`.
     ///
     /// Note that the created [`Future`] is not awaited until the [`MultiStreamBuilder::init`]
@@ -46,7 +48,7 @@ impl<Output> MultiStreamBuilder<Output> {
     pub fn add<Kind>(mut self, builder: StreamBuilder<Kind>) -> Self
     where
         Output: From<MarketEvent<Instrument, Kind::Event>> + Send + 'static,
-        Kind: SubKind + 'static,
+        Kind: SubscriptionKind + 'static,
         Kind::Event: Send,
     {
         // Allocate HashMap to hold the exchange_tx<Output> for each StreamBuilder exchange present
@@ -70,12 +72,12 @@ impl<Output> MultiStreamBuilder<Output> {
                 .into_iter()
                 .for_each(|(exchange, mut exchange_rx)| {
                     // Remove exchange_tx<Output> from HashMap that's associated with this tuple:
-                    // (ExchangeId, exchange_rx<MarketEvent<SubKind::Event>>)
+                    // (ExchangeId, exchange_rx<MarketEvent<SubscriptionKind::Event>>)
                     let exchange_tx = exchange_txs
                         .remove(&exchange)
                         .expect("all exchange_txs should be present here");
 
-                    // Task to receive MarketEvent<SubKind::Event> and send Outputs via exchange_tx
+                    // Task to receive MarketEvent<SubscriptionKind::Event> and send Outputs via exchange_tx
                     tokio::spawn(async move {
                         while let Some(event) = exchange_rx.recv().await {
                             let _ = exchange_tx.send(Output::from(event));
@@ -89,8 +91,8 @@ impl<Output> MultiStreamBuilder<Output> {
         self
     }
 
-    /// Initialise each [`StreamBuilder<SubKind>`](StreamBuilder) that was added to the
-    /// [`MultiStreamBuilder`] and map all [`Streams<SubKind::Event>`](Streams) into a common
+    /// Initialise each [`StreamBuilder<SubscriptionKind>`](StreamBuilder) that was added to the
+    /// [`MultiStreamBuilder`] and map all [`Streams<SubscriptionKind::Event>`](Streams) into a common
     /// [`Streams<Output>`](Streams).
     pub async fn init(self) -> Result<Streams<Output>, DataError> {
         // Await Stream initialisation perpetual and ensure success

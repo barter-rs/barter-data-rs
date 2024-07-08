@@ -46,9 +46,9 @@ arbitrary number of exchange `MarketStream`s using input `Subscription`s. Simply
 
 ### Supported Exchange Subscriptions
 
-|        Exchange         |         Constructor Code         |               InstrumentKinds               |                     SubKinds                     |
+|        Exchange         |         Constructor Code         |               InstrumentKinds               |                SubscriptionKinds                 |
 |:-----------------------:|:--------------------------------:|:-------------------------------------------:|:------------------------------------------------:|
-|     **BinanceSpot**     |     `BinanceSpot::default()`     |                    Spot                     | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |                                                              |
+|     **BinanceSpot**     |     `BinanceSpot::default()`     |                    Spot                     | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |
 |  **BinanceFuturesUsd**  |  `BinanceFuturesUsd::default()`  |                  Perpetual                  | PublicTrades <br> OrderBooksL1 <br> OrderBooksL2 |
 |      **Bitfinex**       |            `Bitfinex`            |                    Spot                     |                   PublicTrades                   |
 |       **Bitmex**        |             `Bitmex`             |                  Perpetual                  |                   PublicTrades                   |
@@ -166,11 +166,11 @@ Thanks in advance for helping to develop the Barter ecosystem! Please do get hes
 1. Add a new `Connector` trait implementation in src/exchange/<exchange_name>.mod.rs (eg/ see exchange::okx::Okx).
 2. Follow on from "Adding A New Subscription Kind For An Existing Exchange Connector" below!
 
-### Adding A New Subscription Kind For An Existing Exchange Connector
-1. Add a new `SubKind` trait implementation in src/subscription/<sub_kind_name>.rs (eg/ see subscription::trade::PublicTrades).
-2. Define the `SubKind::Event` data model (eg/ see subscription::trade::PublicTrade).
-3. Define the `MarketStream` type the exchange `Connector` will initialise for the new `SubKind`: <br>
-   ie/ `impl StreamSelector<SubKind> for <ExistingExchangeConnector> { ... }`
+### Adding A New SubscriptionKind For An Existing Exchange Connector
+1. Add a new `SubscriptionKind` trait implementation in src/subscription/<sub_kind_name>.rs (eg/ see subscription::trade::PublicTrades).
+2. Define the `SubscriptionKind::Event` data model (eg/ see subscription::trade::PublicTrade).
+3. Define the `MarketStream` type the exchange `Connector` will initialise for the new `SubscriptionKind`: <br>
+   ie/ `impl StreamSelector<SubscriptionKind> for <ExistingExchangeConnector> { ... }`
 4. Try to compile and follow the remaining steps!
 5. Add a barter-data-rs/examples/<sub_kind_name>_streams.rs example in the standard format :)
 

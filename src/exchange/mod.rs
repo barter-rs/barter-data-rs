@@ -1,8 +1,9 @@
 use self::subscription::ExchangeSub;
 use crate::instrument::InstrumentData;
+use crate::subscription::SubKind;
 use crate::{
     subscriber::{validator::SubscriptionValidator, Subscriber},
-    subscription::{Map, SubKind},
+    subscription::{Map, SubscriptionKind},
     MarketStream,
 };
 use barter_integration::{
@@ -50,16 +51,16 @@ pub mod subscription;
 pub const DEFAULT_SUBSCRIPTION_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Defines the [`MarketStream`] kind associated with an exchange
-/// [`Subscription`](subscription::Subscription) [`SubKind`].
+/// [`Subscription`](subscription::Subscription) [`SubscriptionKind`].
 ///
 /// ### Notes
 /// Must be implemented by an exchange [`Connector`] if it supports a specific
-/// [`SubKind`].
+/// [`SubscriptionKind`].
 pub trait StreamSelector<Instrument, Kind>
 where
     Self: Connector,
     Instrument: InstrumentData,
-    Kind: SubKind,
+    Kind: SubscriptionKind,
 {
     type Stream: MarketStream<Self, Instrument, Kind>;
 }
@@ -221,10 +222,36 @@ impl ExchangeId {
         }
     }
 
+    pub fn supports(&self, instrument_kind: InstrumentKind, sub_kind: SubKind) -> bool {
+        use crate::subscription::SubKind::*;
+        use ExchangeId::*;
+        use InstrumentKind::*;
+
+        match (self, instrument_kind, sub_kind) {
+            (BinanceSpot, Spot, PublicTrades | OrderBooksL1) => true,
+            (BinanceFuturesUsd, Perpetual, PublicTrades | OrderBooksL1 | Liquidations) => true,
+            (Bitfinex, Spot, PublicTrades) => true,
+            (Bitmex, Perpetual, PublicTrades) => true,
+            (BybitSpot, Spot, PublicTrades) => true,
+            (BybitPerpetualsUsd, Perpetual, PublicTrades) => true,
+            (Coinbase, Spot, PublicTrades) => true,
+            (GateioSpot, Spot, PublicTrades) => true,
+            (GateioFuturesUsd, Future(_), PublicTrades) => true,
+            (GateioFuturesBtc, Future(_), PublicTrades) => true,
+            (GateioPerpetualsUsd, Perpetual, PublicTrades) => true,
+            (GateioPerpetualsBtc, Perpetual, PublicTrades) => true,
+            (GateioOptions, Option(_), PublicTrades) => true,
+            (Kraken, Spot, PublicTrades | OrderBooksL1) => true,
+            (Okx, Spot | Future(_) | Perpetual | Option(_), PublicTrades) => true,
+
+            (_, _, _) => false,
+        }
+    }
+
     /// Determines whether the [`Connector`] associated with this [`ExchangeId`] supports the
     /// ingestion of market data for the provided [`InstrumentKind`].
     #[allow(clippy::match_like_matches_macro)]
-    pub fn supports(&self, instrument_kind: InstrumentKind) -> bool {
+    pub fn supports_instrument_kind(&self, instrument_kind: InstrumentKind) -> bool {
         use ExchangeId::*;
         use InstrumentKind::*;
 

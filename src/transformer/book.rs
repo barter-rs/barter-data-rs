@@ -2,7 +2,7 @@ use crate::{
     error::DataError,
     event::{MarketEvent, MarketIter},
     exchange::Connector,
-    subscription::{book::OrderBook, Map, SubKind},
+    subscription::{book::OrderBook, Map, SubscriptionKind},
     transformer::ExchangeTransformer,
     Identifier,
 };
@@ -66,7 +66,7 @@ impl<Exchange, Kind, Updater> ExchangeTransformer<Exchange, Instrument, Kind>
     for MultiBookTransformer<Exchange, Instrument, Kind, Updater>
 where
     Exchange: Connector + Send,
-    Kind: SubKind<Event = OrderBook> + Send,
+    Kind: SubscriptionKind<Event = OrderBook> + Send,
     Updater: OrderBookUpdater<OrderBook = Kind::Event> + Send,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {
@@ -110,7 +110,7 @@ impl<Exchange, InstrumentId, Kind, Updater> Transformer
 where
     Exchange: Connector,
     InstrumentId: Clone,
-    Kind: SubKind<Event = OrderBook>,
+    Kind: SubscriptionKind<Event = OrderBook>,
     Updater: OrderBookUpdater<OrderBook = Kind::Event>,
     Updater::Update: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
 {

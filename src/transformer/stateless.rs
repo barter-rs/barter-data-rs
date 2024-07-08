@@ -3,7 +3,7 @@ use crate::{
     error::DataError,
     event::{MarketEvent, MarketIter},
     exchange::{Connector, ExchangeId},
-    subscription::{Map, SubKind},
+    subscription::{Map, SubscriptionKind},
     Identifier,
 };
 use async_trait::async_trait;
@@ -28,7 +28,7 @@ impl<Exchange, InstrumentId, Kind, Input> ExchangeTransformer<Exchange, Instrume
 where
     Exchange: Connector + Send,
     InstrumentId: Clone + Send,
-    Kind: SubKind + Send,
+    Kind: SubscriptionKind + Send,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<InstrumentId, Kind::Event>: From<(ExchangeId, InstrumentId, Input)>,
 {
@@ -48,7 +48,7 @@ impl<Exchange, InstrumentId, Kind, Input> Transformer
 where
     Exchange: Connector,
     InstrumentId: Clone,
-    Kind: SubKind,
+    Kind: SubscriptionKind,
     Input: Identifier<Option<SubscriptionId>> + for<'de> Deserialize<'de>,
     MarketIter<InstrumentId, Kind::Event>: From<(ExchangeId, InstrumentId, Input)>,
 {

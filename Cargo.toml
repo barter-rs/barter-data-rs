@@ -1,6 +1,6 @@
 [package]
 name = "barter-data"
-version = "0.7.1"
+version = "0.8.0"
 authors = ["JustAStream"]
 edition = "2021"
 license = "MIT"
@@ -47,3 +47,5 @@ ta = "0.5.0"
 # Misc
 chrono = { version = "0.4.21", features = ["serde"]}
 derive_more = "0.99.17"
+itertools = "0.13.0"
+vecmap-rs = "0.2.1"
